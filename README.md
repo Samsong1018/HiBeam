@@ -12,5 +12,9 @@ Build a skeleton code template lean enough to be clear but flexible enough to su
 Build any app but show us a haunting user interface that’s polished and unforgettable. Bring in spooky design elements that enhance your app’s function.
 
 ## Ideas
+ -[ ] clippy MCP
+ -[ ] haunted dashboard for some form of metrics?? (costume party and or skeleton crew)
+ -[ ] tamagotchi for your repos (feed it commits or lines of code or something)
+ -[ ] video game engine 
 
 ## TODO
