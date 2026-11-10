@@ -1,9 +1,13 @@
 <!DOCTYPE html>
 <html lang="en">
     <head>
+        <script src="../scripts/theme.js"></script>
         <meta charset="UTF-8">
         <meta name="viewport" content="width=device-width, initial-scale=1">
-        <title>DashGen</title>
+        <title>Account · DashGen</title>
+        <link rel="preconnect" href="https://fonts.googleapis.com">
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400..600&family=JetBrains+Mono:wght@400..600&family=Work+Sans:wght@400..600&display=swap">
         <link rel="stylesheet" href="../style/style.css">
         <link rel="stylesheet" href="../style/general.css">
         <link rel="stylesheet" href="../style/accounts.css">
@@ -21,9 +25,288 @@
             </nav>
         </header>
 
-        <main>
+        <main class="account">
 
+            <!-- ACCOUNT HERO -->
+            <section class="account-hero" aria-labelledby="account-heading">
+                <div class="avatar avatar-lg" data-avatar aria-hidden="true">
+                    <img data-avatar-img alt="" hidden>
+                    <span data-avatar-initials>EA</span>
+                </div>
+                <div class="account-hero-text">
+                    <span class="eyebrow">Account</span>
+                    <h1 id="account-heading" data-display-name>Example Account</h1>
+                    <p class="account-hero-meta">
+                        <span data-username>@example_user</span>
+                        <span aria-hidden="true">·</span>
+                        <span>Member since Nov 2026</span>
+                    </p>
+                </div>
+                <dl class="account-stats">
+                    <div><dt>Dashboards</dt><dd>4</dd></div>
+                    <div><dt>Sources</dt><dd data-source-count>0</dd></div>
+                    <div><dt>Last login</dt><dd>Today</dd></div>
+                </dl>
+            </section>
+
+            <div class="account-layout">
+
+                <!-- IN-PAGE NAV -->
+                <nav class="account-toc" aria-label="Account sections">
+                    <ol>
+                        <li><a href="#profile"><span>01</span>Profile</a></li>
+                        <li><a href="#security"><span>02</span>Security</a></li>
+                        <li><a href="#sources"><span>03</span>Sources</a></li>
+                        <li><a href="#preferences"><span>04</span>Preferences</a></li>
+                        <li><a href="#danger"><span>05</span>Danger zone</a></li>
+                    </ol>
+                </nav>
+
+                <div class="account-sections">
+
+                    <!-- 01 PROFILE -->
+                    <section class="panel" id="profile" aria-labelledby="profile-heading">
+                        <header class="panel-head">
+                            <span class="section-num">01</span>
+                            <h2 id="profile-heading">Profile</h2>
+                            <p>How you show up on shared dashboards.</p>
+                        </header>
+
+                        <form class="panel-body" id="profile-form" novalidate>
+                            <div class="avatar-row">
+                                <div class="avatar" data-avatar aria-hidden="true">
+                                    <img data-avatar-img alt="" hidden>
+                                    <span data-avatar-initials>EA</span>
+                                </div>
+                                <div class="avatar-actions">
+                                    <label class="btn btn-ghost" for="avatar-input">Upload photo</label>
+                                    <input class="visually-hidden" type="file" id="avatar-input" accept="image/png, image/jpeg, image/webp">
+                                    <button class="btn btn-ghost" type="button" id="avatar-remove">Remove</button>
+                                    <p class="field-hint">PNG, JPG or WebP, under 2 MB.</p>
+                                    <p class="field-error" id="avatar-error" role="alert"></p>
+                                </div>
+                            </div>
+
+                            <div class="field-grid">
+                                <div class="field">
+                                    <label for="display-name">Display name</label>
+                                    <input type="text" id="display-name" name="displayName" value="Example Account" maxlength="50" required autocomplete="name">
+                                    <p class="field-error" data-error-for="display-name"></p>
+                                </div>
+                                <div class="field">
+                                    <label for="username">Username</label>
+                                    <input type="text" id="username" name="username" value="example_user" maxlength="24" pattern="[a-z0-9_]{3,24}" required autocomplete="username">
+                                    <p class="field-hint">3–24 characters: lowercase letters, numbers, underscores.</p>
+                                    <p class="field-error" data-error-for="username"></p>
+                                </div>
+                                <div class="field field-wide">
+                                    <label for="current-email">Email</label>
+                                    <input type="email" id="current-email" value="you@example.com" readonly>
+                                    <p class="field-hint">Change it under <a href="#security">Security</a>.</p>
+                                </div>
+                            </div>
+
+                            <div class="panel-actions">
+                                <button class="btn btn-primary" type="submit">Save profile</button>
+                            </div>
+                        </form>
+                    </section>
+
+                    <!-- 02 SECURITY -->
+                    <section class="panel" id="security" aria-labelledby="security-heading">
+                        <header class="panel-head">
+                            <span class="section-num">02</span>
+                            <h2 id="security-heading">Security</h2>
+                            <p>Password and sign-in email.</p>
+                        </header>
+
+                        <form class="panel-body" id="password-form" novalidate>
+                            <h3 class="subhead">Change password</h3>
+                            <div class="field-grid">
+                                <div class="field field-wide">
+                                    <label for="current-password">Current password</label>
+                                    <input type="password" id="current-password" name="currentPassword" required autocomplete="current-password">
+                                    <p class="field-error" data-error-for="current-password"></p>
+                                </div>
+                                <div class="field">
+                                    <label for="new-password">New password</label>
+                                    <div class="input-with-action">
+                                        <input type="password" id="new-password" name="newPassword" minlength="10" required autocomplete="new-password" aria-describedby="strength-label">
+                                        <button type="button" class="input-action" data-toggle-password="new-password" aria-label="Show password" aria-pressed="false">Show</button>
+                                    </div>
+                                    <div class="strength" data-strength="0" aria-hidden="true"><span></span><span></span><span></span><span></span></div>
+                                    <p class="field-hint" id="strength-label">At least 10 characters.</p>
+                                    <p class="field-error" data-error-for="new-password"></p>
+                                </div>
+                                <div class="field">
+                                    <label for="confirm-password">Confirm new password</label>
+                                    <input type="password" id="confirm-password" name="confirmPassword" required autocomplete="new-password">
+                                    <p class="field-error" data-error-for="confirm-password"></p>
+                                </div>
+                            </div>
+                            <div class="panel-actions">
+                                <a class="muted-link" href="login.html">Forgot your password?</a>
+                                <button class="btn btn-primary" type="submit">Update password</button>
+                            </div>
+                        </form>
+
+                        <form class="panel-body panel-body-split" id="email-form" novalidate>
+                            <h3 class="subhead">Change email</h3>
+                            <div class="field-grid">
+                                <div class="field">
+                                    <label for="new-email">New email</label>
+                                    <input type="email" id="new-email" name="newEmail" required autocomplete="email">
+                                    <p class="field-error" data-error-for="new-email"></p>
+                                </div>
+                                <div class="field">
+                                    <label for="email-password">Current password</label>
+                                    <input type="password" id="email-password" name="password" required autocomplete="current-password">
+                                    <p class="field-error" data-error-for="email-password"></p>
+                                </div>
+                            </div>
+                            <div class="panel-actions">
+                                <p class="field-hint">We'll send a confirmation link to the new address.</p>
+                                <button class="btn btn-primary" type="submit">Send confirmation</button>
+                            </div>
+                        </form>
+                    </section>
+
+                    <!-- 03 CONNECTED SOURCES -->
+                    <section class="panel" id="sources" aria-labelledby="sources-heading">
+                        <header class="panel-head panel-head-row">
+                            <div>
+                                <span class="section-num">03</span>
+                                <h2 id="sources-heading">Connected sources</h2>
+                                <p>Where your dashboards pull data from.</p>
+                            </div>
+                            <button class="btn btn-primary" type="button" id="add-source-btn">+ Add source</button>
+                        </header>
+
+                        <ul class="source-list" id="source-list" aria-live="polite"></ul>
+                        <p class="empty-state" id="source-empty" hidden>No sources yet. Add one to start building dashboards.</p>
+                    </section>
+
+                    <!-- 04 PREFERENCES -->
+                    <section class="panel" id="preferences" aria-labelledby="preferences-heading">
+                        <header class="panel-head">
+                            <span class="section-num">04</span>
+                            <h2 id="preferences-heading">Preferences</h2>
+                            <p>Defaults for new dashboards.</p>
+                        </header>
+
+                        <form class="panel-body" id="preferences-form" novalidate>
+                            <fieldset class="field">
+                                <legend class="field-label">Theme</legend>
+                                <div class="segmented" role="radiogroup">
+                                    <label><input type="radio" name="theme" value="system" checked><span>System</span></label>
+                                    <label><input type="radio" name="theme" value="light"><span>Light</span></label>
+                                    <label><input type="radio" name="theme" value="dark"><span>Dark</span></label>
+                                </div>
+                            </fieldset>
+
+                            <div class="field-grid">
+                                <div class="field">
+                                    <label for="default-chart">Default chart</label>
+                                    <select id="default-chart" name="defaultChart">
+                                        <option value="line">Line</option>
+                                        <option value="bar">Bar</option>
+                                        <option value="area">Area</option>
+                                        <option value="number">Big number</option>
+                                    </select>
+                                </div>
+                                <div class="field">
+                                    <label for="refresh-rate">Refresh data every</label>
+                                    <select id="refresh-rate" name="refreshRate">
+                                        <option value="0">Manual only</option>
+                                        <option value="60">1 minute</option>
+                                        <option value="300" selected>5 minutes</option>
+                                        <option value="3600">1 hour</option>
+                                    </select>
+                                </div>
+                            </div>
+
+                            <div class="panel-actions">
+                                <button class="btn btn-primary" type="submit">Save preferences</button>
+                            </div>
+                        </form>
+                    </section>
+
+                    <!-- 05 DANGER ZONE -->
+                    <section class="panel panel-danger" id="danger" aria-labelledby="danger-heading">
+                        <header class="panel-head">
+                            <span class="section-num">05</span>
+                            <h2 id="danger-heading">Danger zone</h2>
+                            <p>These can't be undone.</p>
+                        </header>
+
+                        <div class="danger-row">
+                            <div>
+                                <h3 class="subhead">Sign out everywhere</h3>
+                                <p class="field-hint">Ends every session, including this one.</p>
+                            </div>
+                            <button class="btn btn-ghost" type="button" id="signout-all-btn">Sign out all devices</button>
+                        </div>
+                        <div class="danger-row">
+                            <div>
+                                <h3 class="subhead">Delete account</h3>
+                                <p class="field-hint">Removes your account, dashboards and connected sources.</p>
+                            </div>
+                            <button class="btn btn-danger" type="button" id="delete-account-btn">Delete account</button>
+                        </div>
+                    </section>
+
+                </div>
+            </div>
         </main>
+
+        <!-- ADD SOURCE DIALOG -->
+        <dialog class="modal" id="source-dialog" aria-labelledby="source-dialog-title">
+            <form class="modal-body" id="source-form" method="dialog" novalidate>
+                <h2 id="source-dialog-title">Add a source</h2>
+                <div class="field">
+                    <label for="source-name">Name</label>
+                    <input type="text" id="source-name" name="name" maxlength="40" required placeholder="Sales database">
+                    <p class="field-error" data-error-for="source-name"></p>
+                </div>
+                <div class="field">
+                    <label for="source-type">Type</label>
+                    <select id="source-type" name="type">
+                        <option value="MySQL">MySQL</option>
+                        <option value="REST API">REST API</option>
+                        <option value="CSV upload">CSV upload</option>
+                        <option value="Google Sheets">Google Sheets</option>
+                    </select>
+                </div>
+                <div class="field">
+                    <label for="source-key">API key or connection string</label>
+                    <input type="password" id="source-key" name="key" required autocomplete="off">
+                    <p class="field-hint">Stored on the server. You'll only see the last 4 characters after this.</p>
+                    <p class="field-error" data-error-for="source-key"></p>
+                </div>
+                <div class="modal-actions">
+                    <button class="btn btn-ghost" type="button" data-close-dialog>Cancel</button>
+                    <button class="btn btn-primary" type="submit">Connect</button>
+                </div>
+            </form>
+        </dialog>
+
+        <!-- DELETE ACCOUNT DIALOG -->
+        <dialog class="modal" id="delete-dialog" aria-labelledby="delete-dialog-title">
+            <form class="modal-body" id="delete-form" method="dialog" novalidate>
+                <h2 id="delete-dialog-title">Delete your account?</h2>
+                <p>Your dashboards and connected sources are deleted for good. Type <strong>DELETE</strong> to confirm.</p>
+                <div class="field">
+                    <label for="delete-confirm">Confirmation</label>
+                    <input type="text" id="delete-confirm" autocomplete="off" spellcheck="false">
+                </div>
+                <div class="modal-actions">
+                    <button class="btn btn-ghost" type="button" data-close-dialog>Cancel</button>
+                    <button class="btn btn-danger" type="submit" id="delete-confirm-btn" disabled>Delete forever</button>
+                </div>
+            </form>
+        </dialog>
+
+        <div class="toast" id="toast" role="status" aria-live="polite"></div>
 
         <!-- Shared footer: copy this <footer> to every page -->
         <footer class="site-footer">

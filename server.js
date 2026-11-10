@@ -24,6 +24,47 @@ _app.get(`/`,
         pResponse.sendFile(libPath.join(__dirname, `Web`, `./frontend/index.html`));
     });
 
+/*
+    if you get a chance could you move your server stuff
+    to the backend folder for organization and so that when 
+    I go to host it I dont have to shift stuff around
+
+    ENDPOINTS TO BUILD
+
+    Auth
+    POST    /api/auth/signup
+    POST    /api/auth/login
+    POST    /api/auth/logout
+    POST    /api/auth/forgot-password
+    POST    /api/auth/reset-password
+
+    Account
+    GET     /api/account
+    PATCH   /api/account/profile
+    PUT     /api/account/avatar
+    DELETE  /api/account/avatar
+    POST    /api/account/password
+    POST    /api/account/email
+    GET     /api/account/email/confirm
+    PATCH   /api/account/preferences
+    POST    /api/account/sessions/revoke-all
+    DELETE  /api/account
+
+    Sources
+    GET     /api/sources
+    POST    /api/sources
+    DELETE  /api/sources/:id
+    POST    /api/sources/:id/test
+
+    Dashboards
+    GET     /api/dashboards
+    POST    /api/dashboards
+    GET     /api/dashboards/:id
+    PATCH   /api/dashboards/:id
+    DELETE  /api/dashboards/:id
+    GET     /api/dashboards/:id/data
+*/
+
 _app.listen(_serverPort, () =>
 {
     console.log(`server is listening on port ${_serverPort}`);
