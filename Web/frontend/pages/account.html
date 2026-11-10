@@ -2,18 +2,22 @@
 <html lang="en">
     <head>
         <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
         <title>DashGen</title>
-        <link rel="stylesheet" href="style/style.css">
+        <link rel="stylesheet" href="../style/style.css">
+        <link rel="stylesheet" href="../style/general.css">
+        <link rel="stylesheet" href="../style/accounts.css">
     </head>
     <body>
-        <header>
-            <nav>
-                <h4>
-                    Dashboard Gen
-                </h4>
-                <button type="button">Account</button>
-                <button type="button">Dashboards</button>
-                <button type="button">Sign Out</button>
+        <!-- Shared nav: copy this <header> to every page -->
+        <header class="site-header">
+            <nav class="site-nav" aria-label="Main navigation">
+                <a class="site-logo" href="home.html">Dashboard Gen</a>
+                <ul class="nav-links">
+                    <li><a href="home.html">Dashboards</a></li>
+                    <li><a href="account.html" aria-current="page">Account</a></li>
+                    <li><button type="button" class="nav-signout">Sign Out</button></li>
+                </ul>
             </nav>
         </header>
 
@@ -21,9 +25,17 @@
 
         </main>
 
-        <footer>
+        <!-- Shared footer: copy this <footer> to every page -->
+        <footer class="site-footer">
+            <p class="footer-brand">Dashboard Gen</p>
+            <ul class="footer-links">
+                <li><a href="home.html">Dashboards</a></li>
+                <li><a href="account.html">Account</a></li>
+            </ul>
+            <p class="footer-copy">&copy; 2026 Dashboard Gen</p>
         </footer>
 
-        <script src="scripts/script.js" defer></script>
+        <script src="../scripts/script.js" defer></script>
+        <script src="../scripts/accounts.js" defer></script>
     </body>
 </html>
