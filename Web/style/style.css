@@ -1,0 +1,61 @@
+/* Reset */
+*,
+*::before,
+*::after {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+}
+
+/* Tokens */
+:root {
+    --color-bg: #ffffff;
+    --color-text: #1a1a1a;
+    --color-accent: #ff7518;
+    --space: 1rem;
+    --max-width: 1200px;
+}
+
+body {
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    font-family: system-ui, sans-serif;
+    line-height: 1.5;
+    background: var(--color-bg);
+    color: var(--color-text);
+}
+
+header,
+main,
+footer {
+    width: 100%;
+    max-width: var(--max-width);
+    margin: 0 auto;
+    padding: var(--space);
+}
+
+header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+nav ul {
+    display: flex;
+    gap: var(--space);
+    list-style: none;
+}
+
+a {
+    color: var(--color-accent);
+}
+
+main {
+    flex: 1;
+}
+
+img {
+    max-width: 100%;
+    display: block;
+}
