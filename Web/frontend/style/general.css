@@ -1,0 +1,12 @@
+/*
+Use this file for anything that appears on all or most the pages
+nav bar
+footer
+*/
+
+nav {
+    width: 100%;
+    height: 4vh;
+    display: grid;
+    grid-template-columns: 4fr, 1fr, 1fr, 1fr;
+}
