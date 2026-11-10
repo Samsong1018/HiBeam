@@ -4,7 +4,8 @@
   "description": "dashboard generator/manager",
   "main": "index.js",
   "scripts": {
-    "test": "npm run serve"
+    "serve": "node ./server.js",
+    "test": "test"
   },
   "repository": {
     "type": "git",

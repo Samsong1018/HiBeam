@@ -3,8 +3,6 @@ const libPath = require("path");
 const libExpress = require("express");
 const libMySQL = require("mysql");
 
-const _port = 8000;
-
 // connect to the mysql database
 const _connection = _mysql.createConnection({
     host : process.env.DB_HOST,
@@ -24,6 +22,11 @@ _app.get(`/`,
     {
         pResponse.sendFile(libPath.join(__dirname, `frontend`, `/index.html`));
     });
+
+_app.listen(process.env.DB_PORT, () =>
+{
+    console.log('server is listening');
+});
 
 
 
