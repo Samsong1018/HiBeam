@@ -1,0 +1,26 @@
+{
+  "name": "dashgen",
+  "version": "1.0.0",
+  "description": "dashboard generator/manager",
+  "main": "index.js",
+  "scripts": {
+    "serve": "node ./server.js",
+    "test": "test"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Samsong1018/KiroweenHackathon.git"
+  },
+  "author": "Aesop, Alex, Amos",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/Samsong1018/KiroweenHackathon/issues"
+  },
+  "homepage": "https://github.com/Samsong1018/KiroweenHackathon#readme",
+  "dependencies": {
+    "dotenv": "^18.0.10",
+    "express": "^5.3.0",
+    "mysql": "^2.18.1",
+    "path": "^0.12.7"
+  }
+}
