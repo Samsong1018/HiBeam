@@ -2,9 +2,10 @@
 const libPath = require("path");
 const libExpress = require("express");
 const libMySQL = require("mysql");
+const _serverPort = 8000;
 
 // connect to the mysql database
-const _connection = _mysql.createConnection({
+const _connection = libMySQL.createConnection({
     host : process.env.DB_HOST,
     user : process.env.DB_USER,
     password: process.env.DB_PASSWORD,
@@ -12,20 +13,20 @@ const _connection = _mysql.createConnection({
 });
 
 // use express, set up path
-const _app = express();
-_app.use(express.json());
-_app.use(express.static(libPath.join(__dirname, `frontend`)));
+const _app = libExpress();
+_app.use(libExpress.json());
+_app.use(libExpress.static(libPath.join(__dirname, `./Web/frontend`)));
 
 // basic get endpoint, it should send you directly to the index.html page
 _app.get(`/`,
     (pRequest, pResponse) =>
     {
-        pResponse.sendFile(libPath.join(__dirname, `frontend`, `/index.html`));
+        pResponse.sendFile(libPath.join(__dirname, `Web`, `./frontend/index.html`));
     });
 
-_app.listen(process.env.DB_PORT, () =>
+_app.listen(_serverPort, () =>
 {
-    console.log('server is listening');
+    console.log(`server is listening on port ${_serverPort}`);
 });
 
 
