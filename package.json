@@ -5,7 +5,7 @@
   "main": "index.js",
   "scripts": {
     "serve": "node ./server.js",
-    "test": "test"
+    "test": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON --test tests/*.test.mjs"
   },
   "repository": {
     "type": "git",

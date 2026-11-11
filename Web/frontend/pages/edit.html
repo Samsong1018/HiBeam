@@ -5,15 +5,18 @@
         <!-- This is the page for editing the dashboards-->
 
         <meta charset="UTF-8">
-        <title>DashGen</title>
+        <title>Edit dashboard · DashGen</title>
         <meta name="viewport" content="width=device-width, initial-scale=1">
         <link rel="preconnect" href="https://fonts.googleapis.com">
         <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
         <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400..600&family=JetBrains+Mono:wght@400..600&family=Work+Sans:wght@400..600&display=swap">
+        <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/gridstack@12.6.0/dist/gridstack.min.css"
+              integrity="sha384-v0+pyCGvaIDMe1HS4sAK/N5W4dvvEUFvTvAW9CmGumaXgHxaYO56Ow3DULWhd/kO" crossorigin="anonymous">
         <link rel="stylesheet" href="../style/style.css">
         <link rel="stylesheet" href="../style/general.css">
+        <link rel="stylesheet" href="../style/edit.css">
     </head>
-    <body>
+    <body class="page-editor">
         <!-- Shared nav: copy this <header> to every page -->
         <header class="site-header">
             <nav class="site-nav" aria-label="Main navigation">
@@ -26,20 +29,93 @@
             </nav>
         </header>
 
-        <main>
+        <!-- No footer on this page: the editor fills the viewport like an app -->
+        <main class="editor" id="editor">
+            <!-- ========== TOOLBAR ========== -->
+            <div class="editor-toolbar" role="toolbar" aria-label="Dashboard actions">
+                <a class="toolbar-back" href="home.html" aria-label="Back to dashboards">&larr;</a>
+                <div class="toolbar-title">
+                    <label class="visually-hidden" for="dash-name">Dashboard name</label>
+                    <input id="dash-name" class="dash-name" type="text" maxlength="80" autocomplete="off" spellcheck="false">
+                    <p class="save-status" id="save-status" role="status" aria-live="polite" data-state="saved">All changes saved</p>
+                </div>
 
+                <div class="toolbar-group">
+                    <button class="icon-btn" id="undo-btn" type="button" aria-label="Undo" title="Undo (Ctrl+Z)" disabled>
+                        <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 14 4 9l5-5"/><path d="M4 9h11a5 5 0 0 1 0 10h-3"/></svg>
+                    </button>
+                    <button class="icon-btn" id="redo-btn" type="button" aria-label="Redo" title="Redo (Ctrl+Shift+Z)" disabled>
+                        <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="m15 14 5-5-5-5"/><path d="M20 9H9a5 5 0 0 0 0 10h3"/></svg>
+                    </button>
+                </div>
+
+                <div class="toolbar-group">
+                    <a class="btn btn-ghost" id="preview-link" aria-disabled="true">Preview</a>
+                    <button class="btn btn-primary" id="save-btn" type="button" title="Save (Ctrl+S)">Save</button>
+                </div>
+            </div>
+
+            <!-- ========== LEFT · components + sources ========== -->
+            <aside class="editor-side" aria-label="Components and sources">
+                <section class="side-section" aria-labelledby="palette-title">
+                    <h2 class="side-heading" id="palette-title"><span>01</span> Components</h2>
+                    <p class="side-hint">Drag onto the canvas, or click to add.</p>
+                    <ul class="palette" id="palette"></ul>
+                </section>
+
+                <section class="side-section" aria-labelledby="sources-title">
+                    <div class="side-heading-row">
+                        <h2 class="side-heading" id="sources-title"><span>02</span> Sources</h2>
+                        <button class="side-add" id="add-source-btn" type="button">+ Add</button>
+                    </div>
+                    <ul class="side-sources" id="source-list">
+                        <li class="side-empty">Loading sources…</li>
+                    </ul>
+                </section>
+            </aside>
+
+            <!-- ========== CANVAS ========== -->
+            <section class="editor-canvas" aria-label="Dashboard canvas">
+                <div class="canvas-scroll" id="canvas-scroll">
+                    <div class="grid-stack" id="grid"></div>
+                </div>
+            </section>
+
+            <!-- ========== RIGHT · inspector ========== -->
+            <aside class="editor-inspector" id="inspector" aria-label="Settings"></aside>
         </main>
 
-        <!-- Shared footer: copy this <footer> to every page -->
-        <footer class="site-footer">
-            <p class="footer-brand">Dashboard Gen</p>
-            <ul class="footer-links">
-                <li><a href="home.html">Dashboards</a></li>
-                <li><a href="account.html">Account</a></li>
-            </ul>
-            <p class="footer-copy">&copy; 2026 Dashboard Gen</p>
-        </footer>
+        <!-- ========== CONNECT A SOURCE ========== -->
+        <dialog class="modal modal-wide" id="source-dialog" aria-labelledby="source-dialog-title">
+            <form class="modal-body" id="source-form" novalidate>
+                <div>
+                    <p class="eyebrow">New source</p>
+                    <h2 id="source-dialog-title">Connect a source</h2>
+                </div>
+                <div class="field">
+                    <label for="source-name">Name</label>
+                    <input id="source-name" name="name" type="text" maxlength="60" placeholder="e.g. Production API logs" autocomplete="off" required>
+                    <p class="field-error" data-error-for="source-name"></p>
+                </div>
+                <fieldset class="field">
+                    <legend class="field-label">Type</legend>
+                    <div class="type-grid" id="source-type-group"></div>
+                </fieldset>
+                <div class="source-fields" id="source-fields"></div>
+                <div class="modal-actions">
+                    <button class="btn btn-ghost" type="button" data-close-dialog>Cancel</button>
+                    <button class="btn btn-primary" type="submit">Connect</button>
+                </div>
+            </form>
+        </dialog>
 
+        <div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+        <script src="https://cdn.jsdelivr.net/npm/chart.js@4.5.1/dist/chart.umd.min.js"
+                integrity="sha384-jb8JQMbMoBUzgWatfe6COACi2ljcDdZQ2OxczGA3bGNeWe+6DChMTBJemed7ZnvJ" crossorigin="anonymous"></script>
+        <script src="https://cdn.jsdelivr.net/npm/gridstack@12.6.0/dist/gridstack-all.js"
+                integrity="sha384-1/7H0y8C8vVEG2on7YuZQxUTtB+qMc+96SMFWVVl+0T6UVSVkgHg16yRwYVTFFoP" crossorigin="anonymous"></script>
         <script src="../scripts/script.js" defer></script>
+        <script type="module" src="../scripts/editor/main.js"></script>
     </body>
 </html>

@@ -55,6 +55,7 @@ _app.get(`/`,
     POST    /api/sources
     DELETE  /api/sources/:id
     POST    /api/sources/:id/test
+    GET     /api/sources/:id/preview   (sample rows so the editor can list fields + draw charts)
 
     Dashboards
     GET     /api/dashboards

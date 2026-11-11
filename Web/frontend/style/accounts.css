@@ -282,28 +282,6 @@ fieldset.field { border: none; }
 .panel-head + .danger-row { margin-top: var(--space-md); }
 
 /* ============================================================
-   DIALOGS
-   ============================================================ */
-.modal {
-  margin: auto;
-  padding: 0;
-  width: min(440px, calc(100vw - 2rem));
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-md);
-  background: var(--color-surface);
-  color: var(--color-text);
-  box-shadow: var(--shadow-card);
-}
-.modal::backdrop { background: hsl(265 30% 4% / 0.6); backdrop-filter: blur(3px); }
-.modal[open] { animation: modalIn var(--dur-normal) var(--ease-out); }
-@keyframes modalIn { from { opacity: 0; transform: translateY(8px) scale(0.98); } }
-
-.modal-body { display: grid; gap: var(--space-md); padding: var(--space-md); }
-.modal-body h2 { font-size: var(--text-xl); }
-.modal-body p { color: var(--color-text-muted); font-size: var(--text-sm); }
-.modal-actions { display: flex; justify-content: flex-end; gap: var(--space-sm); }
-
-/* ============================================================
    RESPONSIVE
    ============================================================ */
 @media (max-width: 900px) {
