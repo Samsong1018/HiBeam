@@ -18,4 +18,4 @@ Build any app but show us a haunting user interface that’s polished and unforg
 
 ### Dashboard Generator | Skeleton Crew
 
-A dashboard Generator that takes in multiple sources and allows you to create graphs, statistics, and numbers in an easy to read way.
+A dashboard Generator that takes in multiple sources and allows you to create graphs, statistics, and numbers in a formatted manner.

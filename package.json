@@ -4,7 +4,7 @@
   "description": "dashboard generator/manager",
   "main": "index.js",
   "scripts": {
-    "serve": "node ./server.js",
+    "serve": "node ./Web/backend/server.js",
     "test": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON --test tests/*.test.mjs"
   },
   "repository": {
