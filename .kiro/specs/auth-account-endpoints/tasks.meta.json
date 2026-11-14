@@ -31,6 +31,14 @@
     "4.4 Write property test for id validation": {
       "status": "passed",
       "lastRunTimestamp": 1794646447955
+    },
+    "5.2 Write property test for session validity": {
+      "status": "passed",
+      "lastRunTimestamp": 1794682769691
+    },
+    "5.4 Write property test for the lockout state machine": {
+      "status": "passed",
+      "lastRunTimestamp": 1794682978158
     }
   },
   "executionHistory": {
@@ -216,6 +224,61 @@
         "executionId": "ec0b2447-7b57-46dc-9130-06c90874a414",
         "chatSessionId": "sess_07f3816f-687e-42d2-9c3e-c5e4f76a665f",
         "timestamp": 1794646454239
+      }
+    ],
+    "5.1 Implement `Web/backend/lib/session.js` and `Web/backend/lib/tokens.js`": [
+      {
+        "executionId": "1a88c661-9a7d-497b-9a1a-dbbdeef71066",
+        "chatSessionId": "sess_07f3816f-687e-42d2-9c3e-c5e4f76a665f",
+        "timestamp": 1794682721782
+      },
+      {
+        "executionId": "1a88c661-9a7d-497b-9a1a-dbbdeef71066",
+        "chatSessionId": "sess_07f3816f-687e-42d2-9c3e-c5e4f76a665f",
+        "timestamp": 1794682745605
+      }
+    ],
+    "5.3 Implement `Web/backend/lib/lockout.js`": [
+      {
+        "executionId": "1a88c661-9a7d-497b-9a1a-dbbdeef71066",
+        "chatSessionId": "sess_07f3816f-687e-42d2-9c3e-c5e4f76a665f",
+        "timestamp": 1794682722514
+      },
+      {
+        "executionId": "1a88c661-9a7d-497b-9a1a-dbbdeef71066",
+        "chatSessionId": "sess_07f3816f-687e-42d2-9c3e-c5e4f76a665f",
+        "timestamp": 1794682746306
+      }
+    ],
+    "5. Sessions, tokens and lockout": [
+      {
+        "executionId": "1a88c661-9a7d-497b-9a1a-dbbdeef71066",
+        "chatSessionId": "sess_07f3816f-687e-42d2-9c3e-c5e4f76a665f",
+        "timestamp": 1794682746335
+      }
+    ],
+    "5.2 Write property test for session validity": [
+      {
+        "executionId": "1a88c661-9a7d-497b-9a1a-dbbdeef71066",
+        "chatSessionId": "sess_07f3816f-687e-42d2-9c3e-c5e4f76a665f",
+        "timestamp": 1794682748647
+      },
+      {
+        "executionId": "1a88c661-9a7d-497b-9a1a-dbbdeef71066",
+        "chatSessionId": "sess_07f3816f-687e-42d2-9c3e-c5e4f76a665f",
+        "timestamp": 1794682985921
+      }
+    ],
+    "5.4 Write property test for the lockout state machine": [
+      {
+        "executionId": "1a88c661-9a7d-497b-9a1a-dbbdeef71066",
+        "chatSessionId": "sess_07f3816f-687e-42d2-9c3e-c5e4f76a665f",
+        "timestamp": 1794682749394
+      },
+      {
+        "executionId": "1a88c661-9a7d-497b-9a1a-dbbdeef71066",
+        "chatSessionId": "sess_07f3816f-687e-42d2-9c3e-c5e4f76a665f",
+        "timestamp": 1794682986813
       }
     ]
   }

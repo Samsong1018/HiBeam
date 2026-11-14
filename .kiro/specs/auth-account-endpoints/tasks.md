@@ -77,22 +77,22 @@ Implementation is in JavaScript (Node.js, CommonJS backend, Express 5, `mysql`, 
     - **Validates: Requirements 14.10**
     - File: `tests/auth-p12-id-validation.test.mjs`
 
-- [ ] 5. Sessions, tokens and lockout
-  - [ ] 5.1 Implement `Web/backend/lib/session.js` and `Web/backend/lib/tokens.js`
+- [x] 5. Sessions, tokens and lockout
+  - [x] 5.1 Implement `Web/backend/lib/session.js` and `Web/backend/lib/tokens.js`
     - `newSessionToken`, `buildSessionCookie` (HttpOnly, SameSite=Lax, Max-Age=604800, Secure in production), `buildClearCookie`, `parseCookies`, `isSessionValid`
     - Reset and email token creation (32 random bytes) and SHA-256 hashing
     - _Requirements: 3.2, 4.3, 5.2, 10.1_
 
-  - [ ]* 5.2 Write property test for session validity
+  - [x]* 5.2 Write property test for session validity
     - **Property 7: Session validity**
     - **Validates: Requirements 4.3**
     - File: `tests/auth-p7-session-validity.test.mjs`
 
-  - [ ] 5.3 Implement `Web/backend/lib/lockout.js`
+  - [x] 5.3 Implement `Web/backend/lib/lockout.js`
     - Pure `evaluateLockout(attempts, now)` returning `{ locked, retryAfterSeconds }` per the design rule
     - _Requirements: 3.5, 3.7_
 
-  - [ ]* 5.4 Write property test for the lockout state machine
+  - [x]* 5.4 Write property test for the lockout state machine
     - **Property 6: Login lockout state machine**
     - **Validates: Requirements 3.5, 3.7**
     - File: `tests/auth-p6-lockout.test.mjs`
