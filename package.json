@@ -18,9 +18,14 @@
   },
   "homepage": "https://github.com/Samsong1018/KiroweenHackathon#readme",
   "dependencies": {
+    "bcrypt": "^6.0.0",
     "dotenv": "^18.0.10",
     "express": "^5.3.0",
     "mysql": "^2.18.1",
-    "path": "^0.12.7"
+    "path": "^0.12.7",
+    "zod": "^4.6.7"
+  },
+  "devDependencies": {
+    "fast-check": "^4.10.2"
   }
 }

@@ -19,3 +19,7 @@ Build any app but show us a haunting user interface that’s polished and unforg
 ### Dashboard Generator | Skeleton Crew
 
 A dashboard Generator that takes in multiple sources and allows you to create graphs, statistics, and numbers in a formatted manner.
+## Environment Variables
+Set these in `.env` (never commit real values):
+- `SOURCE_KEY_SECRET` (required): 32 random bytes, base64-encoded. Generate with `node -e "console.log(require('crypto').randomBytes(32).toString('base64'))"`.
+- `APP_BASE_URL` (optional): public base URL of the app, e.g. `http://localhost:3000`.

@@ -1,0 +1,222 @@
+{
+  "pbtResults": {
+    "2.2 Write property test for envelope format": {
+      "status": "passed",
+      "lastRunTimestamp": 1794645930384
+    },
+    "2.3 Write property test for generic unexpected errors": {
+      "status": "passed",
+      "lastRunTimestamp": 1794645931445
+    },
+    "3.3 Write property test for invalid stored hashes": {
+      "status": "passed",
+      "lastRunTimestamp": 1794646327037
+    },
+    "3.2 Write property test for bcrypt round trip": {
+      "status": "passed",
+      "lastRunTimestamp": 1794646329102
+    },
+    "4.3 Write property test for preferences validation": {
+      "status": "passed",
+      "lastRunTimestamp": 1794646333313
+    },
+    "4.2 Write property test for signup validation and normalization": {
+      "status": "passed",
+      "lastRunTimestamp": 1794646335591
+    },
+    "3.4 Write property test for byte-based password length rules": {
+      "status": "passed",
+      "lastRunTimestamp": 1794646337901
+    },
+    "4.4 Write property test for id validation": {
+      "status": "passed",
+      "lastRunTimestamp": 1794646447955
+    }
+  },
+  "executionHistory": {
+    "1.1 Install dependencies and document environment variables": [
+      {
+        "executionId": "ad1adcf5-10fc-4554-a909-6943cf93d651",
+        "chatSessionId": "sess_07f3816f-687e-42d2-9c3e-c5e4f76a665f",
+        "timestamp": 1794645091862
+      },
+      {
+        "executionId": "ad1adcf5-10fc-4554-a909-6943cf93d651",
+        "chatSessionId": "sess_07f3816f-687e-42d2-9c3e-c5e4f76a665f",
+        "timestamp": 1794645228763
+      }
+    ],
+    "1.2 Create the database schema": [
+      {
+        "executionId": "ad1adcf5-10fc-4554-a909-6943cf93d651",
+        "chatSessionId": "sess_07f3816f-687e-42d2-9c3e-c5e4f76a665f",
+        "timestamp": 1794645231807
+      },
+      {
+        "executionId": "ad1adcf5-10fc-4554-a909-6943cf93d651",
+        "chatSessionId": "sess_07f3816f-687e-42d2-9c3e-c5e4f76a665f",
+        "timestamp": 1794645375909
+      }
+    ],
+    "2.1 Implement `Web/backend/lib/envelope.js`": [
+      {
+        "executionId": "ad1adcf5-10fc-4554-a909-6943cf93d651",
+        "chatSessionId": "sess_07f3816f-687e-42d2-9c3e-c5e4f76a665f",
+        "timestamp": 1794645232081
+      },
+      {
+        "executionId": "ad1adcf5-10fc-4554-a909-6943cf93d651",
+        "chatSessionId": "sess_07f3816f-687e-42d2-9c3e-c5e4f76a665f",
+        "timestamp": 1794645376492
+      }
+    ],
+    "1. Project setup": [
+      {
+        "executionId": "ad1adcf5-10fc-4554-a909-6943cf93d651",
+        "chatSessionId": "sess_07f3816f-687e-42d2-9c3e-c5e4f76a665f",
+        "timestamp": 1794645375945
+      }
+    ],
+    "2. Response envelope and error middleware": [
+      {
+        "executionId": "ad1adcf5-10fc-4554-a909-6943cf93d651",
+        "chatSessionId": "sess_07f3816f-687e-42d2-9c3e-c5e4f76a665f",
+        "timestamp": 1794645376524
+      }
+    ],
+    "2.2 Write property test for envelope format": [
+      {
+        "executionId": "ec0b2447-7b57-46dc-9130-06c90874a414",
+        "chatSessionId": "sess_07f3816f-687e-42d2-9c3e-c5e4f76a665f",
+        "timestamp": 1794645895423
+      },
+      {
+        "executionId": "ec0b2447-7b57-46dc-9130-06c90874a414",
+        "chatSessionId": "sess_07f3816f-687e-42d2-9c3e-c5e4f76a665f",
+        "timestamp": 1794645937299
+      }
+    ],
+    "2.3 Write property test for generic unexpected errors": [
+      {
+        "executionId": "ec0b2447-7b57-46dc-9130-06c90874a414",
+        "chatSessionId": "sess_07f3816f-687e-42d2-9c3e-c5e4f76a665f",
+        "timestamp": 1794645895504
+      },
+      {
+        "executionId": "ec0b2447-7b57-46dc-9130-06c90874a414",
+        "chatSessionId": "sess_07f3816f-687e-42d2-9c3e-c5e4f76a665f",
+        "timestamp": 1794645938089
+      }
+    ],
+    "3.1 Implement `Web/backend/lib/passwords.js`": [
+      {
+        "executionId": "ec0b2447-7b57-46dc-9130-06c90874a414",
+        "chatSessionId": "sess_07f3816f-687e-42d2-9c3e-c5e4f76a665f",
+        "timestamp": 1794645938897
+      },
+      {
+        "executionId": "ec0b2447-7b57-46dc-9130-06c90874a414",
+        "chatSessionId": "sess_07f3816f-687e-42d2-9c3e-c5e4f76a665f",
+        "timestamp": 1794646063333
+      }
+    ],
+    "4.1 Implement `Web/backend/lib/validators.js`": [
+      {
+        "executionId": "ec0b2447-7b57-46dc-9130-06c90874a414",
+        "chatSessionId": "sess_07f3816f-687e-42d2-9c3e-c5e4f76a665f",
+        "timestamp": 1794645939439
+      },
+      {
+        "executionId": "ec0b2447-7b57-46dc-9130-06c90874a414",
+        "chatSessionId": "sess_07f3816f-687e-42d2-9c3e-c5e4f76a665f",
+        "timestamp": 1794646063448
+      }
+    ],
+    "3. Password hashing": [
+      {
+        "executionId": "ec0b2447-7b57-46dc-9130-06c90874a414",
+        "chatSessionId": "sess_07f3816f-687e-42d2-9c3e-c5e4f76a665f",
+        "timestamp": 1794646063360
+      }
+    ],
+    "4. Validators": [
+      {
+        "executionId": "ec0b2447-7b57-46dc-9130-06c90874a414",
+        "chatSessionId": "sess_07f3816f-687e-42d2-9c3e-c5e4f76a665f",
+        "timestamp": 1794646063473
+      }
+    ],
+    "3.2 Write property test for bcrypt round trip": [
+      {
+        "executionId": "ec0b2447-7b57-46dc-9130-06c90874a414",
+        "chatSessionId": "sess_07f3816f-687e-42d2-9c3e-c5e4f76a665f",
+        "timestamp": 1794646069167
+      },
+      {
+        "executionId": "ec0b2447-7b57-46dc-9130-06c90874a414",
+        "chatSessionId": "sess_07f3816f-687e-42d2-9c3e-c5e4f76a665f",
+        "timestamp": 1794646344602
+      }
+    ],
+    "3.3 Write property test for invalid stored hashes": [
+      {
+        "executionId": "ec0b2447-7b57-46dc-9130-06c90874a414",
+        "chatSessionId": "sess_07f3816f-687e-42d2-9c3e-c5e4f76a665f",
+        "timestamp": 1794646069219
+      },
+      {
+        "executionId": "ec0b2447-7b57-46dc-9130-06c90874a414",
+        "chatSessionId": "sess_07f3816f-687e-42d2-9c3e-c5e4f76a665f",
+        "timestamp": 1794646348296
+      }
+    ],
+    "3.4 Write property test for byte-based password length rules": [
+      {
+        "executionId": "ec0b2447-7b57-46dc-9130-06c90874a414",
+        "chatSessionId": "sess_07f3816f-687e-42d2-9c3e-c5e4f76a665f",
+        "timestamp": 1794646069252
+      },
+      {
+        "executionId": "ec0b2447-7b57-46dc-9130-06c90874a414",
+        "chatSessionId": "sess_07f3816f-687e-42d2-9c3e-c5e4f76a665f",
+        "timestamp": 1794646346448
+      }
+    ],
+    "4.2 Write property test for signup validation and normalization": [
+      {
+        "executionId": "ec0b2447-7b57-46dc-9130-06c90874a414",
+        "chatSessionId": "sess_07f3816f-687e-42d2-9c3e-c5e4f76a665f",
+        "timestamp": 1794646069972
+      },
+      {
+        "executionId": "ec0b2447-7b57-46dc-9130-06c90874a414",
+        "chatSessionId": "sess_07f3816f-687e-42d2-9c3e-c5e4f76a665f",
+        "timestamp": 1794646345455
+      }
+    ],
+    "4.3 Write property test for preferences validation": [
+      {
+        "executionId": "ec0b2447-7b57-46dc-9130-06c90874a414",
+        "chatSessionId": "sess_07f3816f-687e-42d2-9c3e-c5e4f76a665f",
+        "timestamp": 1794646070770
+      },
+      {
+        "executionId": "ec0b2447-7b57-46dc-9130-06c90874a414",
+        "chatSessionId": "sess_07f3816f-687e-42d2-9c3e-c5e4f76a665f",
+        "timestamp": 1794646347351
+      }
+    ],
+    "4.4 Write property test for id validation": [
+      {
+        "executionId": "ec0b2447-7b57-46dc-9130-06c90874a414",
+        "chatSessionId": "sess_07f3816f-687e-42d2-9c3e-c5e4f76a665f",
+        "timestamp": 1794646071455
+      },
+      {
+        "executionId": "ec0b2447-7b57-46dc-9130-06c90874a414",
+        "chatSessionId": "sess_07f3816f-687e-42d2-9c3e-c5e4f76a665f",
+        "timestamp": 1794646454239
+      }
+    ]
+  }
+}
