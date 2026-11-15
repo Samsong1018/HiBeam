@@ -123,18 +123,18 @@ Implementation is in JavaScript (Node.js, CommonJS backend, Express 5, `mysql`, 
     - **Validates: Requirements 1.8, 6.3, 14.4**
     - File: `tests/auth-p5-public-views.test.mjs`
 
-- [ ] 8. Static allowlist for `/backend/`
-  - [ ] 8.1 Implement `Web/backend/lib/static-allowlist.js`
+- [x] 8. Static allowlist for `/backend/`
+  - [x] 8.1 Implement `Web/backend/lib/static-allowlist.js`
     - Pure `resolveStaticRequest(rawUrl, method)` following the five ordered steps in the design (method, prefix and directory, encoded traversal reject, single decode, exact case-sensitive allowlist match of `api.js` only)
     - `staticAllowlist({ dir })` middleware: reads the file with `fs.readFile`, sends `application/javascript; charset=utf-8` and `X-Content-Type-Options: nosniff`, returns the same fixed 404 envelope for every reject and for read errors; no `express.static`, no `res.sendFile`, no `readdir`
     - _Requirements: 18.1, 18.2, 18.3, 18.4, 18.5, 18.6, 18.7, 18.8, 18.9, 18.10_
 
-  - [ ]* 8.2 Write property test for allowlist-only serving
+  - [x]* 8.2 Write property test for allowlist-only serving
     - **Property 21: Static route serves only the allowlist**
     - **Validates: Requirements 18.1, 18.2, 18.4, 18.5, 18.6, 18.7, 18.8**
     - File: `tests/auth-p21-static-allowlist.test.mjs`
 
-  - [ ]* 8.3 Write property test for no disclosure of other files
+  - [x]* 8.3 Write property test for no disclosure of other files
     - **Property 22: Static route does not disclose other files**
     - **Validates: Requirements 18.3, 18.9, 18.10**
     - Use a temporary directory containing `api.js`, a fake `server.js`, and `lib/secret.js` with unique marker strings
