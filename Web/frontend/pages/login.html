@@ -3,13 +3,14 @@
     <head>
         <script src="../scripts/theme.js"></script>
         <meta charset="UTF-8">
-        <title>DashGen</title>
+        <title>Log in · DashGen</title>
         <meta name="viewport" content="width=device-width, initial-scale=1">
         <link rel="preconnect" href="https://fonts.googleapis.com">
         <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
         <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400..600&family=JetBrains+Mono:wght@400..600&family=Work+Sans:wght@400..600&display=swap">
         <link rel="stylesheet" href="../style/style.css">
         <link rel="stylesheet" href="../style/general.css">
+        <link rel="stylesheet" href="../style/login.css">
     </head>
     <body>
         <!-- Shared nav: copy this <header> to every page -->
@@ -19,8 +20,118 @@
             </nav>
         </header>
 
-        <main>
+        <main class="auth">
+            <div class="auth-forms">
+                <p class="auth-banner" data-banner role="status" hidden></p>
 
+                <!-- LOG IN -->
+                <form class="auth-form" data-view="login" novalidate>
+                    <h1>Log in</h1>
+                    <div class="field">
+                        <label for="login-identifier">Username or email</label>
+                        <input id="login-identifier" name="identifier" type="text" autocomplete="username" autocapitalize="none" spellcheck="false" maxlength="254" required>
+                        <p class="field-error" data-error-for="identifier"></p>
+                    </div>
+                    <div class="field">
+                        <label for="login-password">Password</label>
+                        <div class="password-wrap">
+                            <input id="login-password" name="password" type="password" autocomplete="current-password" required>
+                            <button type="button" class="reveal" data-reveal aria-label="Show password" aria-pressed="false">show</button>
+                        </div>
+                        <p class="field-error" data-error-for="password"></p>
+                    </div>
+                    <p class="form-error" data-form-error role="alert"></p>
+                    <button type="submit" class="btn btn-primary btn-block">Log in</button>
+                    <p class="auth-switch">
+                        <button type="button" class="link-btn" data-view-target="forgot">Forgot your password?</button>
+                    </p>
+                    <p class="auth-switch">No account? <button type="button" class="link-btn" data-view-target="signup">Sign up</button></p>
+                </form>
+
+                <!-- SIGN UP -->
+                <form class="auth-form" data-view="signup" novalidate hidden>
+                    <h1>Sign up</h1>
+                    <div class="field">
+                        <label for="signup-display">Name</label>
+                        <input id="signup-display" name="displayName" type="text" autocomplete="name" maxlength="60" required>
+                        <p class="field-error" data-error-for="displayName"></p>
+                    </div>
+                    <div class="field">
+                        <label for="signup-username">Username</label>
+                        <input id="signup-username" name="username" type="text" autocomplete="username" autocapitalize="none" spellcheck="false" maxlength="24" required aria-describedby="signup-username-hint">
+                        <p class="field-hint" id="signup-username-hint">Lowercase letters, numbers and underscores, 3 to 24 long.</p>
+                        <p class="field-error" data-error-for="username"></p>
+                    </div>
+                    <div class="field">
+                        <label for="signup-email">Email</label>
+                        <input id="signup-email" name="email" type="email" autocomplete="email" maxlength="254" required>
+                        <p class="field-error" data-error-for="email"></p>
+                    </div>
+                    <div class="field">
+                        <label for="signup-password">Password</label>
+                        <div class="password-wrap">
+                            <input id="signup-password" name="password" type="password" autocomplete="new-password" required aria-describedby="signup-password-hint">
+                            <button type="button" class="reveal" data-reveal aria-label="Show password" aria-pressed="false">show</button>
+                        </div>
+                        <p class="field-hint" id="signup-password-hint">At least 10 characters.</p>
+                        <p class="field-error" data-error-for="password"></p>
+                    </div>
+                    <div class="field">
+                        <label for="signup-confirm">Confirm password</label>
+                        <input id="signup-confirm" name="confirm" type="password" autocomplete="new-password" required>
+                        <p class="field-error" data-error-for="confirm"></p>
+                    </div>
+                    <p class="form-error" data-form-error role="alert"></p>
+                    <button type="submit" class="btn btn-primary btn-block">Create account</button>
+                    <p class="auth-switch">Already have an account? <button type="button" class="link-btn" data-view-target="login">Log in</button></p>
+                </form>
+
+                <!-- FORGOT PASSWORD -->
+                <form class="auth-form" data-view="forgot" novalidate hidden>
+                    <h1>Forgot password</h1>
+                    <p class="auth-note">We'll email you a link to reset it.</p>
+                    <div class="field">
+                        <label for="forgot-email">Email</label>
+                        <input id="forgot-email" name="email" type="email" autocomplete="email" maxlength="254" required>
+                        <p class="field-error" data-error-for="email"></p>
+                    </div>
+                    <p class="form-error" data-form-error role="alert"></p>
+                    <button type="submit" class="btn btn-primary btn-block">Send link</button>
+                    <p class="auth-switch"><button type="button" class="link-btn" data-view-target="login">Back to log in</button></p>
+                </form>
+
+                <!-- RESET PASSWORD (from ?reset=<token>) -->
+                <form class="auth-form" data-view="reset" novalidate hidden>
+                    <h1>New password</h1>
+                    <p class="auth-note">You'll be logged out on your other devices.</p>
+                    <div class="field">
+                        <label for="reset-password">New password</label>
+                        <div class="password-wrap">
+                            <input id="reset-password" name="password" type="password" autocomplete="new-password" required>
+                            <button type="button" class="reveal" data-reveal aria-label="Show password" aria-pressed="false">show</button>
+                        </div>
+                        <p class="field-hint">At least 10 characters.</p>
+                        <p class="field-error" data-error-for="password"></p>
+                    </div>
+                    <div class="field">
+                        <label for="reset-confirm">Confirm new password</label>
+                        <input id="reset-confirm" name="confirm" type="password" autocomplete="new-password" required>
+                        <p class="field-error" data-error-for="confirm"></p>
+                    </div>
+                    <p class="form-error" data-form-error role="alert"></p>
+                    <button type="submit" class="btn btn-primary btn-block">Save password</button>
+                    <p class="auth-switch"><button type="button" class="link-btn" data-view-target="login">Back to log in</button></p>
+                </form>
+            </div>
+
+            <!-- Bar per field, filled as you type. Built by auth.js for the current form. -->
+            <aside class="entry-chart" aria-hidden="true">
+                <div class="entry-chart-head">
+                    <span class="entry-chart-title">Characters per field</span>
+                    <span class="entry-chart-badge" data-chart-badge></span>
+                </div>
+                <div class="entry-chart-plot" data-chart-plot></div>
+            </aside>
         </main>
 
         <!-- Shared footer: copy this <footer> to every page -->
@@ -30,5 +141,6 @@
         </footer>
 
         <script src="../scripts/script.js" defer></script>
+        <script src="../scripts/auth.js" defer></script>
     </body>
 </html>
