@@ -4,14 +4,8 @@
    Desktop-first; below 900px it asks for a bigger screen.
    ============================================================ */
 
-/* Chart palette: pumpkin, violet, teal, gold, rose, slate */
+/* Chart palette (--chart-c1..c6) lives in style.css */
 :root {
-  --chart-c1: hsl(24 92% 50%);
-  --chart-c2: hsl(268 52% 52%);
-  --chart-c3: hsl(174 58% 34%);
-  --chart-c4: hsl(42 88% 46%);
-  --chart-c5: hsl(345 66% 52%);
-  --chart-c6: hsl(215 22% 46%);
   --grid-line: hsl(40 12% 82% / 0.55);
   --grid-line-major: hsl(40 12% 72% / 0.6);
   --side-width: 248px;
@@ -20,24 +14,12 @@
 
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) {
-    --chart-c1: hsl(26 95% 58%);
-    --chart-c2: hsl(268 70% 72%);
-    --chart-c3: hsl(172 52% 52%);
-    --chart-c4: hsl(44 90% 60%);
-    --chart-c5: hsl(345 80% 68%);
-    --chart-c6: hsl(215 20% 64%);
     --grid-line: hsl(265 10% 20% / 0.6);
     --grid-line-major: hsl(265 10% 28% / 0.7);
   }
 }
 
 :root[data-theme="dark"] {
-  --chart-c1: hsl(26 95% 58%);
-  --chart-c2: hsl(268 70% 72%);
-  --chart-c3: hsl(172 52% 52%);
-  --chart-c4: hsl(44 90% 60%);
-  --chart-c5: hsl(345 80% 68%);
-  --chart-c6: hsl(215 20% 64%);
   --grid-line: hsl(265 10% 20% / 0.6);
   --grid-line-major: hsl(265 10% 28% / 0.7);
 }
