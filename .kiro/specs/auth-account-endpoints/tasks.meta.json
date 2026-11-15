@@ -280,6 +280,37 @@
         "chatSessionId": "sess_07f3816f-687e-42d2-9c3e-c5e4f76a665f",
         "timestamp": 1794682986813
       }
+    ],
+    "7.1 Implement `Web/backend/lib/crypto-box.js` and `Web/backend/lib/views.js`": [
+      {
+        "executionId": "dd903167-37ea-48e0-a89f-1233fdacfcac",
+        "chatSessionId": "sess_2ea9f28f-c210-45f9-a2a1-ad2103948717",
+        "timestamp": 1794705891452
+      },
+      {
+        "executionId": "dd903167-37ea-48e0-a89f-1233fdacfcac",
+        "chatSessionId": "sess_2ea9f28f-c210-45f9-a2a1-ad2103948717",
+        "timestamp": 1794706009957
+      }
+    ],
+    "7. Source key encryption and public views": [
+      {
+        "executionId": "dd903167-37ea-48e0-a89f-1233fdacfcac",
+        "chatSessionId": "sess_2ea9f28f-c210-45f9-a2a1-ad2103948717",
+        "timestamp": 1794706009989
+      }
+    ],
+    "7.2 Write property test for public views": [
+      {
+        "executionId": "dd903167-37ea-48e0-a89f-1233fdacfcac",
+        "chatSessionId": "sess_2ea9f28f-c210-45f9-a2a1-ad2103948717",
+        "timestamp": 1794706010509
+      },
+      {
+        "executionId": "dd903167-37ea-48e0-a89f-1233fdacfcac",
+        "chatSessionId": "sess_2ea9f28f-c210-45f9-a2a1-ad2103948717",
+        "timestamp": 1794706128536
+      }
     ]
   }
 }

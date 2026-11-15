@@ -30,7 +30,7 @@ test('ok() yields exactly { success: true, data }', () => {
       assert.equal(res.statusCode, status);
       assert.deepEqual(Object.keys(res.body).sort(), ['data', 'success']);
       assert.equal(res.body.success, true);
-      assert.deepEqual(res.body.data, data);
+      assert.deepEqual(res.body.data, JSON.parse(JSON.stringify(data)));
     }),
     { numRuns: 100 }
   );

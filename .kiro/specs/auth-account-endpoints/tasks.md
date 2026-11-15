@@ -112,13 +112,13 @@ Implementation is in JavaScript (Node.js, CommonJS backend, Express 5, `mysql`, 
     - **Validates: Requirements 6.7, 6.8, 6.9, 8.8**
     - File: `tests/auth-p20-avatar-url.test.mjs`
 
-- [ ] 7. Source key encryption and public views
-  - [ ] 7.1 Implement `Web/backend/lib/crypto-box.js` and `Web/backend/lib/views.js`
+- [x] 7. Source key encryption and public views
+  - [x] 7.1 Implement `Web/backend/lib/crypto-box.js` and `Web/backend/lib/views.js`
     - `encryptKey`/`decryptKey` (AES-256-GCM using `SOURCE_KEY_SECRET`), `last4`
     - `toPublicProfile` and `toSourceView` using explicit allow-lists; `avatarUrl` computed from `avatar_updated_at` only
     - _Requirements: 1.8, 6.1, 6.3, 6.9, 14.4_
 
-  - [ ]* 7.2 Write property test for public views
+  - [x]* 7.2 Write property test for public views
     - **Property 5: Public views never expose secrets**
     - **Validates: Requirements 1.8, 6.3, 14.4**
     - File: `tests/auth-p5-public-views.test.mjs`
