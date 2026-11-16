@@ -1,13 +1,13 @@
 # Frontend TODO
 
 ## Sign up / Login page (`login.html`)
-- [ ] Build sign-up form (username, email, display name, password + confirm)
-- [ ] Build login form (identifier + password)
-- [ ] Handle `?reset=<token>` query param to show reset-password form
-- [ ] Forgot-password flow (email input → POST `/api/auth/forgot-password`)
+- [x] Build sign-up form (username, email, display name, password + confirm)
+- [x] Build login form (identifier + password)
+- [x] Handle `?reset=<token>` query param to show reset-password form
+- [x] Forgot-password flow (email input → POST `/api/auth/forgot-password`)
 - [ ] Wire all forms to real API via `/backend/api.js` (`KiroApi.api.*`)
-- [ ] Show field-level validation errors from server responses
-- [ ] Redirect to `home.html` on successful login/signup
+- [x] Show field-level validation errors from server responses
+- [x] Redirect to `home.html` on successful login/signup
 
 ## Homepage (`home.html`)
 - [ ] Load and display the user's dashboards (GET `/api/dashboards`)
