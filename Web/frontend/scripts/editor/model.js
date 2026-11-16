@@ -10,7 +10,7 @@
 // }
 // ============================================================
 
-import { WIDGET_TYPES, COLOR_TOKENS } from './widget-types.js';
+import { WIDGET_TYPES, COLOR_TOKENS, REFRESH_OPTIONS } from './widget-types.js';
 import { scaleLayout } from './data.js';
 
 export const COLUMN_OPTIONS = [
@@ -102,6 +102,8 @@ function normalizeWidget(raw, columns) {
   if ('title' in config) config.title = str(config.title, MAX_NAME);
   if ('body' in config) config.body = str(config.body, MAX_TEXT);
   if ('text' in config) config.text = str(config.text, MAX_NAME);
+  // only the intervals the editor offers; anything else (0.01, '5', NaN) means off
+  if ('refresh' in config && !REFRESH_OPTIONS.some((o) => o.value === config.refresh)) config.refresh = 0;
   if ('color' in config && !COLOR_TOKENS.includes(config.color) && !/^#[0-9a-f]{6}$/i.test(config.color)) config.color = 'c1';
   const w = int(raw.w, 1, columns, def.size.w);
   return {

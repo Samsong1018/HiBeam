@@ -1,0 +1,132 @@
+/* ============================================================
+   WIDGETS · shared by the editor (edit.css) and the viewer (view.css)
+   How each widget type looks. Interaction states (grab cursor,
+   selection ring, hover) live in the page stylesheets.
+   ============================================================ */
+.widget {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden !important;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  background: var(--color-surface);
+  box-shadow: 0 1px 0 hsl(265 20% 10% / 0.04);
+  transition: border-color var(--dur-fast), box-shadow var(--dur-fast);
+}
+
+.widget-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  padding: 0.55rem 0.75rem 0;
+}
+.widget-title {
+  min-width: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--color-text-muted);
+}
+.widget-badge {
+  flex-shrink: 0;
+  font-family: var(--font-mono);
+  font-size: 0.65rem;
+  color: var(--color-text-muted);
+}
+
+.widget-body {
+  flex: 1;
+  min-height: 0;
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  padding: 0.5rem 0.75rem 0.7rem;
+}
+.widget-chart { position: relative; flex: 1; min-height: 0; }
+
+.widget-message {
+  margin: auto;
+  max-width: 26ch;
+  text-align: center;
+  font-size: var(--text-xs);
+  color: var(--color-text-muted);
+}
+.widget-message.is-empty { padding: 0.6rem; border: 1px dashed var(--color-border); border-radius: var(--radius-sm); }
+.widget-message.is-error { color: var(--color-danger); }
+
+.widget-skeleton {
+  flex: 1;
+  border-radius: 4px;
+  background: linear-gradient(90deg, var(--color-bg-alt) 0%, var(--color-bg) 50%, var(--color-bg-alt) 100%) 0 0 / 200% 100%;
+  animation: shimmer 1.2s linear infinite;
+}
+@keyframes shimmer { to { background-position: -200% 0; } }
+
+/* KPI · sized from the card itself so it never overflows */
+.widget[data-type="kpi"] .widget-body { container-type: size; }
+.kpi-value {
+  margin-top: auto;
+  font-family: var(--font-display);
+  font-size: clamp(1rem, min(48cqh, 17cqw), 5rem);
+  white-space: nowrap;
+  font-weight: 500;
+  line-height: 1;
+  letter-spacing: -0.02em;
+  font-variant-numeric: tabular-nums;
+}
+.kpi-caption {
+  margin-top: 0.35rem;
+  font-family: var(--font-mono);
+  font-size: 0.68rem;
+  color: var(--color-text-muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Table */
+.widget-table-wrap { flex: 1; min-height: 0; overflow: auto; cursor: auto; scrollbar-width: thin; }
+.widget-table { width: 100%; border-collapse: collapse; font-size: var(--text-xs); font-variant-numeric: tabular-nums; }
+.widget-table th {
+  position: sticky;
+  top: 0;
+  padding: 0.35rem 0.5rem;
+  background: var(--color-surface);
+  border-bottom: 1px solid var(--color-border);
+  font-family: var(--font-mono);
+  font-weight: 600;
+  text-align: left;
+  color: var(--color-text-muted);
+  white-space: nowrap;
+}
+.widget-table td { padding: 0.3rem 0.5rem; border-bottom: 1px solid color-mix(in srgb, var(--color-border) 60%, transparent); white-space: nowrap; }
+
+/* Text + label */
+.widget-text { white-space: pre-wrap; overflow-wrap: anywhere; overflow: hidden; line-height: 1.55; }
+.widget-text[data-size="sm"] { font-size: var(--text-sm); }
+.widget-text[data-size="md"] { font-size: var(--text-base); }
+.widget-text[data-size="lg"] { font-size: var(--text-lg); }
+
+.widget[data-type="label"] .widget-body { justify-content: center; padding-block: 0.2rem; }
+.widget-label {
+  font-family: var(--font-display);
+  font-weight: 500;
+  line-height: 1.1;
+  letter-spacing: -0.01em;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.widget-label[data-size="sm"] { font-family: var(--font-mono); font-size: var(--text-xs); letter-spacing: 0.08em; text-transform: uppercase; }
+.widget-label[data-size="md"] { font-size: var(--text-lg); }
+.widget-label[data-size="lg"] { font-size: var(--text-xl); }
+.widget-label[data-size="xl"] { font-size: var(--text-2xl); }
+.widget-label[data-align="center"] { text-align: center; }
+.widget-label[data-align="right"] { text-align: right; }
+.widget-label.is-muted { color: var(--color-text-muted); }

@@ -48,6 +48,11 @@ export function createSourceRegistry() {
       return rowCache.get(id);
     },
 
+    // drop cached rows so the next rows(id) refetches (viewer auto-refresh)
+    invalidate(id) {
+      rowCache.delete(id);
+    },
+
     async fields(id) {
       return fieldsOf(await this.rows(id));
     },

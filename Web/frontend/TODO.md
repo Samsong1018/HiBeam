@@ -10,6 +10,7 @@
 - [x] Redirect to `home.html` on successful login/signup
 
 ## Homepage (`home.html`)
+- Dashboard cards should link to `view.html?id=<id>` (open) and `edit.html?id=<id>` (edit)
 - [ ] Load and display the user's dashboards (GET `/api/dashboards`)
 - [ ] "New dashboard" button → POST `/api/dashboards` then redirect to `edit.html?id=<id>`
 - [ ] Dashboard cards with name, last-updated time, and delete button
@@ -33,21 +34,21 @@
 - [ ] Nav "Sign Out" button: wire to `KiroApi.api.logout` then redirect to `login.html`
 - [ ] Redirect unauthenticated users (401 from API) to `login.html`
 
-## View Dashboard (`view.html`) — page does not exist yet
-- [ ] Create `view.html` and a companion script
-- [ ] Read `?id=<id>` from query string; reject invalid ids before fetching
-- [ ] Load dashboard definition (GET `/api/dashboards/:id`) and render widgets read-only
-- [ ] Load live data (GET `/api/dashboards/:id/data`) and populate charts/stats
-- [ ] Public / private toggle: UI control that updates a `public` flag on the dashboard (requires backend field + endpoint)
-- [ ] Share button: copy a shareable link to clipboard (or display the URL)
-- [ ] "Edit" button linking back to `edit.html?id=<id>` for the owner
-- [ ] Handle 404 gracefully (dashboard deleted or not owned)
+## View Dashboard (`view.html`) — built on the mock API, needs backend wiring
+- [x] Create `view.html` and a companion script (`scripts/view/`, `style/view.css`)
+- [x] Read `?id=<id>` from query string; reject invalid ids before fetching
+- [x] Load dashboard definition (GET `/api/dashboards/:id`) and render widgets read-only
+- [~] Live data: renders through the source registry (`/api/sources` + `/preview`) and honours each widget's refresh interval. Swap to GET `/api/dashboards/:id/data` once it exists (needed for non-owners viewing public dashboards)
+- [x] Public / private toggle UI (in the Share dialog). Calls `PATCH /api/dashboards/:id/visibility { public }`, which the backend doesn't have yet; GET `/api/dashboards/:id` should also return `public` and `isOwner`
+- [x] Share button: copy a shareable link to clipboard (or display the URL)
+- [x] "Edit" button linking back to `edit.html?id=<id>` for the owner
+- [x] Handle 404 gracefully (dashboard deleted or not owned)
 
 ## Editor (`edit.html`)
 - [ ] Flip `USE_MOCK` flag to `false` in `scripts/editor/api.js` once backend is live
 - [ ] Add `getDashboardData` call for live widget data (GET `/api/dashboards/:id/data`)
 - [ ] Wire "Sign Out" nav button (same as other pages)
-- [ ] Wire Preview link to `view.html?id=<id>` (page now needs to be created — see above)
+- [x] Wire Preview link to `view.html?id=<id>`
 
 ## Shared / cross-cutting
 - [ ] Load `/backend/api.js` as a `<script>` tag on every page that needs auth (`KiroApi` global)

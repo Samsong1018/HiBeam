@@ -16,6 +16,7 @@ const USE_MOCK = true;
 const MOCK_LATENCY_MS = 300;
 const DASHBOARDS_KEY = 'dashgen:mock:dashboards';
 const SOURCES_KEY = 'dashgen:mock:sources';
+const VISIBILITY_KEY = 'dashgen:mock:visibility';
 
 // ids are opaque strings; anything else in ?id= is rejected before a request
 export const ID_RE = /^[A-Za-z0-9_-]{1,64}$/;
@@ -96,7 +97,13 @@ const mock = {
     await delay();
     const dash = readStore(DASHBOARDS_KEY)[id];
     if (!dash) throw new ApiError('Dashboard not found', 404);
-    return dash;
+    return { ...dash, public: readStore(VISIBILITY_KEY)[id] === true, isOwner: true };
+  },
+  async setVisibility(id, isPublic) {
+    await delay();
+    if (!readStore(DASHBOARDS_KEY)[id]) throw new ApiError('Dashboard not found', 404);
+    writeStore(VISIBILITY_KEY, { ...readStore(VISIBILITY_KEY), [id]: Boolean(isPublic) });
+    return { id, public: Boolean(isPublic) };
   },
   async createDashboard(dashboard) {
     await delay();
@@ -145,6 +152,9 @@ const real = {
   getDashboard: (id) => http('GET', `/api/dashboards/${encodeURIComponent(id)}`),
   createDashboard: (dashboard) => http('POST', '/api/dashboards', dashboard),
   saveDashboard: (id, dashboard) => http('PATCH', `/api/dashboards/${encodeURIComponent(id)}`, dashboard),
+  // Not in the backend spec yet. Kept separate from saveDashboard because the
+  // strict definition schema would reject a `public` field.
+  setVisibility: (id, isPublic) => http('PATCH', `/api/dashboards/${encodeURIComponent(id)}/visibility`, { public: Boolean(isPublic) }),
   listSources: () => http('GET', '/api/sources'),
   createSource: (input) => http('POST', '/api/sources', input),
   deleteSource: (id) => http('DELETE', `/api/sources/${encodeURIComponent(id)}`),

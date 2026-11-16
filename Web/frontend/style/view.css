@@ -1,0 +1,243 @@
+/* ============================================================
+   VIEW DASHBOARD
+   Read-only board: same widgets as the editor (widgets.css), laid
+   out on the saved grid. Below 720px widgets stack in reading order.
+   ============================================================ */
+
+/* dashboards get more room than text pages; nav + footer widen to match */
+body.page-view .site-nav,
+body.page-view .site-footer { max-width: 1440px; }
+
+body.page-view main.viewer {
+  max-width: 1440px;
+  padding-top: var(--space-lg);
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--space-md);
+  align-content: start;
+}
+
+.eyebrow {
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--color-accent-text);
+}
+
+/* ============================================================
+   HEADER
+   ============================================================ */
+.view-head {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: end;
+  gap: var(--space-sm) var(--space-md);
+  padding-bottom: var(--space-md);
+  border-bottom: 1px solid var(--color-border);
+}
+
+.view-back {
+  align-self: start;
+  display: grid;
+  place-items: center;
+  width: 2.25rem;
+  height: 2.25rem;
+  margin-top: 0.1rem;
+  border: 1px solid var(--color-border);
+  border-radius: 50%;
+  color: var(--color-text-muted);
+  text-decoration: none;
+  transition: color var(--dur-fast), border-color var(--dur-fast), transform var(--dur-fast) var(--ease-out);
+}
+@media (hover: hover) {
+  .view-back:hover { color: var(--color-text); border-color: var(--color-text-muted); transform: translateX(-2px); }
+}
+
+.view-heading { display: grid; gap: 0.3rem; min-width: 0; }
+.view-title {
+  font-size: clamp(1.8rem, 1.3rem + 2vw, 2.9rem);
+  overflow-wrap: anywhere;
+}
+.viewer[aria-busy="true"] .view-title { color: var(--color-text-muted); }
+
+.view-meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.35rem 0.75rem;
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+  color: var(--color-text-muted);
+}
+.view-meta span:empty { display: none; }
+
+.visibility-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45em;
+  padding: 0.15rem 0.6rem 0.15rem 0.5rem;
+  border: 1px solid var(--color-border);
+  border-radius: 999px;
+  font-size: 0.7rem;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  transition: border-color var(--dur-fast), color var(--dur-fast);
+}
+.visibility-pill::before {
+  content: '';
+  width: 0.5rem;
+  height: 0.5rem;
+  border-radius: 50%;
+  background: var(--color-text-muted);
+}
+.visibility-pill[data-public="true"] { color: var(--color-ok); border-color: color-mix(in srgb, var(--color-ok) 40%, var(--color-border)); }
+.visibility-pill[data-public="true"]::before { background: var(--color-ok); box-shadow: 0 0 8px var(--color-ok); }
+.visibility-pill:disabled { cursor: default; }
+@media (hover: hover) { .visibility-pill:not(:disabled):hover { border-color: var(--color-text-muted); color: var(--color-text); } }
+
+.view-actions { display: flex; gap: var(--space-xs); }
+.view-actions .btn { text-decoration: none; }
+.view-actions [hidden] { display: none; } /* .btn's inline-flex would beat [hidden] */
+
+/* ============================================================
+   BOARD · square cells, --cell is set from the board width in JS
+   ============================================================ */
+.board {
+  --cols: 48;
+  --cell: 24px;
+  display: grid;
+  grid-template-columns: repeat(var(--cols), minmax(0, 1fr));
+  grid-auto-rows: var(--cell);
+  margin-inline: -3px; /* item padding is the gutter; keep outer edges flush */
+}
+
+.board-item {
+  display: flex;
+  min-width: 0;
+  min-height: 0;
+  padding: 3px;
+  animation: tileIn 480ms var(--ease-out) both;
+  animation-delay: calc(var(--i, 0) * 35ms);
+}
+.board-item > .widget { flex: 1; min-width: 0; }
+@keyframes tileIn { from { opacity: 0; transform: translateY(10px); } }
+
+/* read-only: no grab cursor, labels and text sit on the page */
+.page-view .widget { cursor: auto; }
+.page-view .widget[data-type="label"],
+.page-view .widget[data-type="text"] { border-color: transparent; background: transparent; box-shadow: none; }
+.page-view .widget:not([data-type="label"]):not([data-type="text"]) { box-shadow: var(--shadow-card); }
+
+/* loading: three ghost tiles */
+.board-loading {
+  grid-column: 1 / -1;
+  grid-row: span 12;
+  display: grid;
+  grid-template-columns: 2fr 1fr;
+  grid-template-rows: 1fr 1fr;
+  gap: 6px;
+  padding: 3px;
+}
+.board-loading span {
+  border-radius: var(--radius-sm);
+  background: linear-gradient(90deg, var(--color-bg-alt) 0%, var(--color-bg) 50%, var(--color-bg-alt) 100%) 0 0 / 200% 100%;
+  animation: shimmer 1.2s linear infinite;
+}
+.board-loading span:first-child { grid-row: span 2; }
+
+/* empty dashboard */
+.board.is-empty { display: block; margin-inline: 0; }
+.board-empty {
+  display: grid;
+  justify-items: center;
+  gap: var(--space-sm);
+  padding: var(--space-xl) var(--space-md);
+  border: 1px dashed var(--color-border);
+  border-radius: var(--radius-md);
+  text-align: center;
+  color: var(--color-text-muted);
+}
+.board-empty-title { font-family: var(--font-display); font-size: var(--text-xl); color: var(--color-text); }
+.board-empty .btn { margin-top: var(--space-xs); text-decoration: none; }
+
+/* ============================================================
+   SHARE DIALOG
+   ============================================================ */
+.share-switch-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-md);
+  padding: var(--space-sm);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  background: var(--color-bg);
+}
+.share-switch-row[hidden] { display: none; }
+.share-switch-label { font-weight: 500; }
+.modal-body .share-switch-hint { font-size: var(--text-xs); }
+
+.switch {
+  position: relative;
+  flex-shrink: 0;
+  width: 2.6rem;
+  height: 1.5rem;
+  border-radius: 999px;
+  background: var(--color-border);
+  transition: background-color var(--dur-fast);
+}
+.switch-thumb {
+  position: absolute;
+  top: 3px;
+  left: 3px;
+  width: calc(1.5rem - 6px);
+  height: calc(1.5rem - 6px);
+  border-radius: 50%;
+  background: var(--color-surface);
+  box-shadow: 0 1px 3px hsl(265 30% 10% / 0.3);
+  transition: transform var(--dur-normal) var(--ease-out);
+}
+.switch[aria-checked="true"] { background: var(--color-ok); }
+.switch[aria-checked="true"] .switch-thumb { transform: translateX(1.1rem); }
+.switch:disabled { opacity: 0.7; cursor: progress; }
+
+.share-url-row { display: flex; gap: var(--space-xs); }
+.share-url-row input { flex: 1; min-width: 0; font-family: var(--font-mono); font-size: var(--text-xs); }
+
+/* ============================================================
+   FATAL STATE
+   ============================================================ */
+.view-fatal {
+  display: grid;
+  justify-items: center;
+  gap: var(--space-sm);
+  max-width: 44ch;
+  margin: var(--space-xl) auto;
+  text-align: center;
+}
+.view-fatal h1 { font-size: var(--text-2xl); }
+.view-fatal p:not(.eyebrow) { color: var(--color-text-muted); }
+.view-fatal .btn { margin-top: var(--space-xs); text-decoration: none; }
+
+/* ============================================================
+   SMALL SCREENS · stack widgets, keep their proportions
+   ============================================================ */
+@media (max-width: 720px) {
+  body.page-view main.viewer { padding-inline: var(--space-md); }
+
+  .view-head { grid-template-columns: auto minmax(0, 1fr); align-items: start; }
+  .view-actions { grid-column: 1 / -1; }
+  .view-actions > * { flex: 1; }
+
+  .board { display: flex; flex-direction: column; gap: 6px; margin-inline: 0; }
+  .board-item {
+    padding: 0;
+    aspect-ratio: var(--w) / var(--h);
+    min-height: 200px;
+    max-height: 75vh;
+  }
+  .board-item[data-type="label"],
+  .board-item[data-type="text"] { aspect-ratio: auto; min-height: 0; max-height: none; }
+  .board-loading { height: 60vh; }
+}

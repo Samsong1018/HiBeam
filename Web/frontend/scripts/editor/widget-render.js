@@ -85,10 +85,10 @@ function chartData(widget, rowSets, sources) {
   return { labels: merged.labels, series: series.map((s, i) => ({ label: s.label, values: merged.datasets[i] })) };
 }
 
-async function renderData(body, widget, registry, isCurrent) {
+async function renderData(body, widget, registry, isCurrent, opts) {
   const bindings = widget.config.bindings.filter((b) => bindingReady(widget.type, b));
   if (!bindings.length) {
-    body.append(message('Pick a source and fields in the panel →', 'is-empty'));
+    body.append(message(opts.emptyText || 'Pick a source and fields in the panel →', 'is-empty'));
     return noop;
   }
 
@@ -118,7 +118,8 @@ async function renderData(body, widget, registry, isCurrent) {
 // ------------------------------------------------------------
 // Entry
 // ------------------------------------------------------------
-export async function renderWidget(content, widget, registry, isCurrent) {
+// opts.emptyText overrides the "pick a source" hint (the viewer has no panel)
+export async function renderWidget(content, widget, registry, isCurrent, opts = {}) {
   clear(content);
   const top = head(widget);
   const body = h('div', { class: 'widget-body' });
@@ -127,6 +128,6 @@ export async function renderWidget(content, widget, registry, isCurrent) {
 
   if (widget.type === 'text') { renderText(body, widget); return noop; }
   if (widget.type === 'label') { renderLabel(body, widget); return noop; }
-  if (isDataWidget(widget.type)) return renderData(body, widget, registry, isCurrent);
+  if (isDataWidget(widget.type)) return renderData(body, widget, registry, isCurrent, opts);
   return noop;
 }

@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <script src="../scripts/theme.js"></script>
+        <!-- This is the read-only page for viewing and sharing a dashboard -->
+
+        <meta charset="UTF-8">
+        <title>Dashboard · DashGen</title>
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <link rel="preconnect" href="https://fonts.googleapis.com">
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400..600&family=JetBrains+Mono:wght@400..600&family=Work+Sans:wght@400..600&display=swap">
+        <link rel="stylesheet" href="../style/style.css">
+        <link rel="stylesheet" href="../style/general.css">
+        <link rel="stylesheet" href="../style/widgets.css">
+        <link rel="stylesheet" href="../style/view.css">
+    </head>
+    <body class="page-view">
+        <!-- Shared nav: copy this <header> to every page -->
+        <header class="site-header">
+            <nav class="site-nav" aria-label="Main navigation">
+                <a class="site-logo" href="home.html">Dashboard Gen</a>
+                <ul class="nav-links">
+                    <li><a href="home.html" aria-current="page">Dashboards</a></li>
+                    <li><a href="account.html">Account</a></li>
+                    <li><button type="button" class="nav-signout">Sign Out</button></li>
+                </ul>
+            </nav>
+        </header>
+
+        <main class="viewer" id="viewer" aria-busy="true">
+            <header class="view-head">
+                <a class="view-back" href="home.html" aria-label="Back to dashboards">&larr;</a>
+                <div class="view-heading">
+                    <p class="eyebrow">Dashboard</p>
+                    <h1 class="view-title" id="view-title">Loading…</h1>
+                    <p class="view-meta">
+                        <span id="view-updated"></span>
+                        <button type="button" class="visibility-pill" id="visibility-pill" data-public="false">Private</button>
+                    </p>
+                </div>
+                <div class="view-actions">
+                    <button type="button" class="btn btn-ghost" id="share-btn">
+                        <svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M10 14a4 4 0 0 0 5.7 0l3-3a4 4 0 0 0-5.7-5.7l-1 1"/><path d="M14 10a4 4 0 0 0-5.7 0l-3 3a4 4 0 0 0 5.7 5.7l1-1"/></svg>
+                        Share
+                    </button>
+                    <a class="btn btn-primary" id="edit-link" hidden>Edit</a>
+                </div>
+            </header>
+
+            <section class="board" id="board" aria-label="Dashboard widgets">
+                <div class="board-loading" aria-hidden="true"><span></span><span></span><span></span></div>
+            </section>
+        </main>
+
+        <!-- Shared footer: copy this <footer> to every page -->
+        <footer class="site-footer">
+            <p class="footer-brand">Dashboard Gen</p>
+            <ul class="footer-links">
+                <li><a href="home.html">Dashboards</a></li>
+                <li><a href="account.html">Account</a></li>
+            </ul>
+            <p class="footer-copy">&copy; 2026 Dashboard Gen</p>
+        </footer>
+
+        <!-- ========== SHARE ========== -->
+        <dialog class="modal" id="share-dialog" aria-labelledby="share-dialog-title">
+            <div class="modal-body">
+                <div>
+                    <p class="eyebrow">Share</p>
+                    <h2 id="share-dialog-title">Share this dashboard</h2>
+                </div>
+
+                <div class="share-switch-row" id="share-switch-row">
+                    <div>
+                        <p class="share-switch-label" id="visibility-label">Anyone with the link</p>
+                        <p class="share-switch-hint" id="share-hint">Off. Only you can open it.</p>
+                    </div>
+                    <button type="button" class="switch" id="visibility-switch" role="switch" aria-checked="false"
+                            aria-labelledby="visibility-label" aria-describedby="share-hint">
+                        <span class="switch-thumb"></span>
+                    </button>
+                </div>
+
+                <div class="field">
+                    <label for="share-url">Link</label>
+                    <div class="share-url-row">
+                        <input id="share-url" type="text" readonly spellcheck="false">
+                        <button type="button" class="btn btn-primary" id="copy-btn">Copy</button>
+                    </div>
+                </div>
+
+                <div class="modal-actions">
+                    <button type="button" class="btn btn-ghost" data-close-dialog>Done</button>
+                </div>
+            </div>
+        </dialog>
+
+        <div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+        <script src="https://cdn.jsdelivr.net/npm/chart.js@4.5.1/dist/chart.umd.min.js"
+                integrity="sha384-jb8JQMbMoBUzgWatfe6COACi2ljcDdZQ2OxczGA3bGNeWe+6DChMTBJemed7ZnvJ" crossorigin="anonymous"></script>
+        <script src="../scripts/script.js" defer></script>
+        <script type="module" src="../scripts/view/main.js"></script>
+    </body>
+</html>
