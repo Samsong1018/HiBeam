@@ -12,9 +12,9 @@
 ## Homepage (`home.html`)
 - Dashboard cards should link to `view.html?id=<id>` (open) and `edit.html?id=<id>` (edit)
 - [ ] Load and display the user's dashboards (GET `/api/dashboards`)
-- [ ] "New dashboard" button → POST `/api/dashboards` then redirect to `edit.html?id=<id>`
-- [ ] Dashboard cards with name, last-updated time, and delete button
-- [ ] Empty state when no dashboards exist
+- [!] "New dashboard" button → POST `/api/dashboards` then redirect to `edit.html?id=<id>`
+- [!] Dashboard cards with name, last-updated time, and delete button
+- [!] Empty state when no dashboards exist
 - [ ] Redirect unauthenticated users to `login.html`
 
 ## Account page (`account.html`) — UI is built, needs real API wiring
