@@ -1,76 +1,92 @@
 // libraries
 const libPath = require("path");
+const libDotenv = require("dotenv");
 const libExpress = require("express");
-const libMySQL = require("mysql");
-const libZod = require("zod");
+
+// load .env from the project root (does not override variables already set)
+libDotenv.config({ path: libPath.join(__dirname, `../../.env`), quiet: true });
+
+const libConfig = require("./lib/config");
+const libDb = require("./lib/db");
+const libEnvelope = require("./lib/envelope");
+const libStaticAllowlist = require("./lib/static-allowlist");
+const libRequireSession = require("./lib/require-session");
+const libAuthRoutes = require("./lib/routes/auth");
+const libAccountRoutes = require("./lib/routes/account");
+const libSourcesRoutes = require("./lib/routes/sources");
+const libDashboardsRoutes = require("./lib/routes/dashboards");
 const _serverPort = 8000;
 
-// connect to the mysql database
-const _connection = libMySQL.createConnection({
-    host : process.env.DB_HOST,
-    user : process.env.DB_USER,
-    password: process.env.DB_PASSWORD,
-    database: process.env.DB_NAME
-});
-
-// use express, set up path
-const app = libExpress();
-app.use(libExpress.json());
-app.use(libExpress.static(libPath.join(__dirname, `../frontend`)));
-
-// basic get endpoint, it should send you directly to the index.html page
-app.get(`/`,
-    (pRequest, pResponse) =>
-    {
-        pResponse.sendFile(libPath.join(__dirname, `../frontend/`, `/index.html`));
-    });
-
 /*
-    if you get a chance could you move your server stuff
-    to the backend folder for organization and so that when 
-    I go to host it I dont have to shift stuff around
+    Mount map
 
-    ENDPOINTS TO BUILD
-
-    Auth
-    POST    /api/auth/signup
-    POST    /api/auth/login
-    POST    /api/auth/logout
-    POST    /api/auth/forgot-password
-    POST    /api/auth/reset-password
-
-    Account
-    GET     /api/account
-    PATCH   /api/account/profile
-    PUT     /api/account/avatar
-    DELETE  /api/account/avatar
-    POST    /api/account/password
-    POST    /api/account/email
-    GET     /api/account/email/confirm
-    PATCH   /api/account/preferences
-    POST    /api/account/sessions/revoke-all
-    DELETE  /api/account
-
-    Sources
-    GET     /api/sources
-    POST    /api/sources
-    DELETE  /api/sources/:id
-    POST    /api/sources/:id/test
-    GET     /api/sources/:id/preview   (sample rows so the editor can list fields + draw charts)
-
-    Dashboards
-    GET     /api/dashboards
-    POST    /api/dashboards
-    GET     /api/dashboards/:id
-    PATCH   /api/dashboards/:id
-    DELETE  /api/dashboards/:id
-    GET     /api/dashboards/:id/data
+    /backend/*            allowlisted static files (api.js only), before body parsing
+    /api/auth             public auth routes
+    /api/account          email confirm (no session), then session-protected account routes
+    /api/sources          session-protected
+    /api/dashboards       session-protected
+    errorMiddleware       last
 */
 
-app.listen(_serverPort, () =>
+// build the express app (no listening, no config check)
+function CreateApp()
 {
-    console.log(`server is listening on port ${_serverPort}`);
-});
+    const tmpApp = libExpress();
 
+    // pool is lazy, this only creates it, the first query connects
+    libDb.getPool();
 
+    // must come before the JSON parser and session middleware
+    tmpApp.use(`/backend/`, libStaticAllowlist.staticAllowlist({ dir: __dirname }));
 
+    // 1mb matches the dashboards router limit, so larger definitions are not rejected here first.
+    // express.json only parses application/json, so the avatar PUT (express.raw) is unaffected.
+    tmpApp.use(libExpress.json({ limit: `1mb` }));
+
+    tmpApp.use(`/api/auth`, libAuthRoutes.CreateAuthRouter());
+    tmpApp.use(`/api/account`, libAccountRoutes.CreateEmailConfirmRouter());
+    tmpApp.use(`/api/account`, libRequireSession.requireSession(), libAccountRoutes.CreateAccountRouter());
+    tmpApp.use(`/api/sources`, libRequireSession.requireSession(), libSourcesRoutes());
+    tmpApp.use(`/api/dashboards`, libRequireSession.requireSession(), libDashboardsRoutes());
+
+    // frontend
+    tmpApp.use(libExpress.static(libPath.join(__dirname, `../frontend`)));
+
+    // basic get endpoint, it should send you directly to the index.html page
+    tmpApp.get(`/`,
+        (pRequest, pResponse) =>
+        {
+            pResponse.sendFile(libPath.join(__dirname, `../frontend/`, `/index.html`));
+        });
+
+    tmpApp.use(libEnvelope.errorMiddleware);
+
+    return tmpApp;
+}
+
+// check config, then listen
+function Start()
+{
+    const tmpMissing = libConfig.missingConfig();
+
+    if (tmpMissing.length > 0)
+    {
+        console.error(`missing required environment variable(s): ${tmpMissing.join(`, `)}`);
+        process.exitCode = 1;
+        return null;
+    }
+
+    const tmpApp = CreateApp();
+
+    return tmpApp.listen(_serverPort, () =>
+    {
+        console.log(`server is listening on port ${_serverPort}`);
+    });
+}
+
+if (require.main === module)
+{
+    Start();
+}
+
+module.exports = { CreateApp, Start };

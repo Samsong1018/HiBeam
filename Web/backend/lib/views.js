@@ -1,10 +1,6 @@
 'use strict';
 
-// Local implementation; lib/image.js (task 6.1) may later own this.
-function avatarUrl(avatarUpdatedAt) {
-  if (avatarUpdatedAt === null || avatarUpdatedAt === undefined) return null;
-  return `/api/account/avatar?v=${Math.trunc(Number(avatarUpdatedAt))}`;
-}
+const { avatarUrl } = require('./image');
 
 function parsePreferences(p) {
   if (typeof p === 'string') {

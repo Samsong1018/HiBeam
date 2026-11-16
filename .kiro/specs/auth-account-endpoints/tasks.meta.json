@@ -358,6 +358,173 @@
         "chatSessionId": "sess_2ea9f28f-c210-45f9-a2a1-ad2103948717",
         "timestamp": 1794710067175
       }
+    ],
+    "6.1 Implement `Web/backend/lib/image.js`": [
+      {
+        "executionId": "f5b81607-e737-4b18-9645-ac8cf2e86492",
+        "chatSessionId": "sess_2ea9f28f-c210-45f9-a2a1-ad2103948717",
+        "timestamp": 1794812674626
+      },
+      {
+        "executionId": "f5b81607-e737-4b18-9645-ac8cf2e86492",
+        "chatSessionId": "sess_2ea9f28f-c210-45f9-a2a1-ad2103948717",
+        "timestamp": 1794812901696
+      }
+    ],
+    "10.1 Implement `Web/backend/lib/config.js` and `Web/backend/lib/db.js`": [
+      {
+        "executionId": "f5b81607-e737-4b18-9645-ac8cf2e86492",
+        "chatSessionId": "sess_2ea9f28f-c210-45f9-a2a1-ad2103948717",
+        "timestamp": 1794812674667
+      },
+      {
+        "executionId": "f5b81607-e737-4b18-9645-ac8cf2e86492",
+        "chatSessionId": "sess_2ea9f28f-c210-45f9-a2a1-ad2103948717",
+        "timestamp": 1794812902285
+      }
+    ],
+    "6. Image detection and avatar URL": [
+      {
+        "executionId": "f5b81607-e737-4b18-9645-ac8cf2e86492",
+        "chatSessionId": "sess_2ea9f28f-c210-45f9-a2a1-ad2103948717",
+        "timestamp": 1794812901763
+      }
+    ],
+    "13.1 Implement `Web/backend/api.js`": [
+      {
+        "executionId": "f5b81607-e737-4b18-9645-ac8cf2e86492",
+        "chatSessionId": "sess_2ea9f28f-c210-45f9-a2a1-ad2103948717",
+        "timestamp": 1794812911356
+      },
+      {
+        "executionId": "f5b81607-e737-4b18-9645-ac8cf2e86492",
+        "chatSessionId": "sess_2ea9f28f-c210-45f9-a2a1-ad2103948717",
+        "timestamp": 1794812947350
+      }
+    ],
+    "13. Fetch client in `api.js`": [
+      {
+        "executionId": "f5b81607-e737-4b18-9645-ac8cf2e86492",
+        "chatSessionId": "sess_2ea9f28f-c210-45f9-a2a1-ad2103948717",
+        "timestamp": 1794812947378
+      }
+    ],
+    "10.2 Implement repositories in `Web/backend/lib/repos/`": [
+      {
+        "executionId": "f5b81607-e737-4b18-9645-ac8cf2e86492",
+        "chatSessionId": "sess_2ea9f28f-c210-45f9-a2a1-ad2103948717",
+        "timestamp": 1794812950195
+      },
+      {
+        "executionId": "f5b81607-e737-4b18-9645-ac8cf2e86492",
+        "chatSessionId": "sess_2ea9f28f-c210-45f9-a2a1-ad2103948717",
+        "timestamp": 1794813040089
+      }
+    ],
+    "10.3 Implement `Web/backend/lib/source-connector.js`": [
+      {
+        "executionId": "f5b81607-e737-4b18-9645-ac8cf2e86492",
+        "chatSessionId": "sess_2ea9f28f-c210-45f9-a2a1-ad2103948717",
+        "timestamp": 1794813043124
+      },
+      {
+        "executionId": "f5b81607-e737-4b18-9645-ac8cf2e86492",
+        "chatSessionId": "sess_2ea9f28f-c210-45f9-a2a1-ad2103948717",
+        "timestamp": 1794813117818
+      }
+    ],
+    "10.4 Implement the `requireSession` middleware": [
+      {
+        "executionId": "f5b81607-e737-4b18-9645-ac8cf2e86492",
+        "chatSessionId": "sess_2ea9f28f-c210-45f9-a2a1-ad2103948717",
+        "timestamp": 1794813043590
+      },
+      {
+        "executionId": "f5b81607-e737-4b18-9645-ac8cf2e86492",
+        "chatSessionId": "sess_2ea9f28f-c210-45f9-a2a1-ad2103948717",
+        "timestamp": 1794813118404
+      }
+    ],
+    "10. Infrastructure: config, database, repositories, connector, session middleware": [
+      {
+        "executionId": "f5b81607-e737-4b18-9645-ac8cf2e86492",
+        "chatSessionId": "sess_2ea9f28f-c210-45f9-a2a1-ad2103948717",
+        "timestamp": 1794813118439
+      }
+    ],
+    "11.1 Implement `Web/backend/lib/routes/auth.js`": [
+      {
+        "executionId": "f5b81607-e737-4b18-9645-ac8cf2e86492",
+        "chatSessionId": "sess_2ea9f28f-c210-45f9-a2a1-ad2103948717",
+        "timestamp": 1794813122061
+      },
+      {
+        "executionId": "f5b81607-e737-4b18-9645-ac8cf2e86492",
+        "chatSessionId": "sess_2ea9f28f-c210-45f9-a2a1-ad2103948717",
+        "timestamp": 1794813311331
+      }
+    ],
+    "11.2 Implement `Web/backend/lib/routes/account.js` including the avatar GET route": [
+      {
+        "executionId": "f5b81607-e737-4b18-9645-ac8cf2e86492",
+        "chatSessionId": "sess_2ea9f28f-c210-45f9-a2a1-ad2103948717",
+        "timestamp": 1794813122101
+      },
+      {
+        "executionId": "f5b81607-e737-4b18-9645-ac8cf2e86492",
+        "chatSessionId": "sess_2ea9f28f-c210-45f9-a2a1-ad2103948717",
+        "timestamp": 1794813312385
+      }
+    ],
+    "11.3 Implement `Web/backend/lib/routes/sources.js`": [
+      {
+        "executionId": "f5b81607-e737-4b18-9645-ac8cf2e86492",
+        "chatSessionId": "sess_2ea9f28f-c210-45f9-a2a1-ad2103948717",
+        "timestamp": 1794813122642
+      },
+      {
+        "executionId": "f5b81607-e737-4b18-9645-ac8cf2e86492",
+        "chatSessionId": "sess_2ea9f28f-c210-45f9-a2a1-ad2103948717",
+        "timestamp": 1794813313155
+      }
+    ],
+    "11.4 Implement `Web/backend/lib/routes/dashboards.js`": [
+      {
+        "executionId": "f5b81607-e737-4b18-9645-ac8cf2e86492",
+        "chatSessionId": "sess_2ea9f28f-c210-45f9-a2a1-ad2103948717",
+        "timestamp": 1794813123377
+      },
+      {
+        "executionId": "f5b81607-e737-4b18-9645-ac8cf2e86492",
+        "chatSessionId": "sess_2ea9f28f-c210-45f9-a2a1-ad2103948717",
+        "timestamp": 1794813313950
+      }
+    ],
+    "11. Routes": [
+      {
+        "executionId": "f5b81607-e737-4b18-9645-ac8cf2e86492",
+        "chatSessionId": "sess_2ea9f28f-c210-45f9-a2a1-ad2103948717",
+        "timestamp": 1794813314032
+      }
+    ],
+    "12.1 Rewrite `Web/backend/server.js` as the wiring file": [
+      {
+        "executionId": "f5b81607-e737-4b18-9645-ac8cf2e86492",
+        "chatSessionId": "sess_2ea9f28f-c210-45f9-a2a1-ad2103948717",
+        "timestamp": 1794813318237
+      },
+      {
+        "executionId": "f5b81607-e737-4b18-9645-ac8cf2e86492",
+        "chatSessionId": "sess_2ea9f28f-c210-45f9-a2a1-ad2103948717",
+        "timestamp": 1794813424532
+      }
+    ],
+    "12. Wire `server.js`": [
+      {
+        "executionId": "f5b81607-e737-4b18-9645-ac8cf2e86492",
+        "chatSessionId": "sess_2ea9f28f-c210-45f9-a2a1-ad2103948717",
+        "timestamp": 1794813424623
+      }
     ]
   }
 }

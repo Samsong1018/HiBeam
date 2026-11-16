@@ -97,8 +97,8 @@ Implementation is in JavaScript (Node.js, CommonJS backend, Express 5, `mysql`, 
     - **Validates: Requirements 3.5, 3.7**
     - File: `tests/auth-p6-lockout.test.mjs`
 
-- [ ] 6. Image detection and avatar URL
-  - [ ] 6.1 Implement `Web/backend/lib/image.js`
+- [x] 6. Image detection and avatar URL
+  - [x] 6.1 Implement `Web/backend/lib/image.js`
     - `detectImageType` (PNG, JPEG, WebP magic bytes), `mimeFor`, `checkAvatar` (`missing`, `too_large` above 2,097,152 bytes, `unsupported`), `avatarUrl(epochSeconds)` returning `/api/account/avatar?v=<n>` or `null`
     - _Requirements: 6.7, 6.8, 6.9, 8.1, 8.2, 8.3, 8.4, 8.5, 8.8_
 
@@ -143,24 +143,24 @@ Implementation is in JavaScript (Node.js, CommonJS backend, Express 5, `mysql`, 
 - [ ] 9. Checkpoint - Ensure all tests pass
   - Ensure all tests pass, ask the user if questions arise.
 
-- [ ] 10. Infrastructure: config, database, repositories, connector, session middleware
-  - [ ] 10.1 Implement `Web/backend/lib/config.js` and `Web/backend/lib/db.js`
+- [x] 10. Infrastructure: config, database, repositories, connector, session middleware
+  - [x] 10.1 Implement `Web/backend/lib/config.js` and `Web/backend/lib/db.js`
     - `config.js` checks `DB_HOST`, `DB_USER`, `DB_PASSWORD`, `DB_NAME`, `SOURCE_KEY_SECRET` and reports the name (never the value) of any missing variable
     - `db.js` creates a `mysql.createPool`, exposes promise-based `query(sql, params)` and `withTransaction(fn)` (rolls back and rethrows on error); values enter SQL only through `?` placeholders
     - _Requirements: 13.5, 16.4, 16.6_
 
-  - [ ] 10.2 Implement repositories in `Web/backend/lib/repos/`
+  - [x] 10.2 Implement repositories in `Web/backend/lib/repos/`
     - `users.js`, `sessions.js`, `tokens.js`, `sources.js`, `dashboards.js`, plus login-attempt recording
     - Every function takes `userId` first and puts the owner condition in every SELECT, UPDATE, and DELETE; the only exceptions are token-hash lookups and login-identifier lookup
     - Include `revokeAllExcept`, the conditional token-consume UPDATE (`used_at IS NULL AND expires_at > NOW()` checked through `affectedRows`), and the account-deletion statements
     - _Requirements: 2.4, 2.6, 5.5, 9.4, 12.1, 12.3, 13.2, 13.5_
 
-  - [ ] 10.3 Implement `Web/backend/lib/source-connector.js`
+  - [x] 10.3 Implement `Web/backend/lib/source-connector.js`
     - `testSource` and `previewSource` with a 10-second timeout; `rest` and `json` implemented, other types return `failed` / 502 with a fixed reason
     - Preview capped at 100 rows; outbound URLs limited to http/https and blocked for loopback, link-local, and private ranges; failure reasons come from a fixed message set
     - _Requirements: 14.6, 14.7, 14.8, 14.9_
 
-  - [ ] 10.4 Implement the `requireSession` middleware
+  - [x] 10.4 Implement the `requireSession` middleware
     - Hash the `sid` cookie token, look up an unrevoked, unexpired session joined to its user, set `req.userId` and `req.sessionId`, otherwise return 401 through `fail()` without running any other query
     - _Requirements: 4.2, 4.3, 13.1, 13.6_
 
@@ -172,8 +172,8 @@ Implementation is in JavaScript (Node.js, CommonJS backend, Express 5, `mysql`, 
     - Stubbed transport, 10-second timeout with fake timers, blocked private addresses, 100-row cap
     - _Requirements: 14.6, 14.7, 14.8, 14.9_
 
-- [ ] 11. Routes
-  - [ ] 11.1 Implement `Web/backend/lib/routes/auth.js`
+- [x] 11. Routes
+  - [x] 11.1 Implement `Web/backend/lib/routes/auth.js`
     - `POST /api/auth/signup`, `/login`, `/logout`, `/forgot-password`, `/reset-password` as a factory taking `deps`
     - Signup: transaction, map `ER_DUP_ENTRY` to 409 naming the field, set cookie, 201
     - Login: lockout check, always run `verifyPassword` (against `DUMMY_HASH` when the user is unknown), one generic 401, 429 with `Retry-After`, reset attempts on success, 400 records no attempt
@@ -182,19 +182,19 @@ Implementation is in JavaScript (Node.js, CommonJS backend, Express 5, `mysql`, 
     - Logout: revoke the session if present, always clear the cookie
     - _Requirements: 2.1, 2.3, 2.4, 2.6, 2.7, 3.1, 3.2, 3.3, 3.4, 3.5, 3.6, 3.7, 4.1, 4.4, 4.5, 4.6, 5.1, 5.2, 5.3, 5.4, 5.5, 5.6, 5.7, 5.8_
 
-  - [ ] 11.2 Implement `Web/backend/lib/routes/account.js` including the avatar GET route
+  - [x] 11.2 Implement `Web/backend/lib/routes/account.js` including the avatar GET route
     - `GET /api/account`, `PATCH /profile`, `PUT /avatar` (`express.raw` with 2 MB limit, `checkAvatar`, single UPDATE setting avatar, mime, and `avatar_updated_at`), `DELETE /avatar`, `POST /password`, `POST /email`, `GET /email/confirm`, `PATCH /preferences`, `POST /sessions/revoke-all`, `DELETE /api/account`
     - `GET /api/account/avatar`: behind `requireSession`, one query by `req.userId` only, ignores `v` and any client id, 404 envelope when no avatar, otherwise 200 with raw bytes, stored mime as `Content-Type`, `X-Content-Type-Options: nosniff`, `Cache-Control: private, no-cache`
     - Profile responses carry the Avatar_URL or `null`, never a `data:` URL
     - Delete-account runs in `withTransaction`, clears the cookie only after commit
     - _Requirements: 6.1, 6.2, 6.3, 6.4, 6.5, 6.6, 6.7, 6.8, 6.9, 7.1, 7.2, 7.3, 7.4, 7.5, 8.1, 8.2, 8.3, 8.4, 8.5, 8.6, 8.7, 8.8, 8.9, 8.10, 8.11, 8.12, 8.13, 8.14, 8.15, 9.1, 9.2, 9.3, 9.4, 9.5, 9.6, 10.1, 10.2, 10.3, 10.4, 10.5, 10.6, 10.7, 10.8, 11.1, 11.2, 11.3, 11.4, 12.1, 12.2, 12.3, 12.4, 12.5, 12.6, 12.7_
 
-  - [ ] 11.3 Implement `Web/backend/lib/routes/sources.js`
+  - [x] 11.3 Implement `Web/backend/lib/routes/sources.js`
     - `GET /api/sources`, `POST /api/sources` (generate `src_` id, encrypt key, store last four), `DELETE /:id`, `POST /:id/test`, `GET /:id/preview`
     - Reject malformed ids with 400 before any query; identical 404 for missing and foreign ids; test failures return 200 with status `failed`; preview failure returns 502
     - _Requirements: 14.1, 14.2, 14.3, 14.4, 14.5, 14.6, 14.7, 14.8, 14.9, 14.10, 14.11, 13.3, 13.6_
 
-  - [ ] 11.4 Implement `Web/backend/lib/routes/dashboards.js`
+  - [x] 11.4 Implement `Web/backend/lib/routes/dashboards.js`
     - `GET /api/dashboards`, `POST`, `GET /:id`, `PATCH /:id`, `DELETE /:id`, `GET /:id/data`
     - Validate with `validateDashboardDefinition`, check every `collectSourceIds` value is owned by the user (400 otherwise), generate `dash_` ids, identical 404 for missing and foreign ids; `/data` uses only owned sources
     - _Requirements: 15.1, 15.2, 15.3, 15.4, 15.5, 15.6, 15.7, 15.8, 15.9, 15.10, 13.3, 13.6_
@@ -221,8 +221,8 @@ Implementation is in JavaScript (Node.js, CommonJS backend, Express 5, `mysql`, 
     - Generate buffers with a valid signature plus random bytes; a few runs near 2,097,152 bytes
     - File: `tests/auth-p19-avatar-roundtrip.test.mjs`
 
-- [ ] 12. Wire `server.js`
-  - [ ] 12.1 Rewrite `Web/backend/server.js` as the wiring file
+- [x] 12. Wire `server.js`
+  - [x] 12.1 Rewrite `Web/backend/server.js` as the wiring file
     - Run the config check first; log the missing variable name and do not listen if any is missing
     - Create the pool, mount `staticAllowlist` at `/backend/` before the JSON parser and session middleware, then JSON and cookie parsing, auth routes, `requireSession` plus account, sources, and dashboards routes, and `errorMiddleware` last
     - Keep the existing frontend static serving; do not use `express.static` for `/backend/`
@@ -237,8 +237,8 @@ Implementation is in JavaScript (Node.js, CommonJS backend, Express 5, `mysql`, 
     - File: `tests/auth-server.test.mjs`
     - _Requirements: 3.2, 3.3, 3.5, 4.2, 8.2, 8.3, 8.4, 8.13, 8.14, 8.15, 13.5, 14.10, 16.6, 18.2, 18.4, 18.5, 18.6, 18.8_
 
-- [ ] 13. Fetch client in `api.js`
-  - [ ] 13.1 Implement `Web/backend/api.js`
+- [x] 13. Fetch client in `api.js`
+  - [x] 13.1 Implement `Web/backend/api.js`
     - `createApiClient({ fetchImpl, baseUrl })` with exactly one function per endpoint (27, including `getAvatar`), `ApiError`, and a default `api` instance
     - Shared `request` that sends `credentials: 'same-origin'`, JSON headers and body only when a body is given, parses envelopes, maps failures per criteria 17.5 to 17.8, handles `as: 'blob'` for `getAvatar`, and encodes ids and the confirm token with `encodeURIComponent`
     - `putAvatar` sends the Blob as is
