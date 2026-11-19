@@ -24,6 +24,12 @@ Set these in `.env` (never commit real values):
 - `SOURCE_KEY_SECRET` (required): 32 random bytes, base64-encoded. Generate with `node -e "console.log(require('crypto').randomBytes(32).toString('base64'))"`.
 - `APP_BASE_URL` (optional): public base URL of the app, e.g. `http://localhost:3000`.
 
+## Database migrations
+If your database was created from an older `schema.sql`, run any files in `Web/backend/db/migrations/` you haven't applied yet, in order:
+```
+mysql -u <user> -p <database> < Web/backend/db/migrations/001_dashboard_visibility.sql
+```
+
 
 
 # Web Layout

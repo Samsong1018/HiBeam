@@ -128,3 +128,12 @@ export function mockRowsFor(source) {
   const generate = GENERATORS[source.type] || GENERATORS.json;
   return generate(seededRandom(source.id));
 }
+
+// The backend stores one encrypted `key` string per source. For URL sources the
+// connector reads it as JSON { url, token }, sending token as a bearer header.
+// Other types keep their fields as JSON until the backend implements them.
+export function packSourceKey(type, config = {}) {
+  const { auth, ...rest } = config;
+  const token = typeof auth === 'string' ? auth.trim().replace(/^Bearer\s+/i, '') : '';
+  return JSON.stringify(token ? { ...rest, token } : rest);
+}

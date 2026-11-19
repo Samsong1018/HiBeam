@@ -5,7 +5,7 @@
 - [x] Build login form (identifier + password)
 - [x] Handle `?reset=<token>` query param to show reset-password form
 - [x] Forgot-password flow (email input → POST `/api/auth/forgot-password`)
-- [ ] Wire all forms to real API via `/backend/api.js` (`KiroApi.api.*`)
+- [x] Wire all forms to the real API (uses `KiroApi` if loaded, else its own fetch helper)
 - [x] Show field-level validation errors from server responses
 - [x] Redirect to `home.html` on successful login/signup
 
@@ -17,41 +17,28 @@
 - [!] Empty state when no dashboards exist
 - [ ] Redirect unauthenticated users to `login.html`
 
-## Account page (`account.html`) — UI is built, needs real API wiring
-- [ ] On load: fetch GET `/api/account` and populate hero (display name, username, avatar, member since, source count)
-- [ ] Load avatar image from `/api/account/avatar` and show it in both avatar slots
-- [ ] Profile form: swap mock `api.request` for `KiroApi.api.updateProfile`
-- [ ] Avatar upload: send raw `Blob` via `KiroApi.api.putAvatar` (not JSON)
-- [ ] Avatar remove: wire to `KiroApi.api.deleteAvatar`
-- [ ] Change password form: wire to `KiroApi.api.changePassword`
-- [ ] Change email form: wire to `KiroApi.api.changeEmail`
-- [ ] Sources section: load real sources on page load via `KiroApi.api.listSources`
-- [ ] Add source dialog: fix source type options to match backend (`excel`, `scrape`, `logs`, `rest`, `sql`, `json`)
-- [ ] Remove source: wire to `KiroApi.api.deleteSource`
-- [ ] Preferences form: wire to `KiroApi.api.updatePreferences`; align chart/refresh options with backend schema (`line`, `bar`, `pie`, `kpi`, `table`)
-- [ ] Sign out all devices: wire to `KiroApi.api.revokeAllSessions`
-- [ ] Delete account: wire to `KiroApi.api.deleteAccount`
-- [ ] Nav "Sign Out" button: wire to `KiroApi.api.logout` then redirect to `login.html`
-- [ ] Redirect unauthenticated users (401 from API) to `login.html`
+## Account page (`account.html`) — wired to the real API
+- [x] Load profile, avatar, preferences and sources on page load
+- [x] Profile, avatar upload/remove, password, email, preferences forms
+- [x] Add / remove source (source types match backend)
+- [x] Sign out all devices, delete account, nav Sign Out
+- [x] Redirect to `login.html` on 401
+- [ ] "Member since" in the hero: backend `GET /api/account` doesn't return a created date yet
 
-## View Dashboard (`view.html`) — built on the mock API, needs backend wiring
-- [x] Create `view.html` and a companion script (`scripts/view/`, `style/view.css`)
-- [x] Read `?id=<id>` from query string; reject invalid ids before fetching
-- [x] Load dashboard definition (GET `/api/dashboards/:id`) and render widgets read-only
-- [~] Live data: renders through the source registry (`/api/sources` + `/preview`) and honours each widget's refresh interval. Swap to GET `/api/dashboards/:id/data` once it exists (needed for non-owners viewing public dashboards)
-- [x] Public / private toggle UI (in the Share dialog). Calls `PATCH /api/dashboards/:id/visibility { public }`, which the backend doesn't have yet; GET `/api/dashboards/:id` should also return `public` and `isOwner`
-- [x] Share button: copy a shareable link to clipboard (or display the URL)
-- [x] "Edit" button linking back to `edit.html?id=<id>` for the owner
-- [x] Handle 404 gracefully (dashboard deleted or not owned)
+## View Dashboard (`view.html`)
+- [x] Load dashboard by `?id=`, render widgets read-only, 404 handling
+- [x] Edit button + Share dialog for the owner (`GET /api/dashboards/:id` returns `isOwner` + `public`)
+- [x] Public / private toggle → `PATCH /api/dashboards/:id/visibility` (needs migration `001_dashboard_visibility.sql` on old DBs)
+- [ ] Non-owners can't open a public dashboard yet: every dashboard route is login + owner-scoped. Needs an unauthenticated read route for `is_public` dashboards, plus serving widget data via `GET /api/dashboards/:id/data` instead of `/api/sources` (which a non-owner can't read)
 
 ## Editor (`edit.html`)
-- [ ] Flip `USE_MOCK` flag to `false` in `scripts/editor/api.js` once backend is live
-- [ ] Add `getDashboardData` call for live widget data (GET `/api/dashboards/:id/data`)
-- [ ] Wire "Sign Out" nav button (same as other pages)
-- [x] Wire Preview link to `view.html?id=<id>`
+- [x] Real backend (`USE_MOCK = false`)
+- [x] Add source sends `{ name, type, key }`; connection fields are packed into `key` as JSON (`packSourceKey`)
+- [x] Sign Out + Preview link
+- [ ] Optional: switch widget data to `GET /api/dashboards/:id/data` (currently per-source `/preview`)
 
 ## Shared / cross-cutting
-- [ ] Load `/backend/api.js` as a `<script>` tag on every page that needs auth (`KiroApi` global)
-- [ ] Centralise auth redirect: a single helper that checks for 401 and sends to `login.html`
-- [ ] Nav "Sign Out" button on all pages needs wiring (currently no `click` handler in `script.js`)
-- [ ] `email/confirm` landing: handle `?token=` on `login.html` or a dedicated page by calling `KiroApi.api.confirmEmail(token)`
+- [x] Nav Sign Out on every page (`script.js`)
+- [x] 401 → `login.html` on every authenticated page
+- [x] Email confirm: `login.html?token=` calls `confirmEmail`
+- [ ] Backend only fetches `rest` and `json` sources; `sql`, `excel`, `logs`, `scrape` save fine but preview returns "not supported yet"

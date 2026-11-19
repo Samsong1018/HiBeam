@@ -17,16 +17,26 @@ function RenderDashboards(pItems)
 
     pItems.forEach((pDash) =>
     {
+        // built with textContent so a dashboard name can't inject markup
         const tmpCard = document.createElement("div");
         tmpCard.className = "card";
-        tmpCard.innerHTML = `
-        <a href="edit.html?id=${encodeURIComponent(pDash.id)}">
-        <h2>${pDash.name}</h2>
-        <p>Last updated: ${pDash.updatedAt ? new Date(pDash.updatedAt).toLocaleDateString() : "—"}</p>
-        </a>
-        <button type="button" class="card-delete" data-id="${pDash.id}"
-            aria-label="Delete ${pDash.name}">Delete</button>
-        `;
+
+        const tmpLink = document.createElement("a");
+        tmpLink.href = `edit.html?id=${encodeURIComponent(pDash.id)}`;
+        const tmpTitle = document.createElement("h2");
+        tmpTitle.textContent = pDash.name;
+        const tmpUpdated = document.createElement("p");
+        tmpUpdated.textContent = `Last updated: ${pDash.updatedAt ? new Date(pDash.updatedAt).toLocaleDateString() : "—"}`;
+        tmpLink.append(tmpTitle, tmpUpdated);
+
+        const tmpDelete = document.createElement("button");
+        tmpDelete.type = "button";
+        tmpDelete.className = "card-delete";
+        tmpDelete.dataset.id = pDash.id;
+        tmpDelete.setAttribute("aria-label", `Delete ${pDash.name}`);
+        tmpDelete.textContent = "Delete";
+
+        tmpCard.append(tmpLink, tmpDelete);
         list.appendChild(tmpCard);
     });
     list.appendChild(CreateCard());

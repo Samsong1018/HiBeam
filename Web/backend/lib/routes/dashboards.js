@@ -8,6 +8,7 @@ const { isValidId, validateDashboardDefinition, collectSourceIds } = require('..
 const NOT_FOUND = 'Not found';
 const BAD_ID = 'Invalid id';
 const BAD_SOURCE = 'Definition references a source that does not exist';
+const BAD_VISIBILITY = 'public must be true or false';
 const SOURCE_FAILED = 'Source unreachable';
 const MAX_BODY = '1mb';
 
@@ -24,7 +25,8 @@ function ToIso(pDate)
 
 function ToDashboardView(pRow)
 {
-  return { id: pRow.id, definition: pRow.definition, updatedAt: ToIso(pRow.updated_at) };
+  // Every route here is owner-scoped, so whoever gets a row back owns it.
+  return { id: pRow.id, definition: pRow.definition, public: Boolean(pRow.is_public), isOwner: true, updatedAt: ToIso(pRow.updated_at) };
 }
 
 function ToListItem(pRow)
@@ -121,6 +123,15 @@ function CreateDashboardsRouter(pDeps)
     const tmpRow = await tmpRepos.dashboards.get(pReq.userId, pReq.params.id);
     if (!tmpRow) return fail(pRes, 404, NOT_FOUND);
     return ok(pRes, 200, ToDashboardView(tmpRow));
+  });
+
+  tmpRouter.patch('/:id/visibility', async (pReq, pRes) =>
+  {
+    const tmpPublic = pReq.body && pReq.body.public;
+    if (typeof tmpPublic !== 'boolean') return fail(pRes, 400, BAD_VISIBILITY);
+    const tmpUpdated = await tmpRepos.dashboards.setVisibility(pReq.userId, pReq.params.id, tmpPublic);
+    if (!tmpUpdated) return fail(pRes, 404, NOT_FOUND);
+    return ok(pRes, 200, { public: tmpPublic });
   });
 
   tmpRouter.delete('/:id', async (pReq, pRes) =>

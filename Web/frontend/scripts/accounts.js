@@ -265,10 +265,7 @@ emailForm.addEventListener('submit', (event) => {
 // 03 Connected sources
 // Only the last 4 characters of a key are ever kept client-side.
 // ------------------------------------------------------------
-let sources = [
-  { id: 's1', name: 'Sales database', type: 'MySQL', last4: '9f2a', status: 'ok', synced: '2 min ago' },
-  { id: 's2', name: 'Weather feed', type: 'REST API', last4: 'k31x', status: 'error', synced: 'Failed 1 hr ago' },
-];
+let sources = []; // filled by LoadAccount()
 
 const sourceList = document.getElementById('source-list');
 const sourceEmpty = document.getElementById('source-empty');

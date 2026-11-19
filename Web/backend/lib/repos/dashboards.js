@@ -19,10 +19,10 @@ async function list(userId, ex) {
   );
 }
 
-// Returns { id, name, definition (parsed object), updated_at } or null.
+// Returns { id, name, definition (parsed object), is_public, updated_at } or null.
 async function get(userId, id, ex) {
   const rows = await exec(ex).query(
-    'SELECT id, name, definition, updated_at FROM dashboards WHERE id = ? AND owner_id = ?',
+    'SELECT id, name, definition, is_public, updated_at FROM dashboards WHERE id = ? AND owner_id = ?',
     [id, userId]
   );
   const r = rows[0];
@@ -48,6 +48,15 @@ async function update(userId, id, { name, definition }, ex) {
   return res.affectedRows > 0;
 }
 
+// Leaves updated_at alone: sharing isn't an edit to the dashboard.
+async function setVisibility(userId, id, isPublic, ex) {
+  const res = await exec(ex).query(
+    'UPDATE dashboards SET is_public = ?, updated_at = updated_at WHERE id = ? AND owner_id = ?',
+    [isPublic ? 1 : 0, id, userId]
+  );
+  return res.affectedRows > 0;
+}
+
 async function remove(userId, id, ex) {
   const res = await exec(ex).query('DELETE FROM dashboards WHERE id = ? AND owner_id = ?', [
     id,
@@ -56,4 +65,4 @@ async function remove(userId, id, ex) {
   return res.affectedRows > 0;
 }
 
-module.exports = { list, get, create, update, remove };
+module.exports = { list, get, create, update, setVisibility, remove };

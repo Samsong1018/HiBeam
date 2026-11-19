@@ -147,3 +147,16 @@ test('normalizeDashboard drops unknown widgets and clamps untrusted values', () 
   assert.deepEqual(line.config.bindings, []);
   assert.equal(dash.widgets[1].config.bindings.length, 1, 'pie takes one binding');
 });
+
+import { packSourceKey } from '../Web/frontend/scripts/editor/source-types.js';
+
+test('packSourceKey builds the { url, token } blob the connector reads', () => {
+  const rest = JSON.parse(packSourceKey('rest', { url: 'https://a.test/x', method: 'GET', auth: 'Bearer abc123' }));
+  assert.deepEqual(rest, { url: 'https://a.test/x', method: 'GET', token: 'abc123' });
+  assert.equal(rest.auth, undefined);
+
+  const noAuth = JSON.parse(packSourceKey('rest', { url: 'https://a.test/x', auth: '  ' }));
+  assert.equal(noAuth.token, undefined);
+
+  assert.deepEqual(JSON.parse(packSourceKey('json', { url: 'https://a.test/d.json', path: 'data' })), { url: 'https://a.test/d.json', path: 'data' });
+});

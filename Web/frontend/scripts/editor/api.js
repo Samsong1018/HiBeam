@@ -10,7 +10,7 @@
 // return 404 (not 403) for someone else's id, otherwise it's an IDOR.
 // ============================================================
 
-import { mockRowsFor } from './source-types.js';
+import { mockRowsFor, packSourceKey } from './source-types.js';
 
 const USE_MOCK = false;
 const MOCK_LATENCY_MS = 300;
@@ -152,11 +152,14 @@ const real = {
   getDashboard: (id) => http('GET', `/api/dashboards/${encodeURIComponent(id)}`),
   createDashboard: (dashboard) => http('POST', '/api/dashboards', dashboard),
   saveDashboard: (id, dashboard) => http('PATCH', `/api/dashboards/${encodeURIComponent(id)}`, dashboard),
-  // Not in the backend spec yet. Kept separate from saveDashboard because the
-  // strict definition schema would reject a `public` field.
+  // Separate from saveDashboard because the strict definition schema rejects a `public` field.
   setVisibility: (id, isPublic) => http('PATCH', `/api/dashboards/${encodeURIComponent(id)}/visibility`, { public: Boolean(isPublic) }),
   listSources: () => http('GET', '/api/sources'),
-  createSource: (input) => http('POST', '/api/sources', input),
+  // POST only returns { id }, so build the list entry the registry expects.
+  createSource: async ({ name, type, config }) => {
+    const { id } = await http('POST', '/api/sources', { name, type, key: packSourceKey(type, config) });
+    return { id, name, type, status: 'ok' };
+  },
   deleteSource: (id) => http('DELETE', `/api/sources/${encodeURIComponent(id)}`),
   previewSource: (id) => http('GET', `/api/sources/${encodeURIComponent(id)}/preview`).then((rows) => ({ rows: Array.isArray(rows) ? rows : [] })),
 };
