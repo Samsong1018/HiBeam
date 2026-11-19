@@ -89,6 +89,7 @@ async function boot() {
   try {
     [initial] = await Promise.all([loadDashboard(rawId), registry.load()]);
   } catch (err) {
+    if (err?.status === 401) { window.location.assign('login.html'); return; }
     const notFound = err?.status === 404 || err?.status === 403;
     showFatal(notFound ? 'Dashboard not found' : 'Couldn\'t open the editor',
       notFound ? 'It may have been deleted, or it isn\'t yours.' : 'Something went wrong loading this dashboard. Try again in a moment.');

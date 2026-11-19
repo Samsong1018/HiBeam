@@ -1,91 +1,152 @@
-const API_URL = "http://localhost:3000/api/dashboards";
+const _apiUrl = "/api/dashboards";
 
-let dashboards = [
-    
-    {   id: "d_1", name: "Sales", date_updated: "2026-03-12" },
-    {   id: "d_2", name: "Salary", date_updated: "2026-03-13"},
-    {   id: "d_3", name: "Support Tickets", date_updated: "2026-03-14"},
-    {   id: "d_4", name: "Sales2", date_updated: "2026-03-12" },
-    {   id: "d_5", name: "Salary2", date_updated: "2026-03-13"},
-    {   id: "d_6", name: "Really long ass fucking thing", date_updated: "2026-03-13"},
-    {   id: "d_7", name: "Support Tickets2", date_updated: "2026-03-14"}
-];
+let _dashboards = [];
 
 const list = document.getElementById("dashboard-list");
 
-function renderDashboards(items){
+function RenderDashboards(pItems)
+{
     list.innerHTML = "";
 
-    if (items.length === 0){
+    if (pItems.length === 0)
+    {
         list.innerHTML = `<p class="empty-message">You have no dashboards yet.</p>`;
-        list.appendChild(createCard());
+        list.appendChild(CreateCard());
         return;
     }
 
-    items.forEach((d) => {
-        const card = document.createElement("div");
-        card.className = "card";
-        card.innerHTML = `
-        <a href="dashboard.html?id=${d.id}">
-        <h2>${d.name}</h2>
-        <p>Last updated: ${d.date_updated}</p>
+    pItems.forEach((pDash) =>
+    {
+        const tmpCard = document.createElement("div");
+        tmpCard.className = "card";
+        tmpCard.innerHTML = `
+        <a href="edit.html?id=${encodeURIComponent(pDash.id)}">
+        <h2>${pDash.name}</h2>
+        <p>Last updated: ${pDash.updatedAt ? new Date(pDash.updatedAt).toLocaleDateString() : "—"}</p>
         </a>
-        <button type="button" class="card-delete" data-id="${d.id}"
-            aria-label="Delete ${d.name}">Delete</button>
+        <button type="button" class="card-delete" data-id="${pDash.id}"
+            aria-label="Delete ${pDash.name}">Delete</button>
         `;
-        list.appendChild(card);
+        list.appendChild(tmpCard);
     });
-    list.appendChild(createCard());
+    list.appendChild(CreateCard());
 }
 
-function deleteDashboard(id) {
-    const target = dashboards.find((d) => d.id === id);
-    if (!target) return;
-    
-    if (!confirm(`Delete "${target.name}"? This cannot be undone`)) return;
+async function DeleteDashboard(pId)
+{
+    const tmpTarget = _dashboards.find((pDash) => pDash.id === pId);
+    if (!tmpTarget) return;
 
-    dashboards = dashboards.filter((d) => d.id !== id);
-    renderDashboards(dashboards);
-}
+    if (!confirm(`Delete "${tmpTarget.name}"? This cannot be undone.`)) return;
 
-function createCard() {
-    const el = document.createElement("div");
-    el.className = "card card-create";
-    el.innerHTML = `<button type="button" class="card-create-btn">
-        <h2> + Create new dashboard</h2>
-        </button>
-        `;
-        return el;
-}
-
-async function createDashboard(button) {
-    button.disabled = true;
-
-    try {
-        const response = await fetch(API_URL, {
-            method: "POST",
-            headers: {"Content-Type": "application/json"},
-            body: JSON.stringify({name: "Untitled Dashboard"})
+    try
+    {
+        const tmpRes = await fetch(`${_apiUrl}/${encodeURIComponent(pId)}`, {
+            method: "DELETE",
+            credentials: "same-origin"
         });
-        if (!response.ok) throw new Error("Failed to create dashboard: " + response.status);
+        if (!tmpRes.ok) throw new Error("Delete failed: " + tmpRes.status);
 
-        const created = await response.json();
-        window.location.href = `edit.html?id=${encodeURIComponent(created.id)}`;
-    } catch (err) {
-        console.error(err);
-        alert("Couldn't create new dashboard");
-        button.disabled = false;
+        _dashboards = _dashboards.filter((pDash) => pDash.id !== pId);
+        RenderDashboards(_dashboards);
+    }
+    catch (tmpErr)
+    {
+        console.error(tmpErr);
+        alert("Couldn't delete that dashboard.");
     }
 }
 
-if (list) {
-    list.addEventListener("click", (event) => {
-        const btn = event.target.closest(".card-delete");
-        if (btn) deleteDashboard(btn.dataset.id);
+function CreateCard()
+{
+    const tmpEl = document.createElement("div");
+    tmpEl.className = "card card-create";
+    tmpEl.innerHTML = `<button type="button" class="card-create-btn">
+        <h2> + Create new dashboard</h2>
+        </button>
+        `;
+    return tmpEl;
+}
 
-        const create = event.target.closest(".card-create-btn");
-        if (create) createDashboard(create);
+async function CreateDashboard(pButton)
+{
+    pButton.disabled = true;
+
+    try
+    {
+        const tmpResponse = await fetch(_apiUrl, {
+            method: "POST",
+            credentials: "same-origin",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ name: "Untitled Dashboard", widgets: [], grid: { columns: 24, showGrid: false } })
+        });
+        if (!tmpResponse.ok) throw new Error("Failed to create dashboard: " + tmpResponse.status);
+
+        const tmpPayload = await tmpResponse.json();
+        const tmpId = tmpPayload.data?.id ?? tmpPayload.id;
+        window.location.href = `edit.html?id=${encodeURIComponent(tmpId)}`;
+    }
+    catch (tmpErr)
+    {
+        console.error(tmpErr);
+        alert("Couldn't create new dashboard.");
+        pButton.disabled = false;
+    }
+}
+
+async function LoadDashboards()
+{
+    try
+    {
+        const tmpRes = await fetch(_apiUrl, { credentials: "same-origin" });
+
+        if (tmpRes.status === 401)
+        {
+            window.location.href = "login.html";
+            return;
+        }
+
+        if (!tmpRes.ok) throw new Error("Failed to load dashboards: " + tmpRes.status);
+
+        const tmpPayload = await tmpRes.json();
+        _dashboards = Array.isArray(tmpPayload.data) ? tmpPayload.data : [];
+        RenderDashboards(_dashboards);
+    }
+    catch (tmpErr)
+    {
+        console.error(tmpErr);
+        list.innerHTML = `<p class="empty-message">Couldn't load dashboards. Please refresh.</p>`;
+    }
+}
+
+async function SignOut()
+{
+    try
+    {
+        await fetch("/api/auth/logout", { method: "POST", credentials: "same-origin" });
+    }
+    catch (tmpErr)
+    {
+        // best-effort
+    }
+    window.location.href = "login.html";
+}
+
+if (list)
+{
+    list.addEventListener("click", (tmpEvent) =>
+    {
+        const tmpDeleteBtn = tmpEvent.target.closest(".card-delete");
+        if (tmpDeleteBtn) DeleteDashboard(tmpDeleteBtn.dataset.id);
+
+        const tmpCreateBtn = tmpEvent.target.closest(".card-create-btn");
+        if (tmpCreateBtn) CreateDashboard(tmpCreateBtn);
     });
 
-    renderDashboards(dashboards);
+    LoadDashboards();
 }
+
+document.querySelectorAll(".nav-signout").forEach((pBtn) =>
+{
+    pBtn.addEventListener("click", SignOut);
+});

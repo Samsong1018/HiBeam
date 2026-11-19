@@ -12,7 +12,7 @@
 
 import { mockRowsFor } from './source-types.js';
 
-const USE_MOCK = true;
+const USE_MOCK = false;
 const MOCK_LATENCY_MS = 300;
 const DASHBOARDS_KEY = 'dashgen:mock:dashboards';
 const SOURCES_KEY = 'dashgen:mock:sources';
@@ -158,7 +158,7 @@ const real = {
   listSources: () => http('GET', '/api/sources'),
   createSource: (input) => http('POST', '/api/sources', input),
   deleteSource: (id) => http('DELETE', `/api/sources/${encodeURIComponent(id)}`),
-  previewSource: (id) => http('GET', `/api/sources/${encodeURIComponent(id)}/preview`),
+  previewSource: (id) => http('GET', `/api/sources/${encodeURIComponent(id)}/preview`).then((rows) => ({ rows: Array.isArray(rows) ? rows : [] })),
 };
 
 export const api = USE_MOCK ? mock : real;

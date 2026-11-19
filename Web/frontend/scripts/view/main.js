@@ -204,6 +204,7 @@ async function boot() {
   try {
     [raw] = await Promise.all([api.getDashboard(rawId), registry.load()]);
   } catch (err) {
+    if (err?.status === 401) { window.location.assign('login.html'); return; }
     const notFound = err?.status === 404 || err?.status === 403;
     showFatal(notFound ? 'Dashboard not found' : 'Couldn\'t load this dashboard',
       notFound ? 'It may have been deleted, or it\'s private.' : 'Something went wrong. Try again in a moment.');

@@ -1,19 +1,44 @@
 // ============================================================
 // ACCOUNT PAGE
-// Everything talks to the backend through `api` below. It's a mock
-// for now — swap the body of api.request for a real fetch() once the
-// /api/account endpoints exist in Web/backend.
+// All calls go to the real backend.
 // ============================================================
 
 const api = {
-  async request(method, path, body) {
-    // TODO: replace with:
-    // const res = await fetch(path, { method, headers: { 'Content-Type': 'application/json' }, credentials: 'same-origin', body: body ? JSON.stringify(body) : undefined });
-    // if (!res.ok) throw new Error((await res.json()).error || 'Request failed');
-    // return res.json();
-    await new Promise((resolve) => setTimeout(resolve, 600));
-    return { success: true, data: body || null };
+  async request(pMethod, pPath, pBody)
+  {
+    const tmpOpts = {
+      method: pMethod,
+      credentials: "same-origin"
+    };
+    if (pBody !== undefined)
+    {
+      tmpOpts.headers = { "Content-Type": "application/json" };
+      tmpOpts.body = JSON.stringify(pBody);
+    }
+    const tmpRes = await fetch(pPath, tmpOpts);
+    const tmpJson = await tmpRes.json().catch(() => ({}));
+    if (!tmpRes.ok || tmpJson.success === false)
+    {
+      throw new Error(tmpJson.error || `Request failed (${tmpRes.status})`);
+    }
+    return tmpJson;
   },
+
+  async uploadAvatar(pFile)
+  {
+    const tmpRes = await fetch("/api/account/avatar", {
+      method: "PUT",
+      credentials: "same-origin",
+      headers: { "Content-Type": pFile.type },
+      body: pFile
+    });
+    const tmpJson = await tmpRes.json().catch(() => ({}));
+    if (!tmpRes.ok || tmpJson.success === false)
+    {
+      throw new Error(tmpJson.error || `Upload failed (${tmpRes.status})`);
+    }
+    return tmpJson;
+  }
 };
 
 const MAX_AVATAR_BYTES = 2 * 1024 * 1024;
@@ -140,7 +165,7 @@ avatarInput.addEventListener('change', async () => {
   }
   showAvatar(URL.createObjectURL(file));
   try {
-    await api.request('PUT', '/api/account/avatar', { name: file.name });
+    await api.uploadAvatar(file);
     toast('Photo updated');
   } catch (err) {
     showAvatar(null);
@@ -440,3 +465,104 @@ if ('IntersectionObserver' in window) {
 }
 
 renderSources();
+
+// ------------------------------------------------------------
+// Page init — load real user profile + sources from the backend
+// ------------------------------------------------------------
+async function LoadAccount()
+{
+  try
+  {
+    const tmpRes = await fetch('/api/account', { credentials: 'same-origin' });
+    if (tmpRes.status === 401)
+    {
+      window.location.href = 'login.html';
+      return;
+    }
+    if (!tmpRes.ok) return;
+    const tmpJson = await tmpRes.json();
+    const tmpProfile = tmpJson.data || tmpJson;
+
+    // Populate display name, username, email
+    if (tmpProfile.displayName)
+    {
+      displayNameInput.value = tmpProfile.displayName;
+      document.querySelectorAll('[data-display-name]').forEach((tmpEl) => { tmpEl.textContent = tmpProfile.displayName; });
+      document.querySelectorAll('[data-avatar-initials]').forEach((tmpEl) => { tmpEl.textContent = initialsFor(tmpProfile.displayName); });
+    }
+    if (tmpProfile.username)
+    {
+      usernameInput.value = tmpProfile.username;
+      document.querySelectorAll('[data-username]').forEach((tmpEl) => { tmpEl.textContent = `@${tmpProfile.username}`; });
+    }
+    if (tmpProfile.email)
+    {
+      const tmpCurrentEmailEl = document.getElementById('current-email');
+      if (tmpCurrentEmailEl) tmpCurrentEmailEl.value = tmpProfile.email;
+      document.querySelectorAll('[data-email]').forEach((tmpEl) => { tmpEl.textContent = tmpProfile.email; });
+    }
+    if (tmpProfile.avatarUrl)
+    {
+      showAvatar(tmpProfile.avatarUrl);
+    }
+
+    // Populate preferences
+    if (tmpProfile.preferences)
+    {
+      const tmpPrefs = tmpProfile.preferences;
+      if (tmpPrefs.defaultChart)
+      {
+        const tmpChartEl = document.getElementById('default-chart');
+        if (tmpChartEl) tmpChartEl.value = tmpPrefs.defaultChart;
+      }
+      if (tmpPrefs.refreshRate !== undefined)
+      {
+        const tmpRateEl = document.getElementById('refresh-rate');
+        if (tmpRateEl) tmpRateEl.value = String(tmpPrefs.refreshRate);
+      }
+    }
+  }
+  catch (tmpErr)
+  {
+    console.error('Could not load account:', tmpErr);
+  }
+
+  // Load real sources
+  try
+  {
+    const tmpSrcRes = await fetch('/api/sources', { credentials: 'same-origin' });
+    if (tmpSrcRes.ok)
+    {
+      const tmpSrcJson = await tmpSrcRes.json();
+      const tmpRaw = Array.isArray(tmpSrcJson.data) ? tmpSrcJson.data : [];
+      sources = tmpRaw.map((pSrc) => ({
+        id: pSrc.id,
+        name: pSrc.name,
+        type: pSrc.type,
+        last4: pSrc.keyLast4 || '????',
+        status: pSrc.status || 'ok',
+        synced: pSrc.lastSyncAt ? new Date(pSrc.lastSyncAt).toLocaleString() : 'Never synced'
+      }));
+      renderSources();
+    }
+  }
+  catch (tmpErr)
+  {
+    console.error('Could not load sources:', tmpErr);
+  }
+}
+
+LoadAccount();
+
+// ------------------------------------------------------------
+// Sign-out buttons in the nav
+// ------------------------------------------------------------
+document.querySelectorAll('.nav-signout').forEach((pBtn) =>
+{
+  pBtn.addEventListener('click', async () =>
+  {
+    try { await fetch('/api/auth/logout', { method: 'POST', credentials: 'same-origin' }); }
+    catch (tmpErr) { /* best-effort */ }
+    window.location.href = 'login.html';
+  });
+});
