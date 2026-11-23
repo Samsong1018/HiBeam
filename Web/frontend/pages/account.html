@@ -3,6 +3,7 @@
     <head>
         <script src="../scripts/theme.js"></script>
         <meta charset="UTF-8">
+        <link rel="icon" href="../favicon.svg" type="image/svg+xml">
         <meta name="viewport" content="width=device-width, initial-scale=1">
         <title>Account · DashGen</title>
         <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -28,23 +29,23 @@
         <main class="account">
 
             <!-- ACCOUNT HERO -->
-            <section class="account-hero" aria-labelledby="account-heading">
+            <section class="account-hero" aria-labelledby="account-heading" aria-busy="true">
                 <div class="avatar avatar-lg" data-avatar aria-hidden="true">
                     <img data-avatar-img alt="" hidden>
-                    <span data-avatar-initials>EA</span>
+                    <span data-avatar-initials></span>
                 </div>
                 <div class="account-hero-text">
                     <span class="eyebrow">Account</span>
-                    <h1 id="account-heading" data-display-name>Example Account</h1>
+                    <h1 id="account-heading" data-display-name>Your account</h1>
                     <p class="account-hero-meta">
-                        <span data-username>@example_user</span>
+                        <span data-username></span>
                         <span aria-hidden="true">·</span>
                         <span data-member-since>Member since …</span>
                     </p>
                 </div>
                 <dl class="account-stats">
                     <div><dt>Dashboards</dt><dd data-dashboard-count>…</dd></div>
-                    <div><dt>Sources</dt><dd data-source-count>0</dd></div>
+                    <div><dt>Sources</dt><dd data-source-count>…</dd></div>
                     <div><dt>Last login</dt><dd data-last-login>…</dd></div>
                 </dl>
             </section>
@@ -76,7 +77,7 @@
                             <div class="avatar-row">
                                 <div class="avatar" data-avatar aria-hidden="true">
                                     <img data-avatar-img alt="" hidden>
-                                    <span data-avatar-initials>EA</span>
+                                    <span data-avatar-initials></span>
                                 </div>
                                 <div class="avatar-actions">
                                     <label class="btn btn-ghost" for="avatar-input">Upload photo</label>
@@ -90,18 +91,18 @@
                             <div class="field-grid">
                                 <div class="field">
                                     <label for="display-name">Display name</label>
-                                    <input type="text" id="display-name" name="displayName" value="Example Account" maxlength="50" required autocomplete="name">
+                                    <input type="text" id="display-name" name="displayName" value="" maxlength="50" required autocomplete="name">
                                     <p class="field-error" data-error-for="display-name"></p>
                                 </div>
                                 <div class="field">
                                     <label for="username">Username</label>
-                                    <input type="text" id="username" name="username" value="example_user" maxlength="24" pattern="[a-z0-9_]{3,24}" required autocomplete="username">
+                                    <input type="text" id="username" name="username" value="" maxlength="24" pattern="[a-z0-9_]{3,24}" required autocomplete="username">
                                     <p class="field-hint">3–24 characters: lowercase letters, numbers, underscores.</p>
                                     <p class="field-error" data-error-for="username"></p>
                                 </div>
                                 <div class="field field-wide">
                                     <label for="current-email">Email</label>
-                                    <input type="email" id="current-email" value="you@example.com" readonly>
+                                    <input type="email" id="current-email" value="" readonly>
                                     <p class="field-hint">Change it under <a href="#security">Security</a>.</p>
                                 </div>
                             </div>
@@ -318,6 +319,7 @@
             <p class="footer-copy">&copy; 2026 Dashboard Gen</p>
         </footer>
 
+        <script src="../backend/api.js" defer></script>
         <script src="../scripts/script.js" defer></script>
         <script src="../scripts/accounts.js" defer></script>
     </body>

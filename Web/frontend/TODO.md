@@ -15,7 +15,7 @@
 - [x] Dashboard cards with name, last-updated time, and delete button
 - [x] Empty state when no dashboards exist
 - [x] Redirect unauthenticated users to `login.html`
-- [ ] Cards only link to `edit.html`. Add an "Open" link to `view.html?id=<id>` alongside "Edit"
+- [x] Cards have Open (`view.html`) and Edit buttons
 
 ## Account page (`account.html`): wired to the real API
 - [x] Load profile, avatar, preferences and sources on page load
@@ -30,7 +30,7 @@
 - [x] Edit button + Share dialog for the owner (`GET /api/dashboards/:id` returns `isOwner` + `public`)
 - [x] Public / private toggle → `PATCH /api/dashboards/:id/visibility` (needs migration `001_dashboard_visibility.sql` on old DBs)
 - [x] Public links work signed out: falls back to `GET /api/public/dashboards/:id` (+ `/data`) on 401/404
-- [ ] Signed-out visitors on a public dashboard still see "Sign Out" in the header and footer nav. Show "Log in" instead when there's no session
+- [x] Signed-out visitors on a public dashboard get a "Log in" link instead of Dashboards / Account / Sign Out
 
 ## Editor (`edit.html`)
 - [x] Real backend (`USE_MOCK = false`)

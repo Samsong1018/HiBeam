@@ -1,45 +1,12 @@
 // ============================================================
 // ACCOUNT PAGE
-// All calls go to the real backend.
+// All calls go to the real backend through the shared client in /backend/api.js.
 // ============================================================
 
-const api = {
-  async request(pMethod, pPath, pBody)
-  {
-    const tmpOpts = {
-      method: pMethod,
-      credentials: "same-origin"
-    };
-    if (pBody !== undefined)
-    {
-      tmpOpts.headers = { "Content-Type": "application/json" };
-      tmpOpts.body = JSON.stringify(pBody);
-    }
-    const tmpRes = await fetch(pPath, tmpOpts);
-    const tmpJson = await tmpRes.json().catch(() => ({}));
-    if (!tmpRes.ok || tmpJson.success === false)
-    {
-      throw new Error(tmpJson.error || `Request failed (${tmpRes.status})`);
-    }
-    return tmpJson;
-  },
-
-  async uploadAvatar(pFile)
-  {
-    const tmpRes = await fetch("/api/account/avatar", {
-      method: "PUT",
-      credentials: "same-origin",
-      headers: { "Content-Type": pFile.type },
-      body: pFile
-    });
-    const tmpJson = await tmpRes.json().catch(() => ({}));
-    if (!tmpRes.ok || tmpJson.success === false)
-    {
-      throw new Error(tmpJson.error || `Upload failed (${tmpRes.status})`);
-    }
-    return tmpJson;
-  }
-};
+// Shared fetch client (/backend/api.js, loaded before this file). Methods return the
+// envelope's data and throw KiroApi.ApiError (with .status) on failure.
+// (api.js already declares a global `api` const, so this needs its own name.)
+const accountApi = window.KiroApi.api;
 
 const MAX_AVATAR_BYTES = 2 * 1024 * 1024;
 const AVATAR_TYPES = ['image/png', 'image/jpeg', 'image/webp'];
@@ -123,7 +90,7 @@ profileForm.addEventListener('submit', (event) => {
       return errors;
     },
     send: async () => {
-      await api.request('PATCH', '/api/account/profile', { displayName, username });
+      await accountApi.updateProfile({ displayName, username });
       document.querySelector('[data-display-name]').textContent = displayName;
       document.querySelector('[data-username]').textContent = `@${username}`;
       document.querySelectorAll('[data-avatar-initials]').forEach((el) => { el.textContent = initialsFor(displayName); });
@@ -165,7 +132,7 @@ avatarInput.addEventListener('change', async () => {
   }
   showAvatar(URL.createObjectURL(file));
   try {
-    await api.uploadAvatar(file);
+    await accountApi.putAvatar(file);
     toast('Photo updated');
   } catch (err) {
     showAvatar(null);
@@ -175,7 +142,9 @@ avatarInput.addEventListener('change', async () => {
 
 document.getElementById('avatar-remove').addEventListener('click', () => {
   showAvatar(null);
-  api.request('DELETE', '/api/account/avatar').then(() => toast('Photo removed'));
+  accountApi.deleteAvatar()
+    .then(() => toast('Photo removed'))
+    .catch(() => toast('Couldn\'t remove photo. Refresh to see your current one.', true));
 });
 
 // ------------------------------------------------------------
@@ -229,7 +198,7 @@ passwordForm.addEventListener('submit', (event) => {
       return errors;
     },
     send: async () => {
-      await api.request('POST', '/api/account/password', { currentPassword: current, newPassword: next });
+      await accountApi.changePassword({ currentPassword: current, newPassword: next });
       passwordForm.reset();
       strengthEl.dataset.strength = '0';
       strengthLabel.textContent = STRENGTH_LABELS[0];
@@ -254,7 +223,7 @@ emailForm.addEventListener('submit', (event) => {
       return errors;
     },
     send: async () => {
-      await api.request('POST', '/api/account/email', { newEmail, password });
+      await accountApi.changeEmail({ newEmail, password });
       emailForm.reset();
     },
     success: () => `Confirmation sent to ${newEmail}`,
@@ -291,7 +260,9 @@ function renderSourceItem(source) {
     el('p', 'source-meta', `${source.type} · key ••••${source.last4} · ${source.synced}`),
   );
 
-  const status = el('span', `status-pill ${source.status === 'ok' ? 'is-ok' : 'is-error'}`, source.status === 'ok' ? 'Connected' : 'Error');
+  // backend statuses: ok | failed | untested (the default until a test runs)
+  const pill = { ok: ['is-ok', 'Connected'], failed: ['is-error', 'Error'] }[source.status] || ['is-untested', 'Untested'];
+  const status = el('span', `status-pill ${pill[0]}`, pill[1]);
 
   const remove = el('button', 'source-remove', 'Remove');
   remove.type = 'button';
@@ -314,7 +285,7 @@ async function removeSource(source) {
   sources = sources.filter((s) => s.id !== source.id);
   renderSources();
   try {
-    await api.request('DELETE', `/api/sources/${encodeURIComponent(source.id)}`);
+    await accountApi.deleteSource(source.id);
     toast(`Removed ${source.name}`);
   } catch (err) {
     sources = previous;
@@ -347,10 +318,11 @@ sourceForm.addEventListener('submit', (event) => {
       return errors;
     },
     send: async () => {
-      const res = await api.request('POST', '/api/sources', { name, type, key });
+      const created = await accountApi.createSource({ name, type, key });
       keyInput.value = '';
-      const id = (res.data && res.data.id) || `s${Date.now()}`;
-      sources = [...sources, { id, name, type, last4: key.slice(-4), status: 'ok', synced: 'Just now' }];
+      // no id means the save can't be trusted; fail loudly instead of listing a fake source
+      if (!created || typeof created.id !== 'string') throw new Error('The server didn\'t confirm the new source. Refresh and check your sources.');
+      sources = [...sources, { id: created.id, name, type, last4: key.slice(-4), status: 'untested', synced: 'Never synced' }];
       renderSources();
       sourceDialog.close();
     },
@@ -379,7 +351,7 @@ themeRadios.forEach((radio) => {
 preferencesForm.addEventListener('submit', (event) => {
   event.preventDefault();
   handleSubmit(preferencesForm, {
-    send: () => api.request('PATCH', '/api/account/preferences', {
+    send: () => accountApi.updatePreferences({
       defaultChart: document.getElementById('default-chart').value,
       refreshRate: Number(document.getElementById('refresh-rate').value),
     }),
@@ -395,7 +367,7 @@ document.getElementById('signout-all-btn').addEventListener('click', async (even
   const button = event.currentTarget;
   setLoading(button, true);
   try {
-    await api.request('POST', '/api/account/sessions/revoke-all');
+    await accountApi.revokeAllSessions();
     window.location.href = 'login.html';
   } catch (err) {
     setLoading(button, false);
@@ -423,7 +395,7 @@ deleteForm.addEventListener('submit', async (event) => {
   if (deleteInput.value !== 'DELETE') return;
   setLoading(deleteButton, true);
   try {
-    await api.request('DELETE', '/api/account');
+    await accountApi.deleteAccount();
     window.location.href = 'login.html';
   } catch (err) {
     setLoading(deleteButton, false);
@@ -461,7 +433,7 @@ if ('IntersectionObserver' in window) {
   document.querySelectorAll('.account-sections > .panel').forEach((panel) => observer.observe(panel));
 }
 
-renderSources();
+// Sources render once LoadAccount() has them, so the count never flashes a fake 0.
 
 // ------------------------------------------------------------
 // Page init — load real user profile + sources from the backend
@@ -501,17 +473,10 @@ function RenderAccountStats(pProfile)
 
 async function LoadAccount()
 {
+  const tmpHero = document.querySelector('.account-hero');
   try
   {
-    const tmpRes = await fetch('/api/account', { credentials: 'same-origin' });
-    if (tmpRes.status === 401)
-    {
-      window.location.href = 'login.html';
-      return;
-    }
-    if (!tmpRes.ok) return;
-    const tmpJson = await tmpRes.json();
-    const tmpProfile = tmpJson.data || tmpJson;
+    const tmpProfile = await accountApi.getAccount();
 
     // Populate display name, username, email
     if (tmpProfile.displayName)
@@ -556,45 +521,38 @@ async function LoadAccount()
   }
   catch (tmpErr)
   {
+    if (tmpErr && tmpErr.status === 401)
+    {
+      window.location.href = 'login.html';
+      return;
+    }
     console.error('Could not load account:', tmpErr);
+    toast('Couldn\'t load your account. Refresh to try again.', true);
   }
 
   // Load real sources
   try
   {
-    const tmpSrcRes = await fetch('/api/sources', { credentials: 'same-origin' });
-    if (tmpSrcRes.ok)
-    {
-      const tmpSrcJson = await tmpSrcRes.json();
-      const tmpRaw = Array.isArray(tmpSrcJson.data) ? tmpSrcJson.data : [];
-      sources = tmpRaw.map((pSrc) => ({
-        id: pSrc.id,
-        name: pSrc.name,
-        type: pSrc.type,
-        last4: pSrc.keyLast4 || '????',
-        status: pSrc.status || 'ok',
-        synced: pSrc.lastSyncAt ? new Date(pSrc.lastSyncAt).toLocaleString() : 'Never synced'
-      }));
-      renderSources();
-    }
+    const tmpRaw = await accountApi.listSources();
+    sources = (Array.isArray(tmpRaw) ? tmpRaw : []).map((pSrc) => ({
+      id: pSrc.id,
+      name: pSrc.name,
+      type: pSrc.type,
+      last4: pSrc.keyLast4 || '????',
+      status: pSrc.status || 'untested',
+      synced: pSrc.lastSyncAt ? new Date(pSrc.lastSyncAt).toLocaleString() : 'Never synced'
+    }));
+    renderSources();
   }
   catch (tmpErr)
   {
     console.error('Could not load sources:', tmpErr);
+    sourceCount.textContent = '—';
   }
+
+  if (tmpHero) tmpHero.removeAttribute('aria-busy');
 }
 
 LoadAccount();
 
-// ------------------------------------------------------------
-// Sign-out buttons in the nav
-// ------------------------------------------------------------
-document.querySelectorAll('.nav-signout').forEach((pBtn) =>
-{
-  pBtn.addEventListener('click', async () =>
-  {
-    try { await fetch('/api/auth/logout', { method: 'POST', credentials: 'same-origin' }); }
-    catch (tmpErr) { /* best-effort */ }
-    window.location.href = 'login.html';
-  });
-});
+// Nav Sign Out is wired by script.js, which loads on every page.

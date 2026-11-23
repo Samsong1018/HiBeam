@@ -21,8 +21,9 @@ function RenderDashboards(pItems)
         const tmpCard = document.createElement("div");
         tmpCard.className = "card";
 
+        const tmpEditHref = `edit.html?id=${encodeURIComponent(pDash.id)}`;
         const tmpLink = document.createElement("a");
-        tmpLink.href = `edit.html?id=${encodeURIComponent(pDash.id)}`;
+        tmpLink.href = tmpEditHref;
         const tmpTitle = document.createElement("h2");
         tmpTitle.textContent = pDash.name;
         const tmpUpdated = document.createElement("p");
@@ -36,7 +37,22 @@ function RenderDashboards(pItems)
         tmpDelete.setAttribute("aria-label", `Delete ${pDash.name}`);
         tmpDelete.textContent = "Delete";
 
-        tmpCard.append(tmpLink, tmpDelete);
+        // the card body opens the editor; this row adds a read-only Open next to Edit
+        const tmpActions = document.createElement("div");
+        tmpActions.className = "card-actions";
+        const tmpOpen = document.createElement("a");
+        tmpOpen.className = "btn btn-primary card-action";
+        tmpOpen.href = `view.html?id=${encodeURIComponent(pDash.id)}`;
+        tmpOpen.textContent = "Open";
+        tmpOpen.setAttribute("aria-label", `Open ${pDash.name}`);
+        const tmpEdit = document.createElement("a");
+        tmpEdit.className = "btn btn-ghost card-action";
+        tmpEdit.href = tmpEditHref;
+        tmpEdit.textContent = "Edit";
+        tmpEdit.setAttribute("aria-label", `Edit ${pDash.name}`);
+        tmpActions.append(tmpOpen, tmpEdit);
+
+        tmpCard.append(tmpLink, tmpActions, tmpDelete);
         list.appendChild(tmpCard);
     });
     list.appendChild(CreateCard());

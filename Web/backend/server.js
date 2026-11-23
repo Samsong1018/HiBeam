@@ -74,15 +74,16 @@ function CreateApp()
     tmpApp.use(`/api/dashboards`, libRequireSession.requireSession(),
         OnlyFor(/^\/[^/]+\/data\/?$/, tmpLimiters.sourceFetch), libDashboardsRoutes());
 
-    // frontend
-    tmpApp.use(libExpress.static(libPath.join(__dirname, `../frontend`)));
-
-    // basic get endpoint, it should send you directly to the index.html page
-    tmpApp.get(`/`,
+    // the root has no page of its own: send people to their dashboards. home.html bounces
+    // to login.html when there's no session. Must come before static, which would serve index.html.
+    tmpApp.get([`/`, `/index.html`],
         (pRequest, pResponse) =>
         {
-            pResponse.sendFile(libPath.join(__dirname, `../frontend/`, `/index.html`));
+            pResponse.redirect(302, `/pages/home.html`);
         });
+
+    // frontend
+    tmpApp.use(libExpress.static(libPath.join(__dirname, `../frontend`)));
 
     tmpApp.use(libEnvelope.errorMiddleware);
 
@@ -101,11 +102,24 @@ function Start()
         return null;
     }
 
+    // behind a proxy without TRUST_PROXY, every visitor shares the proxy's IP and one rate-limit bucket
+    if (process.env.NODE_ENV === `production` && !process.env.TRUST_PROXY)
+    {
+        console.warn(`warning: NODE_ENV=production but TRUST_PROXY is unset. If this runs behind a reverse proxy, `
+            + `set TRUST_PROXY=1 or all visitors will share one rate limit.`);
+    }
+
     const tmpApp = CreateApp();
     libMaintenance.StartPruning(libDb);
 
-    return tmpApp.listen(_serverPort, () =>
+    // Express 5 hands listen errors (e.g. EADDRINUSE) to this callback instead of throwing
+    return tmpApp.listen(_serverPort, (pErr) =>
     {
+        if (pErr)
+        {
+            console.error(`could not listen on port ${_serverPort}: ${pErr.code || pErr.message}`);
+            process.exit(1);
+        }
         console.log(`server is listening on port ${_serverPort}`);
     });
 }

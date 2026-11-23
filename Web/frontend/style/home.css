@@ -110,3 +110,20 @@ main h2 {
   color: inherit;
   cursor: pointer;
 }
+/* Open (view) + Edit row under each dashboard card */
+.card-actions {
+    display: flex;
+    gap: var(--space-xs);
+    padding: 0 1rem 1rem;
+}
+
+.card .card-action {
+    flex: 1;
+    padding: 0.45rem 0.8rem;
+    text-align: center;
+}
+
+.card .card-action:focus-visible {
+    outline: 2px solid var(--color-accent);
+    outline-offset: 2px;
+}

@@ -169,7 +169,9 @@ function CreateAccountRouter(pDeps)
         return tmpEnv.ok(pRes, 200, { avatarUrl: tmpD.views.toPublicProfile(tmpRow).avatarUrl });
     });
     // GET /api/account/avatar
-    // One query, keyed by req.userId only. The `v` query value and any client id are never read.
+    // One query, keyed by req.userId only. `v` never picks the image; it only decides caching:
+    // the profile hands out /avatar?v=<updated epoch>, and that URL changes whenever the avatar
+    // does, so a versioned request can be cached for a day. An unversioned one revalidates.
     tmpRouter.get('/avatar', async (pReq, pRes) =>
     {
         const tmpAvatar = await tmpRepos.users.getAvatar(pReq.userId);
@@ -182,7 +184,8 @@ function CreateAccountRouter(pDeps)
         pRes.status(200);
         pRes.setHeader('Content-Type', tmpMime);
         pRes.setHeader('X-Content-Type-Options', 'nosniff');
-        pRes.setHeader('Cache-Control', 'private, no-cache');
+        const tmpVersioned = typeof pReq.query.v === 'string' && /^\d+$/.test(pReq.query.v);
+        pRes.setHeader('Cache-Control', tmpVersioned ? 'private, max-age=86400' : 'private, no-cache');
         pRes.setHeader('Content-Length', Buffer.byteLength(tmpAvatar.avatar));
         return pRes.end(tmpAvatar.avatar);
     });

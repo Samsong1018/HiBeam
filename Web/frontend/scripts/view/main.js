@@ -203,7 +203,7 @@ async function loadDashboard(id) {
   const registry = createSourceRegistry();
   try {
     const [raw] = await Promise.all([api.getDashboard(id), registry.load()]);
-    return { raw, registry };
+    return { raw, registry, signedIn: true };
   } catch (ownerErr) {
     if (ownerErr?.status !== 401 && ownerErr?.status !== 404) throw ownerErr;
     let raw;
@@ -213,8 +213,32 @@ async function loadDashboard(id) {
       throw publicErr?.status === 404 ? ownerErr : publicErr;
     }
     // never trust a flag to grant owner controls on the public path
-    return { raw: { ...raw, isOwner: false }, registry: createPublicRegistry(() => api.getPublicDashboardData(id)) };
+    // 401 = no session; 404 = signed in, just not the owner
+    return {
+      raw: { ...raw, isOwner: false },
+      registry: createPublicRegistry(() => api.getPublicDashboardData(id)),
+      signedIn: ownerErr.status !== 401,
+    };
   }
+}
+
+// ------------------------------------------------------------
+// Signed-out visitors on a public link
+// ------------------------------------------------------------
+// Dashboards / Account / Sign Out mean nothing without a session, so the header,
+// footer and back arrow point to the login page instead.
+function showSignedOutNav() {
+  const loginItem = () => {
+    const a = document.createElement('a');
+    a.href = 'login.html';
+    a.textContent = 'Log in';
+    const li = document.createElement('li');
+    li.append(a);
+    return li;
+  };
+  document.querySelectorAll('.nav-links, .footer-links').forEach((list) => list.replaceChildren(loginItem()));
+  document.querySelectorAll('.site-logo').forEach((logo) => { logo.href = 'login.html'; });
+  document.querySelector('.view-back')?.remove();
 }
 
 // ------------------------------------------------------------
@@ -235,9 +259,10 @@ async function boot() {
       notFound ? 'It may have been deleted, or it\'s private.' : 'Something went wrong. Try again in a moment.');
     return;
   }
-  const { raw, registry } = loaded;
+  const { raw, registry, signedIn } = loaded;
+  if (!signedIn) showSignedOutNav();
 
-  // backend returns { id, definition, updatedAt }; the mock returns the definition flat
+  // backend returns { id, definition, updatedAt }; a bare definition is accepted too
   const dash = normalizeDashboard(raw?.definition ?? raw);
   const isOwner = raw?.isOwner === true; // missing flag = read-only, never show owner controls by default
   const editHref = `edit.html?id=${encodeURIComponent(rawId)}`;

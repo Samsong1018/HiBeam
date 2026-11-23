@@ -1,8 +1,6 @@
 // ============================================================
 // EDITOR API
-// One place that talks to the backend. USE_MOCK keeps everything in
-// localStorage until the /api/dashboards + /api/sources endpoints exist —
-// flip it to false and the real fetch() path below takes over.
+// One place that talks to the backend.
 //
 // Security note for the backend: the dashboard id in the URL is NOT an
 // access check. Every /api/dashboards/:id and /api/sources/:id handler must
@@ -10,13 +8,7 @@
 // return 404 (not 403) for someone else's id, otherwise it's an IDOR.
 // ============================================================
 
-import { mockRowsFor, packSourceKey } from './source-types.js';
-
-const USE_MOCK = false;
-const MOCK_LATENCY_MS = 300;
-const DASHBOARDS_KEY = 'dashgen:mock:dashboards';
-const SOURCES_KEY = 'dashgen:mock:sources';
-const VISIBILITY_KEY = 'dashgen:mock:visibility';
+import { packSourceKey } from './source-types.js';
 
 // ids are opaque strings; anything else in ?id= is rejected before a request
 export const ID_RE = /^[A-Za-z0-9_-]{1,64}$/;
@@ -71,113 +63,9 @@ async function uploadFile(path, file) {
 }
 
 // ------------------------------------------------------------
-// Mock backend
-// ------------------------------------------------------------
-const memoryFallback = new Map();
-
-function readStore(key) {
-  try {
-    return JSON.parse(localStorage.getItem(key) || '{}');
-  } catch (err) {
-    return memoryFallback.get(key) || {};
-  }
-}
-
-function writeStore(key, value) {
-  memoryFallback.set(key, value);
-  try {
-    localStorage.setItem(key, JSON.stringify(value));
-  } catch (err) {
-    // storage blocked or full: keep working in memory for this page view
-  }
-}
-
-const delay = () => new Promise((resolve) => setTimeout(resolve, MOCK_LATENCY_MS));
-
-function mockId(prefix) {
-  return `${prefix}_${Math.random().toString(36).slice(2, 12)}`;
-}
-
-const SEED_SOURCES = [
-  { id: 'src_sales', name: 'Q3 Sales workbook', type: 'excel', status: 'ok' },
-  { id: 'src_logs', name: 'API server logs', type: 'logs', status: 'ok' },
-  { id: 'src_orders', name: 'Orders database', type: 'sql', status: 'ok' },
-];
-
-function mockSources() {
-  const stored = readStore(SOURCES_KEY);
-  if (Object.keys(stored).length) return stored;
-  const seeded = Object.fromEntries(SEED_SOURCES.map((s) => [s.id, { ...s, createdAt: new Date().toISOString() }]));
-  writeStore(SOURCES_KEY, seeded);
-  return seeded;
-}
-
-const mock = {
-  async getDashboard(id) {
-    await delay();
-    const dash = readStore(DASHBOARDS_KEY)[id];
-    if (!dash) throw new ApiError('Dashboard not found', 404);
-    return { ...dash, public: readStore(VISIBILITY_KEY)[id] === true, isOwner: true };
-  },
-  // no anonymous visitors in mock mode
-  async getPublicDashboard() {
-    await delay();
-    throw new ApiError('Dashboard not found', 404);
-  },
-  async getPublicDashboardData() {
-    await delay();
-    throw new ApiError('Dashboard not found', 404);
-  },
-  async setVisibility(id, isPublic) {
-    await delay();
-    if (!readStore(DASHBOARDS_KEY)[id]) throw new ApiError('Dashboard not found', 404);
-    writeStore(VISIBILITY_KEY, { ...readStore(VISIBILITY_KEY), [id]: Boolean(isPublic) });
-    return { id, public: Boolean(isPublic) };
-  },
-  async createDashboard(dashboard) {
-    await delay();
-    const all = readStore(DASHBOARDS_KEY);
-    const created = { ...dashboard, id: mockId('dash'), updatedAt: new Date().toISOString() };
-    writeStore(DASHBOARDS_KEY, { ...all, [created.id]: created });
-    return created;
-  },
-  async saveDashboard(id, dashboard) {
-    await delay();
-    const all = readStore(DASHBOARDS_KEY);
-    if (!all[id]) throw new ApiError('Dashboard not found', 404);
-    const saved = { ...dashboard, id, updatedAt: new Date().toISOString() };
-    writeStore(DASHBOARDS_KEY, { ...all, [id]: saved });
-    return saved;
-  },
-  async listSources() {
-    await delay();
-    return Object.values(mockSources());
-  },
-  async createSource({ name, type }) {
-    await delay();
-    // config/secrets would go to the server here and never come back
-    const created = { id: mockId('src'), name, type, status: 'ok', createdAt: new Date().toISOString() };
-    writeStore(SOURCES_KEY, { ...mockSources(), [created.id]: created });
-    return created;
-  },
-  async deleteSource(id) {
-    await delay();
-    const { [id]: removed, ...rest } = mockSources();
-    writeStore(SOURCES_KEY, rest);
-    return { id };
-  },
-  async previewSource(id) {
-    await delay();
-    const source = mockSources()[id];
-    if (!source) throw new ApiError('Source not found', 404);
-    return { rows: mockRowsFor(source) };
-  },
-};
-
-// ------------------------------------------------------------
 // Public surface
 // ------------------------------------------------------------
-const real = {
+export const api = {
   getDashboard: (id) => http('GET', `/api/dashboards/${encodeURIComponent(id)}`),
   // No session needed; the server only answers for dashboards marked public.
   getPublicDashboard: (id) => http('GET', `/api/public/dashboards/${encodeURIComponent(id)}`),
@@ -200,10 +88,9 @@ const real = {
         throw err;
       }
     }
-    return { id, name, type, status: 'ok' };
+    return { id, name, type, status: 'untested' };
   },
   deleteSource: (id) => http('DELETE', `/api/sources/${encodeURIComponent(id)}`),
   previewSource: (id) => http('GET', `/api/sources/${encodeURIComponent(id)}/preview`).then((rows) => ({ rows: Array.isArray(rows) ? rows : [] })),
 };
 
-export const api = USE_MOCK ? mock : real;
