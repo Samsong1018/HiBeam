@@ -3,6 +3,7 @@
 const express = require('express');
 const { ok, fail } = require('../envelope');
 const { isValidId, collectSourceIds } = require('../validators');
+const { AllowedFields, ProjectRows } = require('../public-projection');
 
 const NOT_FOUND = 'Not found';
 const BAD_ID = 'Invalid id';
@@ -25,7 +26,8 @@ function ToPublicView(pRow)
 /*
   Read-only, unauthenticated routes for dashboards marked public. Mount at /api/public/dashboards
   WITHOUT requireSession. Only rows with is_public = 1 are ever read; a private or missing id is a
-  404 either way. Data is read through the owner's sources, limited to the ids the definition binds.
+  404 either way. Data is read through the owner's sources, limited to the ids the definition binds,
+  and each row is cut down to the columns the widgets display (see public-projection.js).
 
   deps (all optional):
     repos           { dashboards, sources }   default require('../repos')
@@ -65,6 +67,7 @@ function CreatePublicDashboardsRouter(pDeps)
     const tmpIds = collectSourceIds(pRow.definition);
     const tmpSources = tmpIds.length > 0 ? await tmpRepos.sources.getManyWithKey(pRow.owner_id, tmpIds) : [];
     const tmpById = new Map(tmpSources.map((pSrc) => [pSrc.id, pSrc]));
+    const tmpAllowed = AllowedFields(pRow.definition);
     const tmpData = {};
     await Promise.all(tmpIds.map(async (pSourceId) =>
     {
@@ -77,7 +80,7 @@ function CreatePublicDashboardsRouter(pDeps)
       try
       {
         const tmpRows = await tmpPreview(tmpSource, tmpPreviewOptions);
-        tmpData[pSourceId] = { name: tmpSource.name, rows: Array.isArray(tmpRows) ? tmpRows.slice(0, 100) : [] };
+        tmpData[pSourceId] = { name: tmpSource.name, rows: ProjectRows(Array.isArray(tmpRows) ? tmpRows.slice(0, 100) : [], tmpAllowed.get(pSourceId)) };
       }
       catch (tmpErr)
       {

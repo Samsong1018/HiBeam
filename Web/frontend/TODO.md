@@ -47,7 +47,8 @@
 
 ## Backend / ops
 - [ ] Run `Web/backend/db/migrations/002_source_files.sql` on the shared DB (spreadsheet uploads fail without it)
-- [ ] Per-IP rate limit on `/api/public/dashboards/*` before deploying publicly (there's a 15s data cache, but no request limit)
+- [x] Rate limits on auth, source fetches and `/api/public/dashboards/*` (`lib/security.js`); set `TRUST_PROXY` when deploying behind nginx
+- [x] Security headers + CSP (`helmet`), public dashboards only send displayed columns, hourly prune of expired auth rows
 - [ ] Optional property/unit tests still unchecked in `.kiro/specs/auth-account-endpoints/tasks.md` (items marked `*`)
 
 ## Hackathon submission (Skeleton Crew)

@@ -28,7 +28,7 @@ DashGen is the foundation: accounts, data sources, a widget editor and a viewer.
 - Node.js + Express 5
 - MySQL (via `mysql2`)
 - Plain HTML, CSS and JavaScript on the frontend (ES modules, no build step), with Chart.js for charts
-- `zod` for validation, `bcrypt` for passwords, `cheerio` for scraping, `exceljs` for spreadsheets
+- `zod` for validation, `bcrypt` for passwords, `helmet` and `express-rate-limit` for headers and rate limits, `cheerio` for scraping, `exceljs` for spreadsheets
 - Tests use Node's built-in test runner plus `fast-check`
 
 ## Getting started
@@ -54,6 +54,9 @@ Copy `.env.example` to `.env` in the project root and fill it in. Never commit `
 | `DB_NAME` | yes | |
 | `SOURCE_KEY_SECRET` | yes | 32 random bytes, base64. Encrypts stored source credentials. Generate with `node -e "console.log(require('crypto').randomBytes(32).toString('base64'))"` |
 | `APP_BASE_URL` | no | Base URL used in password-reset and email-confirm links, e.g. `http://localhost:8000` |
+| `PORT` | no | Defaults to `8000` |
+| `TRUST_PROXY` | no | Set when behind a reverse proxy so rate limits see real client IPs. A hop count (`1`) or `loopback` |
+| `NODE_ENV` | no | `production` when serving over HTTPS: turns on `Secure` cookies and HSTS |
 
 The server refuses to start and names any missing variable.
 
@@ -161,6 +164,10 @@ All responses use the same envelope: `{ "success": true, "data": ... }` or `{ "s
 - Source fetches block private and internal addresses and pin the connection to the vetted IP, so a source can't be pointed at the server's own network.
 - SQL sources run in a read-only transaction with a timeout and a 100-row cap.
 - Log sources take a URL, never a file path on the server.
+- Public dashboards only send the columns their widgets display, not every column a source returns. A table set to show all columns exposes all of them.
+- Rate limits (per IP unless noted): login 30 per 15 min; signup, forgot-password and reset-password 10 per 15 min combined; source test/preview and dashboard data 120 per minute per user; public dashboards 120 per minute. Over the limit returns 429.
+- Security headers via `helmet`, including a CSP that allows scripts only from the app and jsDelivr.
+- Expired sessions, used or expired tokens and old login attempts are deleted at startup and then hourly.
 
 ## Team
 

@@ -11,7 +11,7 @@ const { createPublicRegistry } = await import('../Web/frontend/scripts/view/publ
 const DEF = {
   name: 'Shared',
   widgets: [
-    { id: 'w1', type: 'kpi', config: { bindings: [{ sourceId: 'src_a' }] } },
+    { id: 'w1', type: 'kpi', config: { bindings: [{ sourceId: 'src_a', yField: 'v', agg: 'sum' }] } },
     { id: 'w2', type: 'bar', config: { bindings: [{ sourceId: 'src_b' }] } },
     { id: 'w3', type: 'bar', config: { bindings: [{ sourceId: 'src_gone' }] } },
   ],
