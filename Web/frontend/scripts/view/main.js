@@ -39,7 +39,7 @@ const EMPTY_TEXT = 'No data connected to this widget yet.';
 // Fatal states (bad id, not found, load failed)
 // ------------------------------------------------------------
 function showFatal(title, detail) {
-  document.title = `${title} · DashGen`;
+  document.title = `${title} · HiBeam`;
   els.viewer.replaceChildren(h('div', { class: 'view-fatal' },
     h('p', { class: 'eyebrow' }, 'Dashboard'),
     h('h1', {}, title),
@@ -267,7 +267,7 @@ async function boot() {
   const isOwner = raw?.isOwner === true; // missing flag = read-only, never show owner controls by default
   const editHref = `edit.html?id=${encodeURIComponent(rawId)}`;
 
-  document.title = `${dash.name} · DashGen`;
+  document.title = `${dash.name} · HiBeam`;
   els.title.textContent = dash.name;
   const updatedAt = raw?.updatedAt ? new Date(raw.updatedAt) : null;
   const paintUpdated = () => {

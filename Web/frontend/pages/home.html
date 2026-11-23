@@ -4,7 +4,7 @@
         <script src="../scripts/theme.js"></script>
         <meta charset="UTF-8">
         <link rel="icon" href="../favicon.svg" type="image/svg+xml">
-        <title>DashGen</title>
+        <title>My Dashboards · HiBeam</title>
         <meta name="viewport" content="width=device-width, initial-scale=1">
         <link rel="preconnect" href="https://fonts.googleapis.com">
         <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -14,10 +14,9 @@
         <link rel="stylesheet" href="../style/home.css">
     </head>
     <body>
-        <!-- Shared nav: copy this <header> to every page -->
         <header class="site-header">
             <nav class="site-nav" aria-label="Main navigation">
-                <a class="site-logo" href="home.html">Dashboard Gen</a>
+                <a class="site-logo" href="home.html">HiBeam</a>
                 <ul class="nav-links">
                     <li><a href="home.html" aria-current="page">Dashboards</a></li>
                     <li><a href="account.html">Account</a></li>
@@ -25,21 +24,60 @@
                 </ul>
             </nav>
         </header>
+
         <main>
-            <h1>
-            My Dashboards
-            </h1>
-        <div id="dashboard-list"></div>
+            <div class="home-header">
+                <h1>My Dashboards</h1>
+                <button type="button" class="btn btn-primary" id="new-dashboard-btn">+ New dashboard</button>
+            </div>
+
+            <!-- States are shown/hidden by script.js -->
+            <div id="dashboard-loading" class="dashboard-grid" aria-label="Loading dashboards" aria-busy="true">
+                <div class="card card-skeleton" aria-hidden="true"></div>
+                <div class="card card-skeleton" aria-hidden="true"></div>
+                <div class="card card-skeleton" aria-hidden="true"></div>
+            </div>
+
+            <div id="dashboard-error" class="home-state" hidden>
+                <p class="home-state-title">Couldn't load your dashboards.</p>
+                <p class="home-state-body">Check your connection and try again.</p>
+                <button type="button" class="btn btn-primary" id="retry-btn">Retry</button>
+            </div>
+
+            <div id="dashboard-empty" class="home-state" hidden>
+                <p class="home-state-eyebrow">Welcome to HiBeam</p>
+                <p class="home-state-title">Build dashboards from any data source</p>
+                <p class="home-state-body">Connect a REST API, SQL database, spreadsheet, or website and turn it into a shareable dashboard — no code required.</p>
+                <div class="home-state-actions">
+                    <button type="button" class="btn btn-primary" id="empty-create-btn">Create your first dashboard</button>
+                    <a class="btn btn-ghost" href="account.html#sources">Connect a data source</a>
+                </div>
+            </div>
+
+            <ul id="dashboard-grid" class="dashboard-grid" aria-label="Your dashboards" hidden></ul>
         </main>
 
-        <!-- Shared footer: copy this <footer> to every page -->
+        <!-- Delete confirmation dialog -->
+        <dialog class="modal" id="delete-dialog" aria-labelledby="delete-dialog-title">
+            <div class="modal-body">
+                <h2 id="delete-dialog-title">Delete dashboard?</h2>
+                <p id="delete-dialog-desc">This cannot be undone.</p>
+                <div class="modal-actions">
+                    <button class="btn btn-ghost" type="button" id="delete-cancel-btn">Cancel</button>
+                    <button class="btn btn-danger" type="button" id="delete-confirm-btn">Delete</button>
+                </div>
+            </div>
+        </dialog>
+
+        <div class="toast" id="toast" role="status" aria-live="polite"></div>
+
         <footer class="site-footer">
-            <p class="footer-brand">Dashboard Gen</p>
+            <p class="footer-brand">HiBeam</p>
             <ul class="footer-links">
                 <li><a href="home.html">Dashboards</a></li>
                 <li><a href="account.html">Account</a></li>
             </ul>
-            <p class="footer-copy">&copy; 2026 Dashboard Gen</p>
+            <p class="footer-copy">&copy; 2026 HiBeam</p>
         </footer>
 
         <script src="../scripts/script.js" defer></script>

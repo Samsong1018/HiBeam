@@ -205,10 +205,10 @@
     renderChart(views[name]);
 
     document.title = {
-      login: 'Log in · DashGen',
-      signup: 'Sign up · DashGen',
-      forgot: 'Forgot password · DashGen',
-      reset: 'New password · DashGen',
+      login: 'Log in · HiBeam',
+      signup: 'Sign up · HiBeam',
+      forgot: 'Forgot password · HiBeam',
+      reset: 'New password · HiBeam',
     }[name];
 
     if (focus) {

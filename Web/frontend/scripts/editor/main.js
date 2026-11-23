@@ -45,7 +45,10 @@ function showFatal(title, detail) {
 
 async function loadDashboard(id) {
   if (!id) return newDashboard();
-  return normalizeDashboard(await api.getDashboard(id));
+  // backend returns { id, definition, ... }; unwrap like the viewer does, or the
+  // editor opens an empty board and the first autosave overwrites the real one
+  const raw = await api.getDashboard(id);
+  return normalizeDashboard(raw?.definition ?? raw);
 }
 
 function setPreview(id) {
