@@ -14,6 +14,7 @@ import { renderWidget } from '../editor/widget-render.js';
 import { WIDGET_TYPES, isDataWidget } from '../editor/widget-types.js';
 import { readingOrder, placement, cellSize, updatedLabel } from './layout.js';
 import { createPublicRegistry } from './public-registry.js';
+import { WireExportButton } from './export.js';
 
 const $ = (sel) => document.querySelector(sel);
 
@@ -23,6 +24,7 @@ const els = {
   updated: $('#view-updated'),
   pill: $('#visibility-pill'),
   share: $('#share-btn'),
+  export: $('#export-btn'),
   edit: $('#edit-link'),
   board: $('#board'),
   dialog: $('#share-dialog'),
@@ -285,6 +287,9 @@ async function boot() {
   }
 
   createSharing({ id: rawId, isOwner, initialPublic: raw?.public === true });
+
+  // Export button: available once the board is in a known state.
+  WireExportButton(els.export, els.board, () => dash.name);
 
   clear(els.board);
   if (!dash.widgets.length) {
