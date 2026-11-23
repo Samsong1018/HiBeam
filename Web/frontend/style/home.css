@@ -1,3 +1,10 @@
+/* The page toggles states with the `hidden` attribute; the display rules below
+   (flex/grid) would otherwise override it and show every state at once. */
+[hidden] { display: none !important; }
+
+/* Link-styled buttons (Edit, Connect a data source) shouldn't be underlined */
+a.btn { text-decoration: none; }
+
 /* ============================================================
    HOME PAGE
    ============================================================ */
