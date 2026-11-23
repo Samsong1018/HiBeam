@@ -15,6 +15,7 @@ const libAuthRoutes = require("./lib/routes/auth");
 const libAccountRoutes = require("./lib/routes/account");
 const libSourcesRoutes = require("./lib/routes/sources");
 const libDashboardsRoutes = require("./lib/routes/dashboards");
+const libPublicDashboardsRoutes = require("./lib/routes/public-dashboards");
 const _serverPort = 8000;
 
 /*
@@ -25,6 +26,7 @@ const _serverPort = 8000;
     /api/account          email confirm (no session), then session-protected account routes
     /api/sources          session-protected
     /api/dashboards       session-protected
+    /api/public/dashboards  no session, read-only, is_public = 1 rows only
     errorMiddleware       last
 */
 
@@ -47,6 +49,7 @@ function CreateApp()
     tmpApp.use(`/api/account`, libAccountRoutes.CreateEmailConfirmRouter());
     tmpApp.use(`/api/account`, libRequireSession.requireSession(), libAccountRoutes.CreateAccountRouter());
     tmpApp.use(`/api/sources`, libRequireSession.requireSession(), libSourcesRoutes());
+    tmpApp.use(`/api/public/dashboards`, libPublicDashboardsRoutes());
     tmpApp.use(`/api/dashboards`, libRequireSession.requireSession(), libDashboardsRoutes());
 
     // frontend

@@ -5,11 +5,14 @@ const http = require('http');
 const https = require('https');
 const net = require('net');
 const { decryptKey } = require('./crypto-box');
+const { ScrapeRows, ScrapeError } = require('./connectors/scrape');
+const { ParseLogs } = require('./connectors/logs');
+const { SpreadsheetRows, SheetError } = require('./connectors/spreadsheet');
+const { SqlRows, SqlError } = require('./connectors/sql');
 
 const TIMEOUT_MS = 10000;
 const MAX_ROWS = 100;
 const MAX_BYTES = 2 * 1024 * 1024;
-const IMPLEMENTED_TYPES = ['rest', 'json'];
 
 // Fixed reason set. Upstream text, keys, and URLs are never echoed.
 const REASONS = Object.freeze({
@@ -21,8 +24,32 @@ const REASONS = Object.freeze({
   badKey: 'Source credentials could not be read',
   rejected: 'Source rejected the credentials',
   upstreamError: 'Source returned an error',
-  badResponse: 'Source returned an unexpected response'
+  badResponse: 'Source returned an unexpected response',
+  badPath: 'Array path was not found in the response',
+  badSelector: 'CSS selector is invalid',
+  noLogLines: 'No log lines matched the chosen format',
+  noFile: 'No spreadsheet has been uploaded for this source',
+  badFile: 'Spreadsheet could not be read (use .xlsx or .csv)',
+  noSheet: 'Sheet was not found in the workbook',
+  badConnection: 'Connection string is invalid (use mysql://user:pass@host:3306/db)',
+  unsupportedDb: 'Only MySQL / MariaDB connections are supported',
+  notSelect: 'Only a single SELECT query is allowed',
+  queryFailed: 'Query failed on the database'
 });
+
+// Connector error codes -> fixed reasons. Driver/parser text is never passed through.
+const CODE_REASONS = {
+  badSelector: REASONS.badSelector,
+  noFile: REASONS.noFile,
+  badFile: REASONS.badFile,
+  noSheet: REASONS.noSheet,
+  badConnection: REASONS.badConnection,
+  unsupportedDb: REASONS.unsupportedDb,
+  notSelect: REASONS.notSelect,
+  rejected: REASONS.rejected,
+  unreachable: REASONS.unreachable,
+  queryFailed: REASONS.queryFailed
+};
 
 class SourceError extends Error
 {
@@ -232,9 +259,12 @@ function DefaultTransport(pReq)
 
 // ------------------------------------------------------------------- fetch
 
-// The decrypted key is either a plain URL, or a JSON object:
-// { "url": "...", "token": "...", "queryParam": "..." }
-// token is sent as a bearer token, or as the value of queryParam when given.
+// The decrypted key is a plain URL (rest/json) or a JSON object whose fields depend on the type:
+//   rest/json  { url, token?, queryParam?, path? }   token -> bearer header, or ?queryParam=token
+//   scrape     { url, selector }
+//   logs       { url, format, token? }
+//   sql        { connection, query }
+//   excel      { sheet? }   the file itself is stored separately (sources.file_data)
 function ReadConfig(pSource, pDecrypt)
 {
   let tmpPlain;
@@ -247,37 +277,35 @@ function ReadConfig(pSource, pDecrypt)
     throw new SourceError(REASONS.badKey);
   }
   const tmpTrim = String(tmpPlain).trim();
-  if (tmpTrim.startsWith('{'))
+  if (!tmpTrim.startsWith('{')) return { url: tmpTrim };
+  let tmpObj;
+  try
   {
-    let tmpObj;
-    try
-    {
-      tmpObj = JSON.parse(tmpTrim);
-    }
-    catch (tmpErr)
-    {
-      throw new SourceError(REASONS.badKey);
-    }
-    if (!tmpObj || typeof tmpObj.url !== 'string') throw new SourceError(REASONS.badKey);
-    return {
-      url: tmpObj.url,
-      token: typeof tmpObj.token === 'string' ? tmpObj.token : null,
-      queryParam: typeof tmpObj.queryParam === 'string' && tmpObj.queryParam ? tmpObj.queryParam : null
-    };
+    tmpObj = JSON.parse(tmpTrim);
   }
-  return { url: tmpTrim, token: null, queryParam: null };
+  catch (tmpErr)
+  {
+    throw new SourceError(REASONS.badKey);
+  }
+  if (!tmpObj || typeof tmpObj !== 'object' || Array.isArray(tmpObj)) throw new SourceError(REASONS.badKey);
+  return tmpObj;
 }
 
-async function FetchBody(pSource, pOpts, pSignal)
+const Str = (pValue) => (typeof pValue === 'string' && pValue.trim() !== '' ? pValue.trim() : null);
+
+// GET over the vetted, pinned transport. Returns the body text of a 2xx response.
+async function FetchText(pConfig, pAccept, pOpts, pSignal)
 {
-  if (!pSource || !IMPLEMENTED_TYPES.includes(pSource.type)) throw new SourceError(REASONS.unsupported);
-  const tmpConfig = ReadConfig(pSource, pOpts.decrypt);
-  const tmpUrl = ParseSourceUrl(tmpConfig.url);
-  const tmpHeaders = { Accept: 'application/json', 'User-Agent': 'dashboard-source-connector' };
-  if (tmpConfig.token)
+  const tmpUrlText = Str(pConfig.url);
+  if (!tmpUrlText) throw new SourceError(REASONS.badKey);
+  const tmpUrl = ParseSourceUrl(tmpUrlText);
+  const tmpHeaders = { Accept: pAccept, 'User-Agent': 'dashboard-source-connector' };
+  const tmpToken = Str(pConfig.token);
+  const tmpParam = Str(pConfig.queryParam);
+  if (tmpToken)
   {
-    if (tmpConfig.queryParam) tmpUrl.searchParams.set(tmpConfig.queryParam, tmpConfig.token);
-    else tmpHeaders.Authorization = `Bearer ${tmpConfig.token}`;
+    if (tmpParam) tmpUrl.searchParams.set(tmpParam, tmpToken);
+    else tmpHeaders.Authorization = `Bearer ${tmpToken}`;
   }
   const tmpAddress = await ResolveSafeAddress(tmpUrl, pOpts.resolve);
   let tmpRes;
@@ -292,16 +320,24 @@ async function FetchBody(pSource, pOpts, pSignal)
   const tmpStatus = tmpRes && tmpRes.status;
   if (tmpStatus === 401 || tmpStatus === 403) throw new SourceError(REASONS.rejected);
   if (!Number.isInteger(tmpStatus) || tmpStatus < 200 || tmpStatus >= 300) throw new SourceError(REASONS.upstreamError);
-  let tmpData;
-  try
+  return typeof tmpRes.body === 'string' ? tmpRes.body : String(tmpRes.body || '');
+}
+
+// "data.items" -> pData.data.items. Own properties only.
+function WalkPath(pData, pPath)
+{
+  const tmpPath = Str(pPath);
+  if (!tmpPath) return pData;
+  let tmpNode = pData;
+  for (const tmpPart of tmpPath.split('.'))
   {
-    tmpData = JSON.parse(tmpRes.body);
+    if (!tmpNode || typeof tmpNode !== 'object' || !Object.prototype.hasOwnProperty.call(tmpNode, tmpPart))
+    {
+      throw new SourceError(REASONS.badPath);
+    }
+    tmpNode = tmpNode[tmpPart];
   }
-  catch (tmpErr)
-  {
-    throw new SourceError(REASONS.badResponse);
-  }
-  return tmpData;
+  return tmpNode;
 }
 
 function ToRows(pData)
@@ -322,6 +358,88 @@ function ToRows(pData)
   }
   return tmpList.slice(0, MAX_ROWS).map((pItem) =>
     (pItem && typeof pItem === 'object' && !Array.isArray(pItem) ? pItem : { value: pItem }));
+}
+
+// Connector-specific errors (ScrapeError, SheetError, SqlError) carry a code; map it to a reason.
+function FromCode(pErr)
+{
+  if (pErr instanceof SourceError) return pErr;
+  if (pErr instanceof ScrapeError || pErr instanceof SheetError || pErr instanceof SqlError)
+  {
+    return new SourceError(CODE_REASONS[pErr.code] || REASONS.unreachable);
+  }
+  return new SourceError(REASONS.unreachable);
+}
+
+const HANDLERS = {
+  async rest(pSource, pConfig, pOpts, pSignal)
+  {
+    const tmpBody = await FetchText(pConfig, 'application/json', pOpts, pSignal);
+    let tmpData;
+    try
+    {
+      tmpData = JSON.parse(tmpBody);
+    }
+    catch (tmpErr)
+    {
+      throw new SourceError(REASONS.badResponse);
+    }
+    return ToRows(WalkPath(tmpData, pConfig.path));
+  },
+
+  async scrape(pSource, pConfig, pOpts, pSignal)
+  {
+    const tmpHtml = await FetchText(pConfig, 'text/html,application/xhtml+xml', pOpts, pSignal);
+    return ScrapeRows(tmpHtml, pConfig.selector, MAX_ROWS);
+  },
+
+  async logs(pSource, pConfig, pOpts, pSignal)
+  {
+    const tmpText = await FetchText(pConfig, 'text/plain, */*', pOpts, pSignal);
+    const tmpResult = ParseLogs(tmpText, Str(pConfig.format) || 'json', MAX_ROWS);
+    if (tmpResult.rows.length === 0 && tmpResult.lines > 0) throw new SourceError(REASONS.noLogLines);
+    return tmpResult.rows;
+  },
+
+  async sql(pSource, pConfig, pOpts, pSignal)
+  {
+    return SqlRows(pConfig, {
+      resolveSafeAddress: (pUrl) => ResolveSafeAddress(pUrl, pOpts.resolve),
+      mysql: pOpts.mysql,
+      maxRows: MAX_ROWS,
+      timeoutMs: pOpts.timeoutMs,
+      signal: pSignal
+    });
+  },
+
+  async excel(pSource, pConfig, pOpts)
+  {
+    const tmpFile = await pOpts.loadFile(pSource);
+    return SpreadsheetRows(tmpFile, pConfig.sheet, MAX_ROWS);
+  }
+};
+HANDLERS.json = HANDLERS.rest;
+
+async function FetchRows(pSource, pOpts, pSignal)
+{
+  const tmpHandler = pSource && Object.prototype.hasOwnProperty.call(HANDLERS, pSource.type) ? HANDLERS[pSource.type] : null;
+  if (!tmpHandler) throw new SourceError(REASONS.unsupported);
+  const tmpConfig = ReadConfig(pSource, pOpts.decrypt);
+  try
+  {
+    const tmpRows = await tmpHandler(pSource, tmpConfig, pOpts, pSignal);
+    return Array.isArray(tmpRows) ? tmpRows.slice(0, MAX_ROWS) : [];
+  }
+  catch (tmpErr)
+  {
+    throw FromCode(tmpErr);
+  }
+}
+
+// Excel bytes live in their own column and are only read for excel previews.
+function DefaultLoadFile(pSource)
+{
+  return require('./repos/sources').getFile(pSource.owner_id, pSource.id);
 }
 
 // Runs pTask(signal) under a hard timeout.
@@ -349,6 +467,8 @@ function BuildOpts(pOptions)
     transport: tmpOpts.transport || DefaultTransport,
     resolve: tmpOpts.resolve || DefaultResolve,
     decrypt: tmpOpts.decrypt || decryptKey,
+    loadFile: tmpOpts.loadFile || DefaultLoadFile,
+    mysql: tmpOpts.mysql,
     timeoutMs: Number.isFinite(tmpOpts.timeoutMs) ? tmpOpts.timeoutMs : TIMEOUT_MS
   };
 }
@@ -360,13 +480,13 @@ function SafeReason(pErr)
 
 // ------------------------------------------------------------------ public
 
-// pSource is the stored row (type, key_enc). Never throws.
+// pSource is the stored row (id, owner_id, type, key_enc). Never throws.
 async function TestSource(pSource, pOptions)
 {
   const tmpOpts = BuildOpts(pOptions);
   try
   {
-    await WithTimeout((pSignal) => FetchBody(pSource, tmpOpts, pSignal), tmpOpts.timeoutMs);
+    await WithTimeout((pSignal) => FetchRows(pSource, tmpOpts, pSignal), tmpOpts.timeoutMs);
     return { status: 'ok' };
   }
   catch (tmpErr)
@@ -381,8 +501,7 @@ async function PreviewSource(pSource, pOptions)
   const tmpOpts = BuildOpts(pOptions);
   try
   {
-    const tmpData = await WithTimeout((pSignal) => FetchBody(pSource, tmpOpts, pSignal), tmpOpts.timeoutMs);
-    return ToRows(tmpData);
+    return await WithTimeout((pSignal) => FetchRows(pSource, tmpOpts, pSignal), tmpOpts.timeoutMs);
   }
   catch (tmpErr)
   {

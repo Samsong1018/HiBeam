@@ -9,6 +9,12 @@ const { toSourceView } = require('../views');
 const NOT_FOUND = 'Not found';
 const BAD_ID = 'Invalid id';
 const UNREACHABLE = 'Source unreachable';
+const UPLOAD_ERRORS = {
+  missing: 'File is missing',
+  too_large: 'File is too large (maximum 5 MB)',
+  unsupported: 'Unsupported file (use .xlsx or .csv)',
+  not_excel: 'Only spreadsheet sources take a file'
+};
 
 function NewSourceId()
 {
@@ -20,6 +26,7 @@ function NewSourceId()
 //   cryptoBox      { encryptKey, last4 }
 //   connector      { testSource, previewSource }
 //   newId          () => string, id generator
+//   spreadsheet    { CheckUpload, MAX_FILE_BYTES }
 function CreateSourcesRouter(pDeps)
 {
   const tmpDeps = pDeps || {};
@@ -27,6 +34,8 @@ function CreateSourcesRouter(pDeps)
   const tmpBox = tmpDeps.cryptoBox || require('../crypto-box');
   const tmpConnector = tmpDeps.connector || require('../source-connector');
   const tmpNewId = tmpDeps.newId || NewSourceId;
+  const tmpSheet = tmpDeps.spreadsheet || require('../connectors/spreadsheet');
+  const tmpRawParser = express.raw({ type: () => true, limit: tmpSheet.MAX_FILE_BYTES });
   const tmpRouter = express.Router();
 
   // Reject malformed ids before any handler (and any query) runs.
@@ -68,6 +77,27 @@ function CreateSourcesRouter(pDeps)
     const tmpRemoved = await tmpSources.remove(pReq.userId, pReq.params.id);
     if (!tmpRemoved) return fail(pRes, 404, NOT_FOUND);
     return ok(pRes, 200, null);
+  });
+
+  // PUT /api/sources/:id/file  raw .xlsx/.csv bytes for an excel source (any Content-Type).
+  tmpRouter.put('/:id/file', (pReq, pRes, pNext) =>
+  {
+    tmpRawParser(pReq, pRes, (pErr) =>
+    {
+      if (pErr && pErr.type === 'entity.too.large') return fail(pRes, 400, UPLOAD_ERRORS.too_large);
+      return pNext(pErr);
+    });
+  }, async (pReq, pRes) =>
+  {
+    const tmpRow = await tmpSources.get(pReq.userId, pReq.params.id);
+    if (!tmpRow) return fail(pRes, 404, NOT_FOUND);
+    if (tmpRow.type !== 'excel') return fail(pRes, 400, UPLOAD_ERRORS.not_excel);
+    const tmpBody = Buffer.isBuffer(pReq.body) ? pReq.body : null;
+    const tmpProblem = tmpSheet.CheckUpload(tmpBody);
+    if (tmpProblem) return fail(pRes, 400, UPLOAD_ERRORS[tmpProblem] || UPLOAD_ERRORS.unsupported);
+    const tmpSaved = await tmpSources.setFile(pReq.userId, pReq.params.id, tmpBody);
+    if (!tmpSaved) return fail(pRes, 404, NOT_FOUND);
+    return ok(pRes, 200, { bytes: tmpBody.length });
   });
 
   tmpRouter.post('/:id/test', async (pReq, pRes) =>

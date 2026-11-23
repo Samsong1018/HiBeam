@@ -343,7 +343,7 @@ sourceForm.addEventListener('submit', (event) => {
     validate: () => {
       const errors = {};
       if (!name) errors['source-name'] = 'Give this source a name.';
-      if (key.length < 8) errors['source-key'] = 'That key looks too short.';
+      if (!/^https?:\/\/\S+$/i.test(key)) errors['source-key'] = 'Use a full http(s):// URL.';
       return errors;
     },
     send: async () => {
@@ -466,6 +466,39 @@ renderSources();
 // ------------------------------------------------------------
 // Page init — load real user profile + sources from the backend
 // ------------------------------------------------------------
+function ParseDate(pIso)
+{
+  if (typeof pIso !== 'string') return null;
+  const tmpDate = new Date(pIso);
+  return Number.isNaN(tmpDate.getTime()) ? null : tmpDate;
+}
+
+function DayLabel(pDate)
+{
+  const tmpStart = (pD) => new Date(pD.getFullYear(), pD.getMonth(), pD.getDate()).getTime();
+  const tmpDays = Math.round((tmpStart(new Date()) - tmpStart(pDate)) / 86400000);
+  if (tmpDays <= 0) return 'Today';
+  if (tmpDays === 1) return 'Yesterday';
+  if (tmpDays < 7) return `${tmpDays} days ago`;
+  return pDate.toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' });
+}
+
+function RenderAccountStats(pProfile)
+{
+  const tmpSet = (pSelector, pText) =>
+    document.querySelectorAll(pSelector).forEach((tmpEl) => { tmpEl.textContent = pText; });
+
+  const tmpCreated = ParseDate(pProfile.createdAt);
+  tmpSet('[data-member-since]', tmpCreated
+    ? `Member since ${tmpCreated.toLocaleDateString(undefined, { month: 'short', year: 'numeric' })}`
+    : 'Member');
+
+  if (Number.isFinite(pProfile.dashboardCount)) tmpSet('[data-dashboard-count]', String(pProfile.dashboardCount));
+
+  const tmpLastLogin = ParseDate(pProfile.lastLoginAt);
+  tmpSet('[data-last-login]', tmpLastLogin ? DayLabel(tmpLastLogin) : '—');
+}
+
 async function LoadAccount()
 {
   try
@@ -502,6 +535,8 @@ async function LoadAccount()
     {
       showAvatar(tmpProfile.avatarUrl);
     }
+
+    RenderAccountStats(tmpProfile);
 
     // Populate preferences
     if (tmpProfile.preferences)

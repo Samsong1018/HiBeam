@@ -9,6 +9,12 @@ function parsePreferences(p) {
   return p === null || p === undefined ? {} : p;
 }
 
+function toIsoOrNull(v) {
+  if (v === null || v === undefined) return null;
+  const d = v instanceof Date ? v : new Date(v);
+  return Number.isNaN(d.getTime()) ? null : d.toISOString();
+}
+
 // Explicit allow-list: only these fields are ever copied from the row.
 function toPublicProfile(row) {
   return {
@@ -18,6 +24,9 @@ function toPublicProfile(row) {
     avatarUrl: avatarUrl(row.avatar_updated_at),
     preferences: parsePreferences(row.preferences),
     sourceCount: Number(row.source_count || 0),
+    dashboardCount: Number(row.dashboard_count || 0),
+    createdAt: toIsoOrNull(row.created_at),
+    lastLoginAt: toIsoOrNull(row.last_login_at),
   };
 }
 

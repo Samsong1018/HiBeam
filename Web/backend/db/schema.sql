@@ -69,6 +69,8 @@ CREATE TABLE IF NOT EXISTS sources (
   status       VARCHAR(10)  NOT NULL DEFAULT 'untested',
   key_enc      TEXT NOT NULL,
   key_last4    VARCHAR(4) NOT NULL,
+  -- uploaded .xlsx/.csv for excel sources (max 5 MB, enforced in code); NULL for other types
+  file_data    MEDIUMBLOB NULL,
   last_sync_at DATETIME NULL,
   created_at   DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
   INDEX (owner_id),

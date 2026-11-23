@@ -50,6 +50,26 @@ async function http(method, path, body) {
   return payload.data;
 }
 
+// Raw bytes, so the server's JSON parser never touches it.
+async function uploadFile(path, file) {
+  let res;
+  try {
+    res = await fetch(path, {
+      method: 'PUT',
+      credentials: 'same-origin',
+      headers: { 'Content-Type': file.type && file.type !== 'application/json' ? file.type : 'application/octet-stream' },
+      body: file,
+    });
+  } catch (err) {
+    throw new ApiError('Can\'t reach the server. Check your connection.');
+  }
+  const payload = await res.json().catch(() => ({}));
+  if (!res.ok || payload.success === false) {
+    throw new ApiError(payload.error || `Upload failed (${res.status})`, res.status);
+  }
+  return payload.data;
+}
+
 // ------------------------------------------------------------
 // Mock backend
 // ------------------------------------------------------------
@@ -98,6 +118,15 @@ const mock = {
     const dash = readStore(DASHBOARDS_KEY)[id];
     if (!dash) throw new ApiError('Dashboard not found', 404);
     return { ...dash, public: readStore(VISIBILITY_KEY)[id] === true, isOwner: true };
+  },
+  // no anonymous visitors in mock mode
+  async getPublicDashboard() {
+    await delay();
+    throw new ApiError('Dashboard not found', 404);
+  },
+  async getPublicDashboardData() {
+    await delay();
+    throw new ApiError('Dashboard not found', 404);
   },
   async setVisibility(id, isPublic) {
     await delay();
@@ -150,14 +179,27 @@ const mock = {
 // ------------------------------------------------------------
 const real = {
   getDashboard: (id) => http('GET', `/api/dashboards/${encodeURIComponent(id)}`),
+  // No session needed; the server only answers for dashboards marked public.
+  getPublicDashboard: (id) => http('GET', `/api/public/dashboards/${encodeURIComponent(id)}`),
+  getPublicDashboardData: (id) => http('GET', `/api/public/dashboards/${encodeURIComponent(id)}/data`),
   createDashboard: (dashboard) => http('POST', '/api/dashboards', dashboard),
   saveDashboard: (id, dashboard) => http('PATCH', `/api/dashboards/${encodeURIComponent(id)}`, dashboard),
   // Separate from saveDashboard because the strict definition schema rejects a `public` field.
   setVisibility: (id, isPublic) => http('PATCH', `/api/dashboards/${encodeURIComponent(id)}/visibility`, { public: Boolean(isPublic) }),
   listSources: () => http('GET', '/api/sources'),
   // POST only returns { id }, so build the list entry the registry expects.
-  createSource: async ({ name, type, config }) => {
+  // Spreadsheets upload their bytes in a second call; if that fails the half-made
+  // source is removed so it doesn't sit on the account with no data.
+  createSource: async ({ name, type, config, file }) => {
     const { id } = await http('POST', '/api/sources', { name, type, key: packSourceKey(type, config) });
+    if (file) {
+      try {
+        await uploadFile(`/api/sources/${encodeURIComponent(id)}/file`, file);
+      } catch (err) {
+        await http('DELETE', `/api/sources/${encodeURIComponent(id)}`).catch(() => {});
+        throw err;
+      }
+    }
     return { id, name, type, status: 'ok' };
   },
   deleteSource: (id) => http('DELETE', `/api/sources/${encodeURIComponent(id)}`),

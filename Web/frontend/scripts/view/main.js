@@ -13,6 +13,7 @@ import { createSourceRegistry } from '../editor/sources.js';
 import { renderWidget } from '../editor/widget-render.js';
 import { WIDGET_TYPES, isDataWidget } from '../editor/widget-types.js';
 import { readingOrder, placement, cellSize, updatedLabel } from './layout.js';
+import { createPublicRegistry } from './public-registry.js';
 
 const $ = (sel) => document.querySelector(sel);
 
@@ -192,6 +193,31 @@ function createSharing({ id, isOwner, initialPublic }) {
 }
 
 // ------------------------------------------------------------
+// Loading: owner first, public link second
+// ------------------------------------------------------------
+// The owner route answers 401 (no session) or 404 (someone else's or missing).
+// Either way the id might be a public dashboard, so try the public route before
+// giving up. If that's a 404 too, surface the owner route's error: a signed-out
+// visitor still lands on the login page for their own private dashboards.
+async function loadDashboard(id) {
+  const registry = createSourceRegistry();
+  try {
+    const [raw] = await Promise.all([api.getDashboard(id), registry.load()]);
+    return { raw, registry };
+  } catch (ownerErr) {
+    if (ownerErr?.status !== 401 && ownerErr?.status !== 404) throw ownerErr;
+    let raw;
+    try {
+      raw = await api.getPublicDashboard(id);
+    } catch (publicErr) {
+      throw publicErr?.status === 404 ? ownerErr : publicErr;
+    }
+    // never trust a flag to grant owner controls on the public path
+    return { raw: { ...raw, isOwner: false }, registry: createPublicRegistry(() => api.getPublicDashboardData(id)) };
+  }
+}
+
+// ------------------------------------------------------------
 async function boot() {
   const rawId = new URLSearchParams(window.location.search).get('id');
   if (!rawId || !ID_RE.test(rawId)) {
@@ -199,10 +225,9 @@ async function boot() {
     return;
   }
 
-  const registry = createSourceRegistry();
-  let raw;
+  let loaded;
   try {
-    [raw] = await Promise.all([api.getDashboard(rawId), registry.load()]);
+    loaded = await loadDashboard(rawId);
   } catch (err) {
     if (err?.status === 401) { window.location.assign('login.html'); return; }
     const notFound = err?.status === 404 || err?.status === 403;
@@ -210,6 +235,7 @@ async function boot() {
       notFound ? 'It may have been deleted, or it\'s private.' : 'Something went wrong. Try again in a moment.');
     return;
   }
+  const { raw, registry } = loaded;
 
   // backend returns { id, definition, updatedAt }; the mock returns the definition flat
   const dash = normalizeDashboard(raw?.definition ?? raw);

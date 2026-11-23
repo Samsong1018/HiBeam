@@ -7,7 +7,7 @@ const db = require('../db');
 const exec = (ex) => ex || db;
 
 const PROFILE_COLUMNS =
-  'u.username, u.display_name, u.email, u.avatar_updated_at, u.preferences';
+  'u.username, u.display_name, u.email, u.avatar_updated_at, u.preferences, u.created_at';
 
 // Not owner-scoped: there is no user id yet. Unique indexes raise ER_DUP_ENTRY on conflict.
 async function create({ username, email, displayName, passwordHash, preferences }, ex) {
@@ -45,11 +45,14 @@ async function emailExists(email, ex) {
   return rows.length > 0;
 }
 
-// Profile row for toPublicProfile: no avatar bytes, includes source_count.
+// Profile row for toPublicProfile: no avatar bytes. Includes source/dashboard counts and the
+// newest session's start time (sessions are only created on login).
 async function getProfile(userId, ex) {
   const rows = await exec(ex).query(
     `SELECT ${PROFILE_COLUMNS}, ` +
-      '(SELECT COUNT(*) FROM sources s WHERE s.owner_id = u.id) AS source_count ' +
+      '(SELECT COUNT(*) FROM sources s WHERE s.owner_id = u.id) AS source_count, ' +
+      '(SELECT COUNT(*) FROM dashboards d WHERE d.owner_id = u.id) AS dashboard_count, ' +
+      '(SELECT MAX(se.created_at) FROM sessions se WHERE se.user_id = u.id) AS last_login_at ' +
       'FROM users u WHERE u.id = ?',
     [userId]
   );

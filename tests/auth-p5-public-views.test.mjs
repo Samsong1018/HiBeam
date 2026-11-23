@@ -11,7 +11,8 @@ process.env.SOURCE_KEY_SECRET = crypto.randomBytes(32).toString('base64');
 const { toPublicProfile, toSourceView } = require('../Web/backend/lib/views.js');
 const { encryptKey, decryptKey } = require('../Web/backend/lib/crypto-box.js');
 
-const PROFILE_KEYS = ['username', 'displayName', 'email', 'avatarUrl', 'preferences', 'sourceCount'];
+const PROFILE_KEYS = ['username', 'displayName', 'email', 'avatarUrl', 'preferences', 'sourceCount',
+  'dashboardCount', 'createdAt', 'lastLoginAt'];
 const SOURCE_KEYS = ['id', 'name', 'type', 'status', 'keyLast4', 'lastSyncAt'];
 
 // Secret fields that must never be copied. Values carry a marker that legit data never contains.
@@ -36,6 +37,9 @@ const userRowArb = fc.record({
     fc.record({ theme: fc.constantFrom('light', 'dark') }).map((o) => JSON.stringify(o)),
   ),
   source_count: fc.integer({ min: 0, max: 1000 }),
+  dashboard_count: fc.integer({ min: 0, max: 1000 }),
+  created_at: fc.option(fc.date({ min: new Date(0), max: new Date(2 ** 42), noInvalidDate: true }), { nil: null }),
+  last_login_at: fc.option(fc.date({ min: new Date(0), max: new Date(2 ** 42), noInvalidDate: true }), { nil: null }),
 });
 const sourceRowArb = fc.record({
   id: fc.integer({ min: 1, max: 1e6 }),

@@ -9,7 +9,7 @@ import { h, clear, toast, setLoading } from './dom.js';
 import { SOURCE_TYPES, SOURCE_TYPE_BY_ID } from './source-types.js';
 
 const MAX_NAME = 60;
-const MAX_FILE_BYTES = 10 * 1024 * 1024;
+const MAX_FILE_BYTES = 5 * 1024 * 1024; // matches the server's upload limit
 
 function isHttpUrl(value) {
   try {
@@ -117,7 +117,7 @@ export function createSourcePanel({ listEl, addButton, dialog, registry, store }
       if (f.type === 'file') {
         const file = input.files[0];
         if (!file && !f.optional) errors.push([input, 'Choose a file.']);
-        else if (file && file.size > MAX_FILE_BYTES) errors.push([input, 'Files must be under 10 MB.']);
+        else if (file && file.size > MAX_FILE_BYTES) errors.push([input, 'Files must be under 5 MB.']);
         return;
       }
       const value = input.value.trim();
@@ -150,14 +150,16 @@ export function createSourcePanel({ listEl, addButton, dialog, registry, store }
       return;
     }
 
-    // Real backend: send as FormData when there's a file, JSON otherwise.
+    // Text fields go in the encrypted key; a file is uploaded on its own after the source exists.
     const config = Object.fromEntries(currentType().fields
       .filter((f) => f.type !== 'file')
       .map((f) => [f.name, fieldsEl.querySelector(`#source-f-${f.name}`).value.trim()]));
+    const fileField = currentType().fields.find((f) => f.type === 'file');
+    const file = fileField ? fieldsEl.querySelector(`#source-f-${fileField.name}`).files[0] : undefined;
 
     setLoading(submitBtn, true);
     try {
-      const created = await registry.add({ name: nameInput.value.trim(), type: currentType().id, config });
+      const created = await registry.add({ name: nameInput.value.trim(), type: currentType().id, config, file });
       toast(`Connected ${created.name}`);
       close(created);
     } catch (err) {

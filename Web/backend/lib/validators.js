@@ -153,7 +153,8 @@ function validateSourceInput(body) {
       : { error: `type must be one of: ${SOURCE_TYPES.join(', ')}` }),
     key: (v) => {
       if (!isString(v) || v.length === 0) return { error: 'Key is required' };
-      if (v.length > 512) return { error: 'Key must be at most 512 characters' };
+      // room for a SQL query or scrape selector alongside the connection details
+      if (v.length > 8192) return { error: 'Key must be at most 8192 characters' };
       return { value: v };
     },
   });

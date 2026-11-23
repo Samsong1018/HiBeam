@@ -25,7 +25,7 @@ async function get(userId, id, ex) {
 // Includes key_enc, for test/preview calls only. Never pass the result to a view.
 async function getWithKey(userId, id, ex) {
   const rows = await exec(ex).query(
-    `SELECT ${VIEW_COLUMNS}, key_enc FROM sources WHERE id = ? AND owner_id = ?`,
+    `SELECT ${VIEW_COLUMNS}, owner_id, key_enc FROM sources WHERE id = ? AND owner_id = ?`,
     [id, userId]
   );
   return rows[0] || null;
@@ -35,7 +35,7 @@ async function getWithKey(userId, id, ex) {
 async function getManyWithKey(userId, ids, ex) {
   if (!Array.isArray(ids) || ids.length === 0) return [];
   return exec(ex).query(
-    `SELECT ${VIEW_COLUMNS}, key_enc FROM sources WHERE owner_id = ? AND id IN (?)`,
+    `SELECT ${VIEW_COLUMNS}, owner_id, key_enc FROM sources WHERE owner_id = ? AND id IN (?)`,
     [userId, ids]
   );
 }
@@ -58,6 +58,24 @@ async function create(userId, { id, name, type, keyEnc, keyLast4 }, ex) {
   return id;
 }
 
+// Uploaded spreadsheet bytes (excel sources). Returns a Buffer or null.
+async function getFile(userId, id, ex) {
+  const rows = await exec(ex).query('SELECT file_data FROM sources WHERE id = ? AND owner_id = ?', [
+    id,
+    userId,
+  ]);
+  return rows[0] && rows[0].file_data ? rows[0].file_data : null;
+}
+
+// Replaces any earlier upload. Only excel sources take a file.
+async function setFile(userId, id, buffer, ex) {
+  const res = await exec(ex).query(
+    "UPDATE sources SET file_data = ?, status = 'untested' WHERE id = ? AND owner_id = ? AND type = 'excel'",
+    [buffer, id, userId]
+  );
+  return res.affectedRows > 0;
+}
+
 // status: 'ok' | 'failed' | 'untested'. A successful test also sets last_sync_at.
 async function setStatus(userId, id, status, ex) {
   const res = await exec(ex).query(
@@ -76,4 +94,15 @@ async function remove(userId, id, ex) {
   return res.affectedRows > 0;
 }
 
-module.exports = { list, get, getWithKey, getManyWithKey, findOwnedIds, create, setStatus, remove };
+module.exports = {
+  list,
+  get,
+  getWithKey,
+  getManyWithKey,
+  findOwnedIds,
+  create,
+  getFile,
+  setFile,
+  setStatus,
+  remove,
+};
