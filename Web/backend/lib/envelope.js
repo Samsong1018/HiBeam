@@ -27,6 +27,19 @@ function scrub(text) {
     .replace(/(sid=)[^;\s]+/gi, '$1[redacted]');
 }
 
+// Text for the server log. Never throws: anything can be thrown in JS, including
+// objects whose toString isn't callable (String() throws on those), and the
+// error handler must still send the generic 500.
+function DescribeError(err) {
+  try {
+    if (err && typeof err.stack === 'string') return err.stack;
+    if (err && typeof err.message === 'string') return err.message;
+    return String(err);
+  } catch {
+    return '[unprintable error value]';
+  }
+}
+
 function errorMiddleware(err, req, res, next) { // eslint-disable-line no-unused-vars
   if (res.headersSent) return next(err);
 
@@ -42,7 +55,7 @@ function errorMiddleware(err, req, res, next) { // eslint-disable-line no-unused
   }
 
   if (status >= 500) {
-    const detail = err && err.stack ? err.stack : err && err.message ? err.message : String(err);
+    const detail = DescribeError(err);
     console.error(`[error] ${req.method} ${req.path} -> ${status}: ${scrub(detail)}`);
   }
 

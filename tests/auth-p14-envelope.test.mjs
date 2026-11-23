@@ -81,3 +81,21 @@ test('errorMiddleware failures follow the failure envelope', () => {
     console.error = origError;
   }
 });
+
+// Regression: fast-check found that a thrown value with a non-callable toString
+// made String(err) throw inside the error handler (seed -1869887767).
+test('errorMiddleware survives thrown values that cannot be stringified', () => {
+  const origError = console.error;
+  console.error = () => {};
+  try {
+    for (const err of [{ toString: {} }, Object.create(null), { stack: {}, message: {} }, Symbol('x')]) {
+      const res = fakeRes();
+      errorMiddleware(err, { method: 'GET', path: '/x' }, res, () => {});
+      assert.equal(res.statusCode, 500);
+      assert.equal(res.body.success, false);
+      assert.equal(res.body.error, 'Internal server error');
+    }
+  } finally {
+    console.error = origError;
+  }
+});

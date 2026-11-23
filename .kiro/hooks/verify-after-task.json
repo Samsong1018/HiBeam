@@ -1,0 +1,15 @@
+{
+  "version": "v1",
+  "hooks": [
+    {
+      "name": "Verify after each spec task",
+      "description": "After a spec task is marked complete, makes the agent prove it: syntax check plus the full test suite, fixing anything that broke before moving on.",
+      "trigger": "PostTaskExec",
+      "action": {
+        "type": "agent",
+        "prompt": "A spec task was just marked complete. Before starting the next one, run `npm run check` and then `npm test` from the repo root. If either fails, fix the cause in the code you just wrote (don't weaken or delete tests to make them pass), re-run both, and say in one line what you fixed. If both pass, say so in one line and continue."
+      },
+      "timeout": 600
+    }
+  ]
+}

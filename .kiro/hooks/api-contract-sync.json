@@ -1,0 +1,16 @@
+{
+  "version": "v1",
+  "hooks": [
+    {
+      "name": "Check frontend callers when an API route changes",
+      "description": "When a backend route file is saved, checks the browser code that calls it still matches its request and response shapes. This is the class of bug where the editor read the dashboard response without unwrapping `definition` and opened every saved dashboard empty.",
+      "trigger": "PostFileSave",
+      "matcher": "Web/backend/lib/routes/[^/]+\\.js$",
+      "action": {
+        "type": "agent",
+        "prompt": "A backend route file under Web/backend/lib/routes/ was just saved. For each route in it, find every caller in Web/backend/api.js and Web/frontend/scripts/ (fetch calls, api.* helpers). Check the method, path, request body fields and the response fields the caller reads against what the route accepts and returns (responses are wrapped in { success, data, error }). Report each mismatch with file:line and the fix. Don't edit files unless the user asks. If nothing is out of sync, reply with one line."
+      },
+      "timeout": 300
+    }
+  ]
+}

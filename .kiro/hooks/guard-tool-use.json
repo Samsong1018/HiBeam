@@ -1,0 +1,13 @@
+{
+  "version": "v1",
+  "hooks": [
+    {
+      "name": "Guard risky agent actions",
+      "description": "Blocks agent tool calls that could hurt the team: force-pushing or hard-resetting shared main, broad rm -rf, DROP/TRUNCATE or WHERE-less DELETE against the shared MySQL database, and reading or writing .env (it holds the DB tunnel credentials). Rules live in .kiro/hooks/scripts/guard-tool-use.mjs.",
+      "trigger": "PreToolUse",
+      "matcher": "[Bb]ash|[Ss]hell|[Cc]ommand|[Ww]rite|[Rr]eplace|[Aa]ppend|[Ee]dit|[Dd]elete",
+      "action": { "type": "command", "command": "node .kiro/hooks/scripts/guard-tool-use.mjs" },
+      "timeout": 10
+    }
+  ]
+}

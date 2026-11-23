@@ -1,0 +1,15 @@
+{
+  "version": "v1",
+  "hooks": [
+    {
+      "name": "Load project state at session start",
+      "description": "Gives every new agent session the current branch, recent commits and uncommitted files, plus the project basics, so it doesn't start from stale assumptions.",
+      "trigger": "SessionStart",
+      "action": {
+        "type": "command",
+        "command": "echo 'Project: HiBeam (Kiroween 2026, Skeleton Crew). Foundation in Web/, apps in APP1/ and APP2/. Verify with: npm run check && npm test'; echo; echo \"Branch: $(git branch --show-current)\"; echo 'Recent commits:'; git log --oneline -5; echo 'Uncommitted:'; git status --short | head -20"
+      },
+      "timeout": 10
+    }
+  ]
+}

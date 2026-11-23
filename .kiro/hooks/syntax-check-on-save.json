@@ -1,0 +1,13 @@
+{
+  "version": "v1",
+  "hooks": [
+    {
+      "name": "Syntax-check JavaScript on save",
+      "description": "Runs node --check over every tracked .js/.mjs file when one is saved. Added after a stray quote in scripts/script.js stopped the whole home page from running and nothing caught it, because the tests never load that file.",
+      "trigger": "PostFileSave",
+      "matcher": "\\.m?js$",
+      "action": { "type": "command", "command": "npm run check --silent" },
+      "timeout": 30
+    }
+  ]
+}

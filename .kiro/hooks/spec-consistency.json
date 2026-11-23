@@ -1,0 +1,16 @@
+{
+  "version": "v1",
+  "hooks": [
+    {
+      "name": "Check spec consistency when requirements change",
+      "description": "When a spec's requirements.md is saved, checks that its design.md and tasks.md still cover every acceptance criterion. Reports gaps; doesn't edit.",
+      "trigger": "PostFileSave",
+      "matcher": "\\.kiro/specs/[^/]+/requirements\\.md$",
+      "action": {
+        "type": "agent",
+        "prompt": "A spec's requirements.md was just saved. Read it together with the design.md and tasks.md in the same folder. List (1) acceptance criteria that no task's _Requirements:_ line references, (2) task or property references to requirement numbers that no longer exist, and (3) design decisions that contradict a changed requirement. Report only; don't edit any files. If everything lines up, reply with one line saying so."
+      },
+      "timeout": 300
+    }
+  ]
+}
