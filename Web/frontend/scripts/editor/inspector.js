@@ -194,12 +194,13 @@ export function createInspector({ el, store, registry, onSelect, openSourceDialo
 
   function appearance(widget) {
     switch (widget.type) {
-      case 'line': return section('Appearance', swatches(), h('div', { class: 'check-list' }, toggle('Smooth lines', 'smooth'), toggle('Fill area', 'fill'), toggle('Legend', 'legend')));
+      case 'line': return section('Appearance', swatches(), h('div', { class: 'check-list' }, toggle('Smooth lines', 'smooth'), toggle('Fill area', 'fill'), toggle('Legend', 'legend'), toggle('Rows are newest first', 'reverseData')));
       case 'bar': return section('Appearance', swatches(), h('div', { class: 'check-list' }, toggle('Horizontal', 'horizontal'), toggle('Stacked', 'stacked'), toggle('Legend', 'legend')));
       case 'pie': return section('Appearance', swatches(), h('div', { class: 'check-list' }, toggle('Donut', 'donut'), toggle('Legend', 'legend')));
       case 'kpi': return section('Format',
         h('div', { class: 'field-row' }, textField('Prefix', 'prefix', { max: 6, placeholder: '$' }), textField('Suffix', 'suffix', { max: 8, placeholder: '%' })),
-        selectField('Decimals', 'decimals', [0, 1, 2, 3].map((n) => ({ value: n, label: String(n) })), { numeric: true }));
+        selectField('Decimals', 'decimals', [0, 1, 2, 3].map((n) => ({ value: n, label: String(n) })), { numeric: true }),
+        h('div', { class: 'check-list' }, toggle('Rows are newest first', 'reverseData')));
       case 'table': return section('Rows', selectField('Show up to', 'limit', [10, 25, 50, 100, 250].map((n) => ({ value: n, label: `${n} rows` })), { numeric: true }));
       case 'text': return section('Content', textField('Text', 'body', { max: 4000, multiline: true }), selectField('Size', 'fontSize', SIZES.slice(0, 3)));
       case 'label': return section('Content', textField('Text', 'text'), selectField('Size', 'size', SIZES),

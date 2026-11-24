@@ -1,7 +1,7 @@
 // ============================================================
 // DATA TRANSFORMS
 // Pure functions, no DOM: turn source rows into chart-ready series.
-// Covered by tests/editor-data.test.mjs.
+// Covered by tests/editor.test.mjs.
 // ============================================================
 
 export const AGGREGATIONS = {
@@ -13,7 +13,7 @@ export const AGGREGATIONS = {
   last: { label: 'Latest', fn: (vals) => (vals.length ? vals[vals.length - 1] : 0) },
 };
 
-function toNumber(value) {
+export function toNumber(value) {
   if (typeof value === 'number') return Number.isFinite(value) ? value : null;
   if (typeof value !== 'string' || value.trim() === '') return null;
   const parsed = Number(value.replace(/[,$%\s]/g, ''));

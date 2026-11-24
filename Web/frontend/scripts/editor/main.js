@@ -14,6 +14,7 @@ import { createCanvas, paletteItem } from './canvas.js';
 import { createInspector } from './inspector.js';
 import { createSourcePanel } from './source-panel.js';
 import { createAutosave } from './autosave.js';
+import { createGenerateDialog } from './generate-dialog.js';
 
 const $ = (sel) => document.querySelector(sel);
 
@@ -29,6 +30,8 @@ const els = {
   sourceList: $('#source-list'),
   addSource: $('#add-source-btn'),
   sourceDialog: $('#source-dialog'),
+  generate: $('#generate-btn'),
+  generateDialog: $('#generate-dialog'),
   canvasScroll: $('#canvas-scroll'),
   grid: $('#grid'),
   inspector: $('#inspector'),
@@ -115,6 +118,15 @@ async function boot() {
   inspector = createInspector({ el: els.inspector, store, registry, onSelect: select, openSourceDialog: sourcePanel.openDialog });
   inspector.render();
   sourcePanel.renderList();
+  createGenerateDialog({
+    dialog: els.generateDialog,
+    openButton: els.generate,
+    registry,
+    store,
+    makeId: uid,
+    notify: toast,
+    openAddSource: sourcePanel.openDialog,
+  });
 
   // palette
   els.palette.append(...PALETTE_ORDER.map(paletteItem));
@@ -180,7 +192,7 @@ async function boot() {
     const mod = e.ctrlKey || e.metaKey;
     const key = e.key.toLowerCase();
     if (mod && key === 's') { e.preventDefault(); saveNow(); return; }
-    if (els.sourceDialog.open || isTypingTarget(e.target)) return;
+    if (els.sourceDialog.open || els.generateDialog.open || isTypingTarget(e.target)) return;
 
     if (mod && key === 'z' && !e.shiftKey) { e.preventDefault(); store.undo(); }
     else if (mod && (key === 'y' || (key === 'z' && e.shiftKey))) { e.preventDefault(); store.redo(); }

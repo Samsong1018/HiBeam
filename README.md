@@ -45,6 +45,8 @@ Every source is fetched server-side, so credentials never reach the browser.
 ### Editor
 Drag-and-drop grid with **line, bar, pie, KPI, table, text, and label** widgets. Autosave, undo/redo, per-widget refresh intervals, and a live preview link.
 
+**Generate** builds a board from your sources in one step. It reads each source's rows, works out what every column is (a date, a measure, a category, an axis like months or clock times, an ID, free text), and lays out a heading, up to three KPIs, the charts that fit and a table per source. Percentages and balances show their latest value instead of being summed, status codes and IDs are never added up, and newest-first feeds are flipped so lines read left to right. It's rule-based and runs in the browser, so the same rows always give the same board, and one Undo takes it back.
+
 ### Viewer and sharing
 A read-only view of any dashboard. Flip it public and anyone with the link can see it without an account. Only the owner can edit.
 
@@ -70,7 +72,7 @@ Everything Kiro uses lives in [`.kiro/`](.kiro/). Here's what's in there and wha
 | Spec | What it covers | Status |
 |------|----------------|--------|
 | [`auth-account-endpoints`](.kiro/specs/auth-account-endpoints/) | Sign-up, login, sessions, lockout, account management, and the static-file allowlist. 18 requirements and 22 numbered correctness properties | Built. 13 of the properties have their own `tests/auth-p*.test.mjs` suite |
-| [`dashboard-generator`](.kiro/specs/dashboard-generator/) | A generator that looks at a source's rows, works out each field's type, and proposes a full dashboard layout | Requirements, design and tasks written, not built yet |
+| [`dashboard-generator`](.kiro/specs/dashboard-generator/) | A generator that looks at a source's rows, works out each field's type, and proposes a full dashboard layout | Built. 11 properties in `tests/generator-p*.test.mjs`, plus unit tests on the real APP1/APP2 data |
 
 The auth spec is where property-based testing paid off. Each property in `design.md` maps to a `fast-check` test, and one of them found an input that crashed the error handler, which the hand-written unit tests had missed.
 

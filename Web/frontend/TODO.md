@@ -38,6 +38,7 @@
 - [x] Spreadsheet sources upload the file with `PUT /api/sources/:id/file` after the source is created
 - [x] Sign Out + Preview link
 - [ ] Optional: switch widget data to `GET /api/dashboards/:id/data` (currently per-source `/preview`)
+- [x] Generate button: builds label, KPIs, charts and a table per source from its rows (`generator.js` + `generate-dialog.js`, spec in `.kiro/specs/dashboard-generator/`)
 
 ## Shared / cross-cutting
 - [x] Nav Sign Out on every page (`script.js`)
@@ -46,7 +47,7 @@
 - [x] All six source types fetch real data: `rest`, `json`, `sql` (MySQL/MariaDB), `scrape`, `logs` (log file URL), `excel` (.xlsx/.csv upload)
 
 ## Backend / ops
-- [ ] Run `Web/backend/db/migrations/002_source_files.sql` on the shared DB (spreadsheet uploads fail without it)
+- [x] Run `Web/backend/db/migrations/002_source_files.sql` on the shared DB (confirmed 2026-11-23: APP2 workbook upload and preview work)
 - [x] Rate limits on auth, source fetches and `/api/public/dashboards/*` (`lib/security.js`); set `TRUST_PROXY` when deploying behind nginx
 - [x] Security headers + CSP (`helmet`), public dashboards only send displayed columns, hourly prune of expired auth rows
 - [ ] Optional property/unit tests still unchecked in `.kiro/specs/auth-account-endpoints/tasks.md` (items marked `*`)

@@ -102,6 +102,8 @@ async function renderData(body, widget, registry, isCurrent, opts) {
   }
   if (!isCurrent()) return noop;
   clear(body);
+  // newest-first feeds: flip so lines read oldest → newest and "Latest" is the newest row
+  if (widget.config.reverseData) rowSets = rowSets.map((rows) => [...rows].reverse());
 
   const sources = bindings.map((b) => registry.byId(b.sourceId));
   const scoped = { ...widget, config: { ...widget.config, bindings } };

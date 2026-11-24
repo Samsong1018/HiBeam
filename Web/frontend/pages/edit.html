@@ -52,6 +52,10 @@
                 </div>
 
                 <div class="toolbar-group">
+                    <button class="btn btn-ghost btn-generate" id="generate-btn" type="button" aria-haspopup="dialog" title="Build components from your sources">
+                        <svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="m4 20 10-10"/><path d="M15 3v3M15 12v3M10.5 7.5h-3M22.5 7.5h-3M18.2 4.3l-1.4 1.4M18.2 10.7l-1.4-1.4"/></svg>
+                        Generate
+                    </button>
                     <a class="btn btn-ghost" id="preview-link" aria-disabled="true">Preview</a>
                     <button class="btn btn-primary" id="save-btn" type="button" title="Save (Ctrl+S)">Save</button>
                 </div>
@@ -107,6 +111,43 @@
                 <div class="modal-actions">
                     <button class="btn btn-ghost" type="button" data-close-dialog>Cancel</button>
                     <button class="btn btn-primary" type="submit">Connect</button>
+                </div>
+            </form>
+        </dialog>
+
+        <!-- ========== GENERATE FROM SOURCES ========== -->
+        <dialog class="modal modal-wide" id="generate-dialog" aria-labelledby="generate-dialog-title" aria-describedby="generate-dialog-desc">
+            <form class="modal-body" id="generate-form" novalidate>
+                <div>
+                    <p class="eyebrow">Generator</p>
+                    <h2 id="generate-dialog-title">Generate from sources</h2>
+                    <p id="generate-dialog-desc">HiBeam reads each source's rows and lays out a heading, key numbers, charts and a table for it. Edit anything afterwards. Undo puts the old board back.</p>
+                </div>
+                <fieldset class="field" id="generate-sources-group">
+                    <legend class="field-label">Sources</legend>
+                    <ul class="gen-sources" id="generate-sources"></ul>
+                </fieldset>
+                <div class="gen-empty" id="generate-empty" hidden>
+                    <p>Connect a source first. The generator builds the board from its rows.</p>
+                    <button class="btn btn-ghost btn-sm" id="generate-add-source" type="button">+ Add source</button>
+                </div>
+                <fieldset class="field" id="generate-mode-group">
+                    <legend class="field-label">Placement</legend>
+                    <div class="gen-modes">
+                        <label class="type-option">
+                            <input type="radio" name="generate-mode" value="replace">
+                            <span class="type-card gen-mode-card"><strong>Replace board</strong><span>Start fresh with only the generated components</span></span>
+                        </label>
+                        <label class="type-option">
+                            <input type="radio" name="generate-mode" value="append">
+                            <span class="type-card gen-mode-card"><strong>Add below</strong><span>Keep what's here and add underneath</span></span>
+                        </label>
+                    </div>
+                </fieldset>
+                <p class="field-error" id="generate-error" role="alert"></p>
+                <div class="modal-actions">
+                    <button class="btn btn-ghost" type="button" data-close-dialog>Cancel</button>
+                    <button class="btn btn-primary" id="generate-submit" type="submit">Generate</button>
                 </div>
             </form>
         </dialog>

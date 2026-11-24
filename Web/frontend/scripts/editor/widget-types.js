@@ -26,7 +26,7 @@ export const WIDGET_TYPES = {
     min: { w: 6, h: 5 },
     maxBindings: 6,
     bindingFields: ['xField', 'yField', 'agg'],
-    defaults: { title: 'Line chart', bindings: [], color: 'c1', smooth: true, fill: false, legend: true, refresh: 0 },
+    defaults: { title: 'Line chart', bindings: [], color: 'c1', smooth: true, fill: false, legend: true, reverseData: false, refresh: 0 },
   },
   bar: {
     label: 'Bar chart',
@@ -56,7 +56,7 @@ export const WIDGET_TYPES = {
     min: { w: 5, h: 4 },
     maxBindings: 1,
     bindingFields: ['yField', 'agg'],
-    defaults: { title: 'Total', bindings: [], color: 'c1', prefix: '', suffix: '', decimals: 0, refresh: 0 },
+    defaults: { title: 'Total', bindings: [], color: 'c1', prefix: '', suffix: '', decimals: 0, reverseData: false, refresh: 0 },
   },
   table: {
     label: 'Table',
