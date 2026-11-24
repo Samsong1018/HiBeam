@@ -1,21 +1,24 @@
 // Theme: load this in <head> WITHOUT defer so the saved theme is applied
 // before the page paints (no light-mode flash on dark-mode users).
 // "system" (or nothing saved) follows the OS setting via CSS.
+// A board can also carry its own theme (dashboard.theme = 'kiroween');
+// DashTheme.board() applies that for the page without touching the saved choice.
 (function () {
   const KEY = 'theme';
+  const THEMES = ['light', 'dark', 'kiroween'];
   const root = document.documentElement;
 
   function read() {
     try {
       const stored = localStorage.getItem(KEY);
-      return stored === 'light' || stored === 'dark' ? stored : 'system';
+      return THEMES.includes(stored) ? stored : 'system';
     } catch (err) {
       return 'system';
     }
   }
 
   function apply(theme) {
-    if (theme === 'light' || theme === 'dark') {
+    if (THEMES.includes(theme)) {
       root.setAttribute('data-theme', theme);
     } else {
       root.removeAttribute('data-theme');
@@ -32,6 +35,11 @@
     }
   }
 
+  // board theme wins while set; null/'' hands control back to the user's choice
+  function board(theme) {
+    apply(THEMES.includes(theme) ? theme : read());
+  }
+
   apply(read());
-  window.DashTheme = { get: read, set: set };
+  window.DashTheme = { get: read, set: set, board: board };
 })();

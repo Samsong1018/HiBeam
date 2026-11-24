@@ -9,6 +9,8 @@ import { h, clear } from './dom.js';
 import { WIDGET_TYPES, REFRESH_OPTIONS, isDataWidget } from './widget-types.js';
 import { AGGREGATIONS, aggregate, groupSeries, mergeSeries, fieldsOf, formatNumber } from './data.js';
 import { createChart } from './charts.js';
+import { kpiStatus, kpiDelta, deltaTone } from './kpi.js';
+import { toneOf, isToneColumn } from './semantic.js';
 
 const noop = () => {};
 
@@ -51,14 +53,83 @@ function renderLabel(body, { config }) {
 // ------------------------------------------------------------
 // Data widgets
 // ------------------------------------------------------------
+const STATUS_TEXT = { warn: 'Warning', alert: 'Alert' };
+
 function renderKpi(body, widget, rows, source) {
-  const [b] = widget.config.bindings;
-  const value = aggregate(rows.map((r) => r[b.yField]), b.agg);
+  const { config } = widget;
+  const [b] = config.bindings;
+  const values = rows.map((r) => r[b.yField]);
+  const value = aggregate(values, b.agg);
   const caption = `${AGGREGATIONS[b.agg]?.label || 'Sum'}${b.agg === 'count' ? ' of rows' : ` of ${b.yField}`} · ${source?.name || 'source'}`;
+
+  const status = kpiStatus(value, config);
+  if (status) body.dataset.status = status;
+  const limit = status === 'alert' ? config.alertAt : config.warnAt;
+  const flag = STATUS_TEXT[status] && h('span', {
+    class: 'kpi-flag',
+    title: `${STATUS_TEXT[status]}: ${config.higherIs === 'good' ? 'at or below' : 'at or above'} ${formatNumber(limit, config)}`,
+  }, `${STATUS_TEXT[status]} · ${config.higherIs === 'good' ? '≤' : '≥'} ${formatNumber(limit, config)}`);
+
+  const delta = config.showDelta ? kpiDelta(values, b.agg) : null;
+  const change = delta !== null && h('span', { class: 'kpi-delta', dataset: { tone: deltaTone(delta, config) } },
+    `${delta > 0 ? '▲' : delta < 0 ? '▼' : '■'} ${formatNumber(Math.abs(delta), config)}`,
+    h('span', { class: 'visually-hidden' }, ' since the previous row'));
+
   body.append(
-    h('p', { class: 'kpi-value' }, formatNumber(value, widget.config)),
+    ...(flag ? [flag] : []),
+    h('p', { class: 'kpi-value' }, formatNumber(value, config), change),
     h('p', { class: 'kpi-caption' }, caption),
   );
+}
+
+// Show only rows that fit whole, with a "+N more" footer that switches the
+// table to scrolling. Exports and screenshots then never cut a row in half.
+function fitRows(wrap, more) {
+  let expanded = false;
+  const rowsOf = () => [...wrap.querySelectorAll('tbody tr')];
+  // how many rows fit whole in the wrap at its current height
+  const countFitting = (rows) => {
+    const room = wrap.clientHeight - (wrap.querySelector('thead')?.offsetHeight || 0);
+    let used = 0;
+    let n = 0;
+    for (const r of rows) {
+      used += r.offsetHeight;
+      if (used > room) break;
+      n += 1;
+    }
+    return n;
+  };
+  const fit = () => {
+    if (expanded) return;
+    const rows = rowsOf();
+    rows.forEach((r) => { r.hidden = false; });
+    more.hidden = true;
+    let shown = countFitting(rows);
+    if (shown < rows.length) {
+      more.textContent = '+0 more rows';
+      more.hidden = false; // the footer takes space from the wrap, so measure again
+      shown = Math.max(countFitting(rows), 1);
+    }
+    rows.forEach((r, i) => { r.hidden = i >= shown; });
+    const hidden = rows.length - shown;
+    more.hidden = hidden <= 0;
+    more.textContent = `+${hidden.toLocaleString()} more row${hidden === 1 ? '' : 's'}`;
+  };
+  more.addEventListener('click', () => {
+    expanded = true;
+    rowsOf().forEach((r) => { r.hidden = false; });
+    wrap.classList.add('is-expanded');
+    more.hidden = true;
+  });
+  const observer = new ResizeObserver(() => requestAnimationFrame(fit));
+  observer.observe(wrap);
+  return () => observer.disconnect();
+}
+
+function cell(row, column) {
+  const value = row[column] ?? '';
+  const tone = isToneColumn(column) ? toneOf(value, column) : null;
+  return h('td', tone ? { class: 'is-toned', dataset: { tone } } : {}, value);
 }
 
 function renderTable(body, widget, rows) {
@@ -66,11 +137,13 @@ function renderTable(body, widget, rows) {
   const columns = widget.config.columns.filter((c) => all.includes(c));
   const shown = columns.length ? columns : all;
   const limit = Math.min(Math.max(Number(widget.config.limit) || 50, 1), 500);
-  body.append(h('div', { class: 'widget-table-wrap widget-nodrag' },
+  const wrap = h('div', { class: 'widget-table-wrap widget-nodrag' },
     h('table', { class: 'widget-table' },
       h('thead', {}, h('tr', {}, shown.map((c) => h('th', { scope: 'col' }, c)))),
-      h('tbody', {}, rows.slice(0, limit).map((row) => h('tr', {}, shown.map((c) => h('td', {}, row[c] ?? ''))))),
-    )));
+      h('tbody', {}, rows.slice(0, limit).map((row) => h('tr', {}, shown.map((c) => cell(row, c)))))));
+  const more = h('button', { type: 'button', class: 'table-more widget-nodrag', hidden: true, title: 'Show every row' });
+  body.append(wrap, more);
+  return fitRows(wrap, more);
 }
 
 function chartData(widget, rowSets, sources) {
@@ -109,7 +182,7 @@ async function renderData(body, widget, registry, isCurrent, opts) {
   const scoped = { ...widget, config: { ...widget.config, bindings } };
 
   if (widget.type === 'kpi') { renderKpi(body, scoped, rowSets[0], sources[0]); return noop; }
-  if (widget.type === 'table') { renderTable(body, scoped, rowSets[0]); return noop; }
+  if (widget.type === 'table') return renderTable(body, scoped, rowSets[0]);
 
   const canvas = h('canvas', { role: 'img', 'aria-label': `${WIDGET_TYPES[widget.type].label}: ${widget.config.title || 'untitled'}` });
   body.append(h('div', { class: 'widget-chart' }, canvas));

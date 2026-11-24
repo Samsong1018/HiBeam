@@ -166,6 +166,8 @@ function isValidId(id) {
 
 // ---- dashboard definition ----
 
+const BOARD_THEMES = ['kiroween'];
+
 const bindingSchema = z.object({
   sourceId: z.string().max(64),
   xField: z.string().max(120).optional(),
@@ -190,6 +192,8 @@ const dashboardSchema = z.object({
     showGrid: z.boolean(),
   }).strict(),
   widgets: z.array(widgetSchema).max(200),
+  // optional board theme; absent = follow each viewer's own light/dark setting
+  theme: z.enum(BOARD_THEMES).optional(),
 }).strict();
 
 function validateDashboardDefinition(def) {

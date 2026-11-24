@@ -22,7 +22,7 @@ Key design decisions:
 | Charts need at least 2 rows | A one-row source (APP1 metrics) would otherwise get a single-point line. Its useful view is KPIs and the row itself. |
 | `reverseData` flag instead of sorting | The Generator does not control the order the renderer draws rows in; the renderer groups rows in first-seen order. A newest-first feed (APP1 logs) therefore needs a widget-level flag that the renderer honours, which also makes `last` mean the newest row. The flag has a `false` default on `line` and `kpi` so normalization stays a no-op, and the inspector exposes it. |
 | Field names over 120 characters are skipped | `normalizeBinding` cuts `xField`/`yField` at 120, which would silently break a binding (Requirement 1.10). |
-| Code style follows the neighbouring editor modules (camelCase, K&R braces, `export function`) | The editor's ES modules don't use the `tmp`/`p` prefixes or Allman braces from `steering/format.md`, which the backend follows. Matching the files around it keeps the editor consistent. |
+| Code style follows the neighbouring editor modules (camelCase, K&R braces, `export function`) | The editor's ES modules don't use the `tmp`/`p` prefixes or Allman braces from `steering/backend.md`, which the backend follows. Matching the files around it keeps the editor consistent. |
 
 ## Architecture
 

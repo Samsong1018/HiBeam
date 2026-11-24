@@ -271,6 +271,7 @@ async function boot() {
 
   document.title = `${dash.name} · HiBeam`;
   els.title.textContent = dash.name;
+  window.DashTheme?.board(dash.theme);
   const updatedAt = raw?.updatedAt ? new Date(raw.updatedAt) : null;
   const paintUpdated = () => {
     const count = `${dash.widgets.length} widget${dash.widgets.length === 1 ? '' : 's'}`;

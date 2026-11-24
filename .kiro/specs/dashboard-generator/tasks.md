@@ -2,7 +2,7 @@
 
 ## Code style note
 
-`generator.js` and `generate-dialog.js` live in `Web/frontend/scripts/editor/` alongside ES modules that use camelCase identifiers, K&R braces and plain `export function` declarations. They deliberately do **not** follow the `tmp`/`p` prefixes and Allman braces in `steering/format.md`, which apply to the backend. The design records this decision; the spec-consistency hook should not flag these files for style.
+`generator.js` and `generate-dialog.js` live in `Web/frontend/scripts/editor/` alongside ES modules that use camelCase identifiers, K&R braces and plain `export function` declarations. They deliberately do **not** follow the `tmp`/`p` prefixes and Allman braces in `steering/backend.md`, which apply to the backend. The design records this decision; the spec-consistency hook should not flag these files for style.
 
 ## Overview
 

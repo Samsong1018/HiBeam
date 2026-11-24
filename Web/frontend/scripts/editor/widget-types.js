@@ -56,7 +56,7 @@ export const WIDGET_TYPES = {
     min: { w: 5, h: 4 },
     maxBindings: 1,
     bindingFields: ['yField', 'agg'],
-    defaults: { title: 'Total', bindings: [], color: 'c1', prefix: '', suffix: '', decimals: 0, reverseData: false, refresh: 0 },
+    defaults: { title: 'Total', bindings: [], color: 'c1', prefix: '', suffix: '', decimals: 0, reverseData: false, refresh: 0, warnAt: null, alertAt: null, higherIs: 'bad', showDelta: false },
   },
   table: {
     label: 'Table',

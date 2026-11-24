@@ -25,6 +25,8 @@ import dotenv from 'dotenv';
 import { fileURLToPath } from 'node:url';
 import path from 'node:path';
 import fs from 'node:fs/promises';
+import { generateDashboard, explainSection } from '../Web/frontend/scripts/editor/generator.js';
+import { newDashboard } from '../Web/frontend/scripts/editor/model.js';
 
 // quiet: dotenv logs to stdout otherwise, which would corrupt the MCP stdio stream
 dotenv.config({ path: path.join(path.dirname(fileURLToPath(import.meta.url)), '.env'), quiet: true });
@@ -512,11 +514,13 @@ const _definitionShape = {
         .describe('Grid columns, default 48. Widget x/w are in these units; h is in rows.'),
     show_grid: z.boolean().optional().describe('Show grid lines in the editor, default true'),
     widgets: z.array(_widgetSchema).max(200).describe('Widgets on the grid'),
+    theme: z.enum(['kiroween']).optional().describe('Board theme. "kiroween" shows the board in the Kiroween palette for every viewer; omit to follow each viewer\'s own light/dark setting'),
 };
 
-function BuildDefinition({ name, columns, show_grid: tmpShowGrid, widgets })
+function BuildDefinition({ name, columns, show_grid: tmpShowGrid, widgets, theme })
 {
-    return { name, grid: { columns: columns || 48, showGrid: tmpShowGrid !== false }, widgets };
+    const tmpDef = { name, grid: { columns: columns || 48, showGrid: tmpShowGrid !== false }, widgets };
+    return theme ? { ...tmpDef, theme } : tmpDef;
 }
 
 _server.tool(
@@ -560,6 +564,56 @@ _server.tool(
         {
             const tmpDash = await ApiGet(`/api/dashboards/${encodeURIComponent(id)}`);
             return JsonResult(tmpDash.definition);
+        }
+        catch (pErr) { return ErrorResult(pErr); }
+    }
+);
+
+// ---- Generate ----
+
+let _idCounter = 0;
+function MakeWidgetId(pPrefix = 'w')
+{
+    _idCounter += 1;
+    return `${pPrefix}_g${Date.now().toString(36)}${_idCounter}`;
+}
+
+_server.tool(
+    'generate_dashboard',
+    'Draft a dashboard from sources with HiBeam\'s rule-based generator, the same one behind the editor\'s Generate button. '
+    + 'It reads each source\'s preview rows, works out what every field is (timestamp, rate, level, flow, category, id) and lays out '
+    + 'a heading, KPIs, charts and a table per source. Returns the definition plus one reason per field, so you can check the '
+    + 'choices before saving. With create=true it also saves the board and returns its id; otherwise nothing is written.',
+    {
+        source_ids: z.array(z.string()).min(1).max(10).describe('Sources to build from, in the order their sections should appear'),
+        name: z.string().min(1).max(120).describe('Dashboard name'),
+        columns: z.union([z.literal(24), z.literal(48), z.literal(72), z.literal(96)]).optional().describe('Grid columns, default 48'),
+        create: z.boolean().optional().describe('Save the draft as a new dashboard (default false: preview only)'),
+    },
+    async ({ source_ids: tmpIds, name, columns, create }) =>
+    {
+        try
+        {
+            const tmpSources = await ApiGet('/api/sources');
+            const tmpById = new Map(tmpSources.map((pS) => [pS.id, pS]));
+            const tmpMissing = tmpIds.filter((pId) => !tmpById.has(pId));
+            if (tmpMissing.length) throw new Error(`Unknown source id(s): ${tmpMissing.join(', ')}. Use list_sources.`);
+
+            const tmpInputs = [];
+            for (const tmpId of tmpIds)
+            {
+                const tmpRows = await ApiGet(`/api/sources/${encodeURIComponent(tmpId)}/preview`);
+                tmpInputs.push({ source: tmpById.get(tmpId), rows: Array.isArray(tmpRows) ? tmpRows : [] });
+            }
+
+            const tmpBase = { ...newDashboard(), name, grid: { columns: columns || 48, showGrid: true } };
+            const { dashboard: tmpDraft, error: tmpError } = generateDashboard(tmpBase, tmpInputs, { mode: 'replace', makeId: MakeWidgetId });
+            if (tmpError) throw new Error(`Generator refused: ${tmpError}`);
+            const tmpWhy = tmpInputs.map(({ source, rows }) => explainSection(source, rows));
+
+            if (!create) return JsonResult({ definition: tmpDraft, reasons: tmpWhy });
+            const tmpSaved = await ApiPost('/api/dashboards', tmpDraft);
+            return TextResult(`Created dashboard\n\n${SummariseDashboard(tmpSaved)}\n\nWhy it looks like this:\n${JSON.stringify(tmpWhy, null, 2)}`);
         }
         catch (pErr) { return ErrorResult(pErr); }
     }

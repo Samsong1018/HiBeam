@@ -130,3 +130,101 @@
 .widget-label[data-align="center"] { text-align: center; }
 .widget-label[data-align="right"] { text-align: right; }
 .widget-label.is-muted { color: var(--color-text-muted); }
+
+/* ============================================================
+   KPI status (thresholds) and change since the previous row
+   ============================================================ */
+/* out of flow: the value is sized from the card body (cqh), so the flag must not take height from it */
+.kpi-flag {
+  position: absolute;
+  top: 0.35rem;
+  left: 0.75rem;
+  max-width: calc(100% - 1.5rem);
+  overflow: hidden;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.1rem 0.45rem;
+  border-radius: 999px;
+  font-family: var(--font-mono);
+  font-size: 0.62rem;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  white-space: nowrap;
+  color: var(--tone);
+  background: color-mix(in srgb, var(--tone) 14%, transparent);
+}
+.kpi-flag::before { content: ''; width: 6px; height: 6px; border-radius: 50%; background: currentColor; }
+/* reserve the flag's row; cqh sizing of .kpi-value then shrinks to what's left */
+.widget-body[data-status="warn"],
+.widget-body[data-status="alert"] { padding-top: 1.6rem; }
+.widget-body[data-status="warn"] { --tone: var(--color-warn); }
+.widget-body[data-status="alert"] { --tone: var(--color-danger); }
+.widget-body[data-status="warn"] .kpi-value,
+.widget-body[data-status="alert"] .kpi-value { color: var(--tone); }
+.widget:has(> .widget-body[data-status="alert"]) {
+  border-color: color-mix(in srgb, var(--color-danger) 55%, var(--color-border));
+  box-shadow: inset 3px 0 0 var(--color-danger);
+}
+.widget:has(> .widget-body[data-status="warn"]) { box-shadow: inset 3px 0 0 var(--color-warn); }
+@media (prefers-reduced-motion: no-preference) {
+  .widget-body[data-status="alert"] .kpi-flag::before { animation: kpi-pulse 1.6s ease-in-out infinite; }
+}
+@keyframes kpi-pulse { 50% { opacity: 0.25; transform: scale(0.7); } }
+
+.kpi-delta {
+  margin-left: 0.5em;
+  font-family: var(--font-mono);
+  font-size: max(0.7rem, 0.28em);
+  font-weight: 600;
+  letter-spacing: 0;
+  vertical-align: 0.35em;
+  color: var(--color-text-muted);
+}
+.kpi-delta[data-tone="good"] { color: var(--color-ok); }
+.kpi-delta[data-tone="bad"] { color: var(--color-danger); }
+
+/* ============================================================
+   Tables · whole rows only, "+N more" switches to scrolling;
+   status-like columns get a tone dot
+   ============================================================ */
+.widget-table-wrap { overflow: hidden; }
+.widget-table-wrap.is-expanded { overflow: auto; }
+.table-more {
+  align-self: flex-start;
+  margin-top: 0.3rem;
+  padding: 0.1rem 0.4rem;
+  border-radius: 4px;
+  font-family: var(--font-mono);
+  font-size: 0.68rem;
+  color: var(--color-text-muted);
+  transition: color var(--dur-fast), background-color var(--dur-fast);
+}
+.table-more:hover { color: var(--color-accent-text); background: var(--color-bg-alt); }
+.table-more:focus-visible { outline-offset: 1px; }
+
+.widget-table td.is-toned { --tone: var(--color-text-muted); }
+.widget-table td.is-toned::before {
+  content: '';
+  display: inline-block;
+  width: 7px;
+  height: 7px;
+  margin-right: 0.45rem;
+  border-radius: 50%;
+  vertical-align: 0.05em;
+  background: var(--tone);
+}
+.widget-table td[data-tone="ok"] { --tone: var(--color-ok); }
+.widget-table td[data-tone="info"] { --tone: var(--chart-c6); }
+.widget-table td[data-tone="warn"] { --tone: var(--color-warn); }
+.widget-table td[data-tone="danger"] { --tone: var(--color-danger); color: var(--color-danger); }
+
+/* Kiroween: cards get a faint pumpkin rim, alerts glow */
+:root[data-theme="kiroween"] .widget { box-shadow: var(--shadow-card); }
+:root[data-theme="kiroween"] .widget:has(> .widget-body[data-status="alert"]) {
+  box-shadow: inset 3px 0 0 var(--color-danger), 0 0 28px -10px var(--color-danger);
+}
+:root[data-theme="kiroween"] .widget-skeleton {
+  background: linear-gradient(90deg, var(--color-bg-alt) 0%, hsl(24 100% 50% / 0.10) 50%, var(--color-bg-alt) 100%) 0 0 / 200% 100%;
+}

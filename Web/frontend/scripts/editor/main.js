@@ -210,6 +210,10 @@ async function boot() {
     }
   });
 
+  // a board-level theme (Kiroween) previews live while editing
+  window.DashTheme?.board(store.get().theme);
+  store.subscribe((next, prev) => { if (next.theme !== prev.theme) window.DashTheme?.board(next.theme); });
+
   // charts read colours from CSS tokens, so redraw on theme change
   window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', () => canvas.rerenderAll());
   new MutationObserver(() => canvas.rerenderAll()).observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });

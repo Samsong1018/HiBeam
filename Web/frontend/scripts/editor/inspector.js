@@ -8,7 +8,7 @@
 import { h, clear, uid } from './dom.js';
 import { WIDGET_TYPES, COLOR_TOKENS, REFRESH_OPTIONS, iconSvg, isDataWidget } from './widget-types.js';
 import { AGGREGATIONS } from './data.js';
-import { COLUMN_OPTIONS, setGrid, updateConfig, removeWidget, duplicateWidget } from './model.js';
+import { COLUMN_OPTIONS, BOARD_THEMES, setGrid, setTheme, updateConfig, removeWidget, duplicateWidget } from './model.js';
 
 const NEW_SOURCE = '__new__';
 const EMPTY_BINDING = { sourceId: '', xField: '', yField: '', agg: 'sum' };
@@ -54,6 +54,30 @@ export function createInspector({ el, store, registry, onSelect, openSourceDialo
     return h('label', { class: 'check' },
       h('input', { type: 'checkbox', checked: Boolean(selected().config[key]), onchange: (e) => patch({ [key]: e.target.checked }) }),
       h('span', {}, label));
+  }
+
+  // empty input = threshold off (null); anything else must be a finite number
+  function numberField(label, key, hint) {
+    const current = selected().config[key];
+    const control = h('input', {
+      id: fieldId(key), type: 'number', step: 'any', inputmode: 'decimal', placeholder: 'Off',
+      value: current === null || current === undefined ? '' : String(current),
+      oninput: (e) => {
+        const raw = e.target.value.trim();
+        const n = Number(raw);
+        if (raw === '') patch({ [key]: null }, key);
+        else if (Number.isFinite(n)) patch({ [key]: n }, key);
+      },
+    });
+    return field(label, control, hint);
+  }
+
+  function kpiAlerts() {
+    return section('Alerts',
+      h('div', { class: 'field-row' }, numberField('Warn at', 'warnAt'), numberField('Alert at', 'alertAt')),
+      selectField('Higher is', 'higherIs', [{ value: 'bad', label: 'Bad (CPU, spending)' }, { value: 'good', label: 'Good (savings, uptime)' }]),
+      h('div', { class: 'check-list' }, toggle('Show change since previous row', 'showDelta')),
+      h('p', { class: 'field-hint' }, 'The number turns amber or red once it crosses a threshold. Leave a box empty to turn that level off.'));
   }
 
   function swatches() {
@@ -220,6 +244,7 @@ export function createInspector({ el, store, registry, onSelect, openSourceDialo
       'title' in widget.config && section('General', textField('Title', 'title', { placeholder: 'Untitled' })),
       isDataWidget(widget.type) && dataSection(widget),
       appearance(widget),
+      widget.type === 'kpi' && kpiAlerts(),
       h('div', { class: 'insp-actions' },
         h('button', {
           type: 'button', class: 'btn btn-ghost btn-sm',
@@ -233,7 +258,7 @@ export function createInspector({ el, store, registry, onSelect, openSourceDialo
   }
 
   function dashboardPanel() {
-    const { grid, widgets } = store.get();
+    const { grid, widgets, theme = '' } = store.get();
     return [
       h('header', { class: 'insp-head' },
         h('div', {}, h('p', { class: 'eyebrow' }, 'Dashboard'), h('h2', { class: 'insp-title' }, 'Canvas'))),
@@ -245,6 +270,12 @@ export function createInspector({ el, store, registry, onSelect, openSourceDialo
         h('label', { class: 'check' },
           h('input', { type: 'checkbox', checked: grid.showGrid, onchange: (e) => commit((d) => setGrid(d, { showGrid: e.target.checked })) }),
           h('span', {}, 'Show grid lines'))),
+      section('Theme',
+        field('Board theme', h('select', {
+          id: fieldId('theme'), value: theme,
+          onchange: (e) => commit((d) => setTheme(d, e.target.value)),
+        }, BOARD_THEMES.map((t) => h('option', { value: t.value }, t.label))),
+        'Kiroween shows this board in the Halloween palette for everyone who opens it, including the public link and exports.')),
       section('Overview',
         h('p', { class: 'insp-note' }, widgets.length ? `${widgets.length} component${widgets.length === 1 ? '' : 's'} on this dashboard.` : 'Drag a component from the left onto the canvas to start.')),
       section('Shortcuts',
@@ -265,7 +296,7 @@ export function createInspector({ el, store, registry, onSelect, openSourceDialo
     if (meta.origin === 'inspector' && meta.kind === 'commit') return;
     const before = prev.widgets.find((w) => w.id === selectedId);
     const after = next.widgets.find((w) => w.id === selectedId);
-    const unchanged = selectedId ? before?.config === after?.config && Boolean(after) : prev.grid === next.grid && prev.widgets.length === next.widgets.length;
+    const unchanged = selectedId ? before?.config === after?.config && Boolean(after) : prev.grid === next.grid && prev.theme === next.theme && prev.widgets.length === next.widgets.length;
     if (!unchanged) render();
   });
   registry.subscribe(() => render());

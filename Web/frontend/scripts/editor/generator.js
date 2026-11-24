@@ -310,3 +310,72 @@ export function generateDashboard(current, inputs, { mode, makeId }) {
   if (generated.some((w) => w.y > MAX_Y)) return { dashboard: current, error: 'too_tall' };
   return { dashboard: { name: current.name, grid: { ...current.grid }, widgets: [...kept, ...generated] }, error: null };
 }
+
+// ------------------------------------------------------------
+// Reasons
+// ------------------------------------------------------------
+// The same rules generateSection follows, written out per field so an agent
+// (or a person) can see why the draft looks the way it does. Read-only: it
+// never changes what generateSection builds.
+
+function fieldReason(f, ctx) {
+  const { orderedAxis, time, reverse } = ctx;
+  const n = `"${f.name}"`;
+  switch (f.role) {
+    case 'empty': return `${n} has no values in the sample, so it's left out.`;
+    case 'time':
+      return reverse && f.name === time?.name
+        ? `${n} is a timestamp and the rows run newest first, so lines are flipped to read left to right and "Latest" means the newest row.`
+        : `${n} is a timestamp, so it becomes the x axis of a line chart.`;
+    case 'label':
+      return f.ordered
+        ? `${n} holds ordered labels (months or clock times), so it's treated as a time axis.`
+        : `${n} is a unique label per row, so it's used as the x axis of a bar chart when nothing better exists.`;
+    case 'category': {
+      const pie = f.distinct <= MAX_PIE_SLICES ? 'a bar and a pie' : `a bar but no pie (${f.distinct} values is more than ${MAX_PIE_SLICES} slices)`;
+      const coded = CODE_HINT.test(f.name) ? ' It looks like a code (status, level, type), so it\'s never added up.' : '';
+      return `${n} has ${f.distinct} repeating values, so it's a category: rows are grouped by it into ${pie}.${coded}`;
+    }
+    case 'number': {
+      const kpi = kpiAgg(f.name, orderedAxis);
+      const chart = chartAgg(f.name);
+      if (IS_RATE(f.name)) {
+        return `${n} is a rate, so the KPI shows ${kpi === 'last' ? 'the latest value' : 'the average'} and charts average it. Adding percentages up would be meaningless.`;
+      }
+      if (IS_STOCK(f.name)) {
+        return `${n} is a level (a balance, price or uptime), so ${kpi === 'last' ? 'the KPI shows the latest value' : 'the KPI sums it'} and charts take the latest value per point instead of summing.`;
+      }
+      return `${n} is a flow (an amount that accumulates), so the KPI and charts ${chart === 'sum' ? 'sum it' : `use ${chart}`}.`;
+    }
+    default:
+      return IS_IDENTIFIER(f.name)
+        ? `${n} is an identifier, so it's only shown in the table, never charted or summed.`
+        : `${n} is free text, so it's only shown in the table.`;
+  }
+}
+
+/**
+ * One plain-English reason per field for the board generateSection would build.
+ * Pure and deterministic, like the generator itself.
+ * @param {{ id: string, name: string }} source
+ * @param {unknown} rows
+ * @returns {{ source: string, rows: number, reasons: { field: string, role: Role, reason: string }[] }}
+ */
+export function explainSection(source, rows) {
+  const sample = sampleOf(rows);
+  const name = cut(source?.name || 'Source');
+  if (!sample.length) return { source: name, rows: 0, reasons: [] };
+  const profiles = profileFields(sample);
+  const time = profiles.find((f) => f.role === 'time');
+  const label = profiles.find((f) => f.role === 'label' && f.ordered) || profiles.find((f) => f.role === 'label');
+  const ctx = {
+    orderedAxis: Boolean(time) || Boolean(label?.ordered),
+    time,
+    reverse: Boolean(time) && isDescending(sample, time.name),
+  };
+  return {
+    source: name,
+    rows: sample.length,
+    reasons: profiles.map((f) => ({ field: f.name, role: f.role, reason: fieldReason(f, ctx) })),
+  };
+}

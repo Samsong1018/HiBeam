@@ -6,6 +6,7 @@
 // ============================================================
 
 import { COLOR_TOKENS } from './widget-types.js';
+import { axisTones, TONE_TOKENS } from './semantic.js';
 
 const root = document.documentElement;
 const token = (name) => getComputedStyle(root).getPropertyValue(name).trim();
@@ -45,11 +46,19 @@ function baseOptions(config, showLegend) {
   };
 }
 
+// Labels like dead/alive or HTTP 200/503 get ok/warn/danger colours instead of
+// palette order, so "dead" is never the friendly colour. null = not semantic.
+function toneColors(widget, labels) {
+  const tones = axisTones(labels, widget.config.bindings[0]?.xField || '');
+  return tones && tones.map((t) => token(TONE_TOKENS[t]));
+}
+
 // data: { labels, series: [{ label, values }] }
 export function createChart(canvas, widget, data) {
   const { type, config } = widget;
   const colors = seriesColors(config.color, Math.max(data.series.length, data.labels.length));
   const multi = data.series.length > 1;
+  const tones = type !== 'line' && !multi ? toneColors(widget, data.labels) : null;
 
   if (type === 'pie') {
     const options = baseOptions(config, config.legend);
@@ -61,7 +70,7 @@ export function createChart(canvas, widget, data) {
         labels: data.labels,
         datasets: [{
           data: data.series[0]?.values || [],
-          backgroundColor: data.labels.map((_, i) => colors[i % colors.length]),
+          backgroundColor: tones || data.labels.map((_, i) => colors[i % colors.length]),
           borderColor: token('--color-surface'),
           borderWidth: 2,
         }],
@@ -71,7 +80,12 @@ export function createChart(canvas, widget, data) {
   }
 
   const options = baseOptions(config, config.legend && multi);
+  // time axes: dense "05:03 05:06" labels need real gaps or they run together.
+  // Bars keep the default so every category stays labelled when it fits.
+  if (type === 'line') options.scales.x.ticks = { ...options.scales.x.ticks, autoSkipPadding: 18 }; // x and y share one ticks object
   if (type === 'bar') {
+    // every bar is a category and needs its name: tilt crowded labels instead of dropping them
+    if (!config.horizontal) options.scales.x.ticks = { ...options.scales.x.ticks, maxRotation: 40 };
     options.indexAxis = config.horizontal ? 'y' : 'x';
     options.scales.x.stacked = Boolean(config.stacked);
     options.scales.y.stacked = Boolean(config.stacked);
@@ -101,7 +115,7 @@ export function createChart(canvas, widget, data) {
         : {
           label: s.label,
           data: s.values,
-          backgroundColor: colors[i],
+          backgroundColor: tones || colors[i],
           borderRadius: 3,
           maxBarThickness: 48,
         })),

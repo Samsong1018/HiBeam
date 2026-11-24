@@ -32,6 +32,7 @@ input, select, textarea { font: inherit; color: inherit; }
   --color-accent-text: hsl(20 85% 36%);   /* readable pumpkin, for text on bg */
   --color-on-accent: hsl(265 25% 8%);
   --color-ok: hsl(145 45% 30%);
+  --color-warn: hsl(38 92% 40%);
   --color-danger: hsl(355 65% 42%);
   --color-danger-bg: hsl(355 70% 96%);
 
@@ -84,6 +85,7 @@ input, select, textarea { font: inherit; color: inherit; }
     --color-accent: hsl(26 95% 56%);
     --color-accent-text: hsl(28 95% 62%);
     --color-ok: hsl(145 45% 55%);
+    --color-warn: hsl(40 92% 58%);
     --color-danger: hsl(355 75% 66%);
     --color-danger-bg: hsl(355 40% 13%);
     --chart-c1: hsl(26 95% 58%);
@@ -107,6 +109,7 @@ input, select, textarea { font: inherit; color: inherit; }
   --color-accent: hsl(26 95% 56%);
   --color-accent-text: hsl(28 95% 62%);
   --color-ok: hsl(145 45% 55%);
+  --color-warn: hsl(40 92% 58%);
   --color-danger: hsl(355 75% 66%);
   --color-danger-bg: hsl(355 40% 13%);
   --chart-c1: hsl(26 95% 58%);
@@ -117,6 +120,55 @@ input, select, textarea { font: inherit; color: inherit; }
   --chart-c6: hsl(215 20% 64%);
   --shadow-card: 0 1px 0 hsl(0 0% 100% / 0.03), 0 12px 32px -16px hsl(0 0% 0% / 0.7);
   color-scheme: dark;
+}
+
+/* ============================================================
+   KIROWEEN · a third theme. Bruised-plum night, bone text, pumpkin
+   and slime. Set by the user (account page) or by a board
+   (dashboard.theme), which applies it for everyone who opens it.
+   ============================================================ */
+:root[data-theme="kiroween"] {
+  --color-bg: hsl(275 30% 6%);
+  --color-bg-alt: hsl(275 26% 10%);
+  --color-surface: hsl(276 28% 9%);
+  --color-text: hsl(42 38% 90%);
+  --color-text-muted: hsl(276 14% 66%);
+  --color-border: hsl(278 22% 19%);
+  --color-accent: hsl(24 100% 54%);
+  --color-accent-text: hsl(28 100% 62%);
+  --color-on-accent: hsl(275 40% 6%);
+  --color-ok: hsl(98 72% 56%);
+  --color-warn: hsl(42 100% 58%);
+  --color-danger: hsl(352 88% 64%);
+  --color-danger-bg: hsl(352 50% 13%);
+  --chart-c1: hsl(24 100% 56%);   /* pumpkin */
+  --chart-c2: hsl(274 78% 70%);   /* witch violet */
+  --chart-c3: hsl(98 68% 54%);    /* slime */
+  --chart-c4: hsl(44 96% 60%);    /* candle */
+  --chart-c5: hsl(340 84% 66%);   /* blood moon */
+  --chart-c6: hsl(220 18% 66%);   /* fog */
+  --shadow-card: 0 1px 0 hsl(28 100% 60% / 0.05), 0 14px 36px -18px hsl(275 90% 2% / 0.9);
+  --glow-accent: 0 0 0 1px hsl(24 100% 54% / 0.18), 0 10px 40px -20px hsl(24 100% 54% / 0.55);
+  color-scheme: dark;
+}
+
+/* film grain over everything; pointer-events none so it never blocks a click */
+:root[data-theme="kiroween"] body::after {
+  content: '';
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  pointer-events: none;
+  opacity: 0.07;
+  mix-blend-mode: overlay;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+}
+:root[data-theme="kiroween"] body {
+  background:
+    radial-gradient(ellipse 80% 50% at 85% -10%, hsl(24 100% 50% / 0.10), transparent 60%),
+    radial-gradient(ellipse 60% 40% at 0% 100%, hsl(274 80% 50% / 0.10), transparent 60%),
+    var(--color-bg);
+  background-attachment: fixed;
 }
 
 /* ============================================================

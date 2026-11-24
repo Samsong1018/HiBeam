@@ -2,7 +2,11 @@
 
 > **Kiroween Hackathon 2026 · Skeleton Crew**
 
-Connect your data, drop widgets onto a grid, and share the result — or export it as a PNG or PDF. HiBeam is the foundation: accounts, six source types, a drag-and-drop editor, and a read-only viewer. Two very different applications are built on top of it, in [`APP1/`](APP1/) and [`APP2/`](APP2/), with no changes to the skeleton.
+**You don't build the board. The agent does.** Point Kiro at your data and HiBeam's MCP server lets it connect the sources, read the real rows, and draft a board. HiBeam's rule-based generator gives a reason for every widget ("`cpuPct` is a rate, so show the latest value, never a sum"). Kiro then looks at the result and fixes what reads badly. The board it saves is plain JSON you can review like code. Both applications in this repo were built that way, one prompt each.
+
+Underneath is an ordinary dashboard tool you can also drive by hand: accounts, six source types, a drag-and-drop editor, a read-only viewer, public links, and PNG/PDF export. Two very different applications are built on top of it, in [`APP1/`](APP1/) and [`APP2/`](APP2/), with no changes to the skeleton.
+
+**Who it's for:** anyone whose numbers live somewhere awkward and who wants them on one page without building a BI stack. That might be a developer watching their own server, someone in an office turning a weekly spreadsheet into a report, or someone tracking their own budget. If your data comes from an API, a database, a log, a web page or a spreadsheet, you can put it on a board, share a link to it, or export it as a PDF.
 
 ![The HiBeam viewer showing a sales dashboard with KPI tiles, a line chart, a pie chart, a bar chart and a table](docs/screenshots/viewer.png)
 
@@ -18,13 +22,13 @@ The two apps are for opposite kinds of user. Between them they cover the skeleto
 | Data | REST and nginx log feeds from a small agent on the server | One uploaded `.xlsx` workbook |
 | Updates | Every 30 seconds, on its own | When a new month is uploaded |
 | Shared as | A public status page | An exported PDF report |
-| Ships with | A dependency-free metrics agent, a sandboxed systemd unit, nginx and Caddy configs, a demo mode with simulated data, and the dashboard template | A sample workbook and the dashboard template |
+| Ships with | A dependency-free metrics agent, a sandboxed systemd unit, nginx and Caddy configs, a demo mode with simulated data, and the dashboard template (Kiroween theme, CPU/memory/disk alerts) | A sample workbook, the dashboard template, and a monthly import script that re-uploads next month's workbook and rewrites the "This month" summary from the numbers |
 
 ![APP1 Homelab Ops: CPU, memory, disk and uptime tiles, trend and load charts, a services donut, a status-code bar chart, a service graveyard table and recent requests](docs/screenshots/app1-homelab-ops.png)
 
 ![APP2 Monthly Money Report: spent, budgeted, net worth and debt tiles, budget-vs-actual bars, a spending donut, net worth and monthly spending charts, accounts and debts tables](docs/screenshots/app2-money-report.png)
 
-Kiro built both boards through HiBeam's own MCP server (see [MCP](#mcp) below), from the `dashboard.template.json` in each app folder.
+Kiro built both boards through HiBeam's own MCP server (see [MCP](#mcp) below), from the `dashboard.template.json` in each app folder. The whole story of how Kiro was used, with the incident behind each hook, is in [`docs/KIRO.md`](docs/KIRO.md).
 
 ---
 
@@ -44,6 +48,11 @@ Every source is fetched server-side, so credentials never reach the browser.
 
 ### Editor
 Drag-and-drop grid with **line, bar, pie, KPI, table, text, and label** widgets. Autosave, undo/redo, per-widget refresh intervals, and a live preview link.
+
+- **KPI alerts.** Set a warn and an alert threshold, and say whether higher is good or bad. Past a threshold the number turns amber or red and the card gets a flag. Optionally show the change since the previous row (net worth ▲ $950).
+- **Colours that mean something.** Values like `dead`/`alive`, `failed`/`active`, or HTTP 200/404/503 on a status field are coloured by meaning (ok, warn, danger) in charts and tables, not by palette order.
+- **Tables never cut a row in half.** They show the rows that fit, plus a "+N more rows" button that switches to scrolling, so exports and screenshots stay clean.
+- **Themes.** Light, dark, and **Kiroween**. A board can carry its own theme, so a public Kiroween status page looks the same for everyone.
 
 **Generate** builds a board from your sources in one step. It reads each source's rows, works out what every column is (a date, a measure, a category, an axis like months or clock times, an ID, free text), and lays out a heading, up to three KPIs, the charts that fit and a table per source. Percentages and balances show their latest value instead of being summed, status codes and IDs are never added up, and newest-first feeds are flipped so lines read left to right. It's rule-based and runs in the browser, so the same rows always give the same board, and one Undo takes it back.
 
@@ -73,14 +82,23 @@ Everything Kiro uses lives in [`.kiro/`](.kiro/). Here's what's in there and wha
 |------|----------------|--------|
 | [`auth-account-endpoints`](.kiro/specs/auth-account-endpoints/) | Sign-up, login, sessions, lockout, account management, and the static-file allowlist. 18 requirements and 22 numbered correctness properties | Built. 13 of the properties have their own `tests/auth-p*.test.mjs` suite |
 | [`dashboard-generator`](.kiro/specs/dashboard-generator/) | A generator that looks at a source's rows, works out each field's type, and proposes a full dashboard layout | Built. 11 properties in `tests/generator-p*.test.mjs`, plus unit tests on the real APP1/APP2 data |
+| [`app2-monthly-import`](.kiro/specs/app2-monthly-import/) | APP2's monthly pipeline: check the workbook, re-upload every sheet, and rewrite the month-specific widgets from the numbers with fixed rules | Built. 5 properties in `tests/app2-import-p*.test.mjs`, plus a live run against HiBeam that ended in a PDF export |
 
 The auth spec is where property-based testing paid off. Each property in `design.md` maps to a `fast-check` test, and one of them found an input that crashed the error handler, which the hand-written unit tests had missed.
 
 ### Steering
-- [`product.md`](.kiro/steering/product.md): who it's for and what to optimize for
-- [`tech.md`](.kiro/steering/tech.md): the stack, so Kiro doesn't reach for a framework we aren't using
-- [`structure.md`](.kiro/steering/structure.md): where things live
-- [`format.md`](.kiro/steering/format.md): our naming rules (`tmpVar`, `pParam`, `libModule`, PascalCase functions, Allman braces)
+Each doc loads only when it's relevant:
+
+| Doc | Inclusion | What it's for |
+|---|---|---|
+| [`product.md`](.kiro/steering/product.md) | always | Who it's for, the skeleton rule (apps never change `Web/`), what to optimize for |
+| [`tech.md`](.kiro/steering/tech.md) | always | The stack and the commands, so Kiro doesn't reach for a framework we aren't using |
+| [`structure.md`](.kiro/steering/structure.md) | always | Where things live |
+| [`backend.md`](.kiro/steering/backend.md) | `fileMatch` `Web/backend/**`, `mcp/**` | Naming rules (`tmpVar`, `pParam`, PascalCase, Allman), the envelope, owner scoping. Pulls in `schema.sql` with `#[[file:]]` |
+| [`frontend.md`](.kiro/steering/frontend.md) | `fileMatch` `Web/frontend/**` | No build step, `h()` instead of `innerHTML`, tokens for colours, three themes. Pulls in the widget registry |
+| [`testing.md`](.kiro/steering/testing.md) | `fileMatch` `tests/**`, specs | How property tests are named and tied to a spec |
+| [`security.md`](.kiro/steering/security.md) | manual, `#security` | The short list of rules we've been bitten by, plus the full security-review skill |
+| [`mcp.md`](.kiro/steering/mcp.md) | manual, `#mcp` | The build → screenshot → fix loop for making boards, and both app templates |
 
 ### Hooks
 | Hook | Trigger | What it does |
@@ -108,6 +126,7 @@ There's also a [`security-review`](.kiro/skills/security-review/SKILL.md) skill 
 |-------|------------------|
 | `list_sources` `create_source` `upload_source_file` `test_source` `preview_source` `delete_source` | Connect data and check what shape it comes back in |
 | `list_dashboards` `get_dashboard` `get_dashboard_definition` `create_dashboard` `update_dashboard` `delete_dashboard` | Build and edit whole boards |
+| `generate_dashboard` | Draft a board from sources with the rule-based generator, and get a reason for every field (rate, level, flow, category, id). It's a preview unless you pass `create` |
 | `get_dashboard_data` `get_public_dashboard_data` `set_dashboard_visibility` `hibeam_status` | Read what a board is showing right now, and share it |
 
 This is how both applications were made. For each one, Kiro created and tested the sources. It previewed rows to get the real field names, then built the board from the app's template. After looking at a screenshot it called `update_dashboard` to fix what read badly. Each board took one prompt, and its layout lives in the repo as JSON, where it gets reviewed like code.
@@ -216,7 +235,7 @@ Open <http://localhost:8000>.
 npm test
 ```
 
-Tests don't need a database — they use in-memory fakes. There are 115 of them, 34 of which are `fast-check` property tests. 18 cover the APP1 agent, including one that runs its simulated log through HiBeam's real nginx parser.
+Tests don't need a database — they use in-memory fakes. There are 186 of them, 55 of which are `fast-check` property tests. 18 cover the APP1 agent, including one that runs its simulated log through HiBeam's real nginx parser, and the APP2 import tests run against the real sample workbook.
 
 ---
 
@@ -247,10 +266,11 @@ Web/
 mcp/
   hibeam-server.mjs        MCP server that lets Kiro read and build sources and dashboards
 tests/                     node:test suites
-docs/screenshots/          Images used in this README
 .kiro/                     Specs, steering, hooks, agents, a skill, and the MCP config
 APP1/                      Homelab Ops: metrics agent, deploy configs, dashboard template
-APP2/                      Monthly Money Report: sample workbook, dashboard template
+APP2/                      Monthly Money Report: sample workbook, dashboard template, import/ (monthly pipeline)
+docs/KIRO.md               How Kiro was used: the bug → guardrail ledger, IDE vs CLI
+docs/screenshots/          Images used in this README
 ```
 
 ---

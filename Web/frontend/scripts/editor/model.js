@@ -12,6 +12,7 @@
 
 import { WIDGET_TYPES, COLOR_TOKENS, REFRESH_OPTIONS } from './widget-types.js';
 import { scaleLayout } from './data.js';
+import { normalizeKpiConfig } from './kpi.js';
 
 export const COLUMN_OPTIONS = [
   { value: 24, label: 'Coarse · 24' },
@@ -22,6 +23,10 @@ export const COLUMN_OPTIONS = [
 const MAX_NAME = 80;
 const MAX_TEXT = 4000;
 const MAX_WIDGETS = 200;
+export const BOARD_THEMES = [
+  { value: '', label: 'Viewer\'s choice' },
+  { value: 'kiroween', label: 'Kiroween' },
+];
 
 export function newDashboard() {
   return { name: 'Untitled dashboard', grid: { columns: 48, showGrid: true }, widgets: [] };
@@ -38,6 +43,17 @@ export function setGrid(dash, patch) {
     ? scaleLayout(dash.widgets, dash.grid.columns, patch.columns)
     : dash.widgets;
   return { ...dash, grid: next, widgets };
+}
+
+// '' clears it: the board follows each viewer's light/dark setting
+export function setTheme(dash, theme) {
+  const valid = BOARD_THEMES.some((t) => t.value === theme && t.value);
+  if (!valid) {
+    if (!('theme' in dash)) return dash;
+    const { theme: _drop, ...rest } = dash;
+    return rest;
+  }
+  return dash.theme === theme ? dash : { ...dash, theme };
 }
 
 export function addWidget(dash, widget) {
@@ -104,6 +120,7 @@ function normalizeWidget(raw, columns) {
   if ('text' in config) config.text = str(config.text, MAX_NAME);
   // only the intervals the editor offers; anything else (0.01, '5', NaN) means off
   if ('refresh' in config && !REFRESH_OPTIONS.some((o) => o.value === config.refresh)) config.refresh = 0;
+  if (raw.type === 'kpi') Object.assign(config, normalizeKpiConfig(config));
   if ('color' in config && !COLOR_TOKENS.includes(config.color) && !/^#[0-9a-f]{6}$/i.test(config.color)) config.color = 'c1';
   const w = int(raw.w, 1, columns, def.size.w);
   return {
@@ -120,7 +137,7 @@ function normalizeWidget(raw, columns) {
 export function normalizeDashboard(raw) {
   const base = newDashboard();
   const columns = [24, 48, 72, 96].includes(raw?.grid?.columns) ? raw.grid.columns : base.grid.columns;
-  return {
+  const dash = {
     name: str(raw?.name, MAX_NAME) || base.name,
     grid: { columns, showGrid: raw?.grid?.showGrid !== false },
     widgets: (Array.isArray(raw?.widgets) ? raw.widgets : [])
@@ -128,4 +145,5 @@ export function normalizeDashboard(raw) {
       .map((w) => normalizeWidget(w, columns))
       .filter(Boolean),
   };
+  return setTheme(dash, raw?.theme);
 }
