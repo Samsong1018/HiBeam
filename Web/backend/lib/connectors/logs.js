@@ -1,5 +1,7 @@
 'use strict';
 
+const { FlattenRow } = require('./flatten');
+
 // Parses a text log into rows. Unparseable lines are skipped; the newest pMax lines are kept.
 
 const LOG_FORMATS = ['json', 'nginx', 'apache', 'syslog'];
@@ -50,7 +52,8 @@ function ParseJsonLine(pLine)
   try
   {
     const tmpObj = JSON.parse(pLine);
-    return tmpObj && typeof tmpObj === 'object' && !Array.isArray(tmpObj) ? tmpObj : null;
+    // nested fields (e.g. { req: { method } }) become dotted keys, same as REST rows
+    return tmpObj && typeof tmpObj === 'object' && !Array.isArray(tmpObj) ? FlattenRow(tmpObj) : null;
   }
   catch (tmpErr)
   {

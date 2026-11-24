@@ -109,6 +109,9 @@ function createApiClient({ fetchImpl = globalThis.fetch, baseUrl = `` } = {})
         listSources: () => request(`GET`, `/api/sources`),
         createSource: (pBody) => request(`POST`, `/api/sources`, pBody),
         deleteSource: (pId) => request(`DELETE`, `/api/sources/${enc(pId)}`),
+        // Raw .xlsx/.csv bytes for an excel source (replaces the stored workbook).
+        replaceSourceFile: (pId, pFile) => request(`PUT`, `/api/sources/${enc(pId)}/file`, undefined,
+            { rawBody: pFile, contentType: pFile && pFile.type && pFile.type !== `application/json` ? pFile.type : `application/octet-stream` }),
         testSource: (pId) => request(`POST`, `/api/sources/${enc(pId)}/test`),
         previewSource: (pId) => request(`GET`, `/api/sources/${enc(pId)}/preview`),
 

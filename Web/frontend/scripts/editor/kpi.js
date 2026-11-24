@@ -6,6 +6,7 @@
 // config.warnAt / config.alertAt   number or null (null = not set)
 // config.higherIs                  'bad' (CPU, spending) | 'good' (net worth)
 // config.showDelta                 show the change since the previous row
+// config.sparkline                 draw a small trend line of the rows under the number
 // ============================================================
 
 import { aggregate, toNumber } from './data.js';
@@ -23,6 +24,7 @@ export function normalizeKpiConfig(config) {
     alertAt: finite(config?.alertAt),
     higherIs: config?.higherIs === 'good' ? 'good' : 'bad',
     showDelta: config?.showDelta === true,
+    sparkline: config?.sparkline === true,
   };
 }
 
@@ -62,4 +64,43 @@ export function deltaTone(delta, config) {
   const { higherIs } = normalizeKpiConfig(config);
   const up = delta > 0;
   return (up === (higherIs === 'good')) ? 'good' : 'bad';
+}
+
+// ------------------------------------------------------------
+// Sparkline: the KPI's rows as a tiny trend line
+// ------------------------------------------------------------
+export const SPARK_MAX_POINTS = 60;
+
+const round2 = (n) => Math.round(n * 100) / 100;
+
+/**
+ * SVG polyline `points` ("x,y x,y …") for a sparkline of `values` in a
+ * width × height box, oldest on the left. Non-numeric values are dropped,
+ * long series are thinned to at most maxPoints (always keeping the first and
+ * the newest), a flat series draws a flat line at mid-height. `pad` keeps the
+ * stroke inside the box at the top and bottom. null when fewer than 2 numbers.
+ * @param {unknown[]} values
+ * @param {number} width
+ * @param {number} height
+ * @param {{ maxPoints?: number, pad?: number }} [opts]
+ * @returns {string|null}
+ */
+export function sparklinePoints(values, width, height, { maxPoints = SPARK_MAX_POINTS, pad = 1.5 } = {}) {
+  if (!Array.isArray(values) || !(width > 0) || !(height > 0)) return null;
+  const nums = values.map(toNumber).filter((n) => n !== null);
+  if (nums.length < 2) return null;
+  const limit = Math.max(2, Math.floor(maxPoints) || SPARK_MAX_POINTS);
+  const picked = nums.length <= limit
+    ? nums
+    : Array.from({ length: limit }, (_, i) => nums[Math.round((i * (nums.length - 1)) / (limit - 1))]);
+  const lo = Math.min(...picked);
+  const hi = Math.max(...picked);
+  const inset = Math.min(Math.max(pad, 0), height / 2);
+  const span = height - inset * 2;
+  const last = picked.length - 1;
+  return picked.map((n, i) => {
+    const x = (i / last) * width;
+    const y = hi === lo ? height / 2 : inset + (1 - (n - lo) / (hi - lo)) * span;
+    return `${round2(x)},${round2(y)}`;
+  }).join(' ');
 }

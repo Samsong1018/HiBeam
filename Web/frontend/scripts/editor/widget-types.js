@@ -5,7 +5,7 @@
 //
 // A binding is { sourceId, xField, yField, agg }. Line/bar can take
 // several (one series each, possibly from different sources); pie,
-// KPI and table take one; text and label take none.
+// KPI, gauge, status and table take one; text and label take none.
 // ============================================================
 
 export const COLOR_TOKENS = ['c1', 'c2', 'c3', 'c4', 'c5', 'c6'];
@@ -26,7 +26,7 @@ export const WIDGET_TYPES = {
     min: { w: 6, h: 5 },
     maxBindings: 6,
     bindingFields: ['xField', 'yField', 'agg'],
-    defaults: { title: 'Line chart', bindings: [], color: 'c1', smooth: true, fill: false, legend: true, reverseData: false, refresh: 0, quietAfter: 0, quietField: '' },
+    defaults: { title: 'Line chart', bindings: [], color: 'c1', smooth: true, fill: false, legend: true, reverseData: false, zeroBased: true, prefix: '', suffix: '', compact: false, bucket: 'none', thresholds: [], refresh: 0, quietAfter: 0, quietField: '' },
   },
   bar: {
     label: 'Bar chart',
@@ -36,7 +36,7 @@ export const WIDGET_TYPES = {
     min: { w: 6, h: 5 },
     maxBindings: 6,
     bindingFields: ['xField', 'yField', 'agg'],
-    defaults: { title: 'Bar chart', bindings: [], color: 'c1', horizontal: false, stacked: false, legend: true, refresh: 0, quietAfter: 0, quietField: '' },
+    defaults: { title: 'Bar chart', bindings: [], color: 'c1', horizontal: false, stacked: false, legend: true, zeroBased: true, prefix: '', suffix: '', compact: false, sort: 'none', topN: 0, bucket: 'none', refresh: 0, quietAfter: 0, quietField: '' },
   },
   pie: {
     label: 'Pie chart',
@@ -46,7 +46,7 @@ export const WIDGET_TYPES = {
     min: { w: 5, h: 5 },
     maxBindings: 1,
     bindingFields: ['xField', 'yField', 'agg'],
-    defaults: { title: 'Pie chart', bindings: [], color: 'c1', donut: true, legend: true, refresh: 0, quietAfter: 0, quietField: '' },
+    defaults: { title: 'Pie chart', bindings: [], color: 'c1', donut: true, legend: true, topN: 0, refresh: 0, quietAfter: 0, quietField: '' },
   },
   kpi: {
     label: 'Number',
@@ -56,7 +56,27 @@ export const WIDGET_TYPES = {
     min: { w: 5, h: 4 },
     maxBindings: 1,
     bindingFields: ['yField', 'agg'],
-    defaults: { title: 'Total', bindings: [], color: 'c1', prefix: '', suffix: '', decimals: 0, reverseData: false, refresh: 0, warnAt: null, alertAt: null, higherIs: 'bad', showDelta: false, quietAfter: 0, quietField: '' },
+    defaults: { title: 'Total', bindings: [], color: 'c1', prefix: '', suffix: '', decimals: 0, reverseData: false, refresh: 0, warnAt: null, alertAt: null, higherIs: 'bad', showDelta: false, sparkline: false, quietAfter: 0, quietField: '' },
+  },
+  gauge: {
+    label: 'Gauge',
+    hint: 'Progress toward a limit',
+    icon: 'M3.5 17a8.5 8.5 0 0 1 17 0 M12 17l4-5 M7 17h1.5 M15.5 17H17',
+    size: { w: 10, h: 8 },
+    min: { w: 5, h: 5 },
+    maxBindings: 1,
+    bindingFields: ['yField', 'agg'],
+    defaults: { title: 'Gauge', bindings: [], color: 'c1', min: 0, max: 100, prefix: '', suffix: '', decimals: 0, reverseData: false, refresh: 0, warnAt: null, alertAt: null, higherIs: 'bad', quietAfter: 0, quietField: '' },
+  },
+  status: {
+    label: 'Uptime strip',
+    hint: 'Up / down over time per service',
+    icon: 'M3 7h3 M3 12h3 M3 17h3 M9 6v2 M12 6v2 M15 6v2 M18 6v2 M21 6v2 M9 11v2 M12 11v2 M15 11v2 M18 11v2 M21 11v2 M9 16v2 M12 16v2 M15 16v2 M18 16v2 M21 16v2',
+    size: { w: 18, h: 8 },
+    min: { w: 6, h: 4 },
+    maxBindings: 1,
+    bindingFields: ['xField', 'yField'],
+    defaults: { title: 'Uptime', bindings: [], slots: 30, timeField: '', reverseData: false, refresh: 0, quietAfter: 0, quietField: '' },
   },
   table: {
     label: 'Table',
@@ -90,7 +110,7 @@ export const WIDGET_TYPES = {
   },
 };
 
-export const PALETTE_ORDER = ['line', 'bar', 'pie', 'kpi', 'table', 'text', 'label'];
+export const PALETTE_ORDER = ['line', 'bar', 'pie', 'kpi', 'gauge', 'status', 'table', 'text', 'label'];
 
 export function isDataWidget(type) {
   return (WIDGET_TYPES[type]?.maxBindings || 0) > 0;

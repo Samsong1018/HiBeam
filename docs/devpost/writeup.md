@@ -2,7 +2,7 @@
 The age old IT problem. HR asks for a dashboard pulling from 30 different sources, none of which are remotely in the same place. Or it's your own finances and you wish your Excel sheet could just update itself. Whatever it is, everyone's thought "I wish I could have a dashboard for this right now," and that's the problem HiBeam looks to solve.
 
 ## What it does
-HiBeam lets you build a dashboard by dragging widgets onto a grid and hooking them up to your data. It can read from REST APIs, JSON, MySQL, scraped web pages, server logs, and Excel or CSV uploads. Everything gets fetched server-side, so your credentials never reach the browser.
+HiBeam lets you build a dashboard by dragging widgets onto a grid and hooking them up to your data. It can read from REST APIs, JSON, MySQL, Prometheus, scraped web pages, server logs, Google Sheets CSV links, and Excel or CSV uploads. Everything gets fetched server-side, so your credentials never reach the browser. Besides the usual line, bar and pie charts there's gauges, sparklines on KPIs, and an uptime strip for status pages.
 
 You don't have to build it yourself either. Generate reads your data and lays out a first draft for you, and the built in MCP server lets you make a whole dashboard from a single prompt to Kiro or other models. The agent connects the sources, builds the board, then looks at it and fixes what reads badly.
 

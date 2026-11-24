@@ -7,6 +7,8 @@
 
 import { COLOR_TOKENS } from './widget-types.js';
 import { axisTones, TONE_TOKENS } from './semantic.js';
+import { formatAxisValue, normalizeThresholds, thresholdBounds } from './data.js';
+import { comboDatasetOptions, BAR_ORDER } from './combo.js';
 
 const root = document.documentElement;
 const token = (name) => getComputedStyle(root).getPropertyValue(name).trim();
@@ -42,23 +44,129 @@ function baseOptions(config, showLegend) {
       legend: { display: showLegend, position: 'bottom', labels: { color: muted, font, boxWidth: 10, boxHeight: 10 } },
       tooltip: { titleFont: font, bodyFont: font },
     },
-    scales: { x: { ...axis }, y: { ...axis, beginAtZero: true } },
+    scales: { x: { ...axis }, y: { ...axis } },
+  };
+}
+
+// Line/bar value axis: zero baseline (on unless the widget turns it off) and,
+// when the widget has units, formatted ticks and tooltips. Without units the
+// Chart.js defaults stay, so older boards look exactly as they did.
+function applyValueAxis(options, config, valueAxis) {
+  const scale = options.scales[valueAxis];
+  scale.beginAtZero = config.zeroBased !== false;
+  const units = { prefix: config.prefix || '', suffix: config.suffix || '', compact: config.compact === true };
+  if (!units.prefix && !units.suffix && !units.compact) return;
+  scale.ticks = { ...scale.ticks, callback: (value) => formatAxisValue(value, units) };
+  options.plugins.tooltip.callbacks = {
+    label: (ctx) => {
+      const value = formatAxisValue(ctx.parsed[valueAxis], units);
+      return ctx.dataset.label ? `${ctx.dataset.label}: ${value}` : value;
+    },
+  };
+}
+
+// Line chart reference lines: a dashed rule per threshold with its label at
+// the right end, coloured by tone. Colours are read from the tokens at draw
+// time; a theme change re-renders the widget, so they follow it.
+const LABEL_GAP = 3;
+
+function thresholdPlugin(thresholds, units) {
+  return {
+    id: 'hibeamThresholds',
+    afterDatasetsDraw(chart) {
+      const { ctx, chartArea: area, scales } = chart;
+      const y = scales?.y;
+      if (!y || !area) return;
+      const family = token('--font-mono') || 'monospace';
+      const surface = token('--color-surface');
+      ctx.save();
+      ctx.font = `600 10px ${family}`;
+      ctx.textAlign = 'right';
+      thresholds.forEach((t) => {
+        const py = Math.round(y.getPixelForValue(t.value)) + 0.5;
+        if (!Number.isFinite(py) || py < area.top - 1 || py > area.bottom + 1) return;
+        const color = token(TONE_TOKENS[t.tone] || TONE_TOKENS.warn);
+        ctx.setLineDash([5, 4]);
+        ctx.lineWidth = 1.25;
+        ctx.strokeStyle = color;
+        ctx.beginPath();
+        ctx.moveTo(area.left, py);
+        ctx.lineTo(area.right, py);
+        ctx.stroke();
+
+        const text = t.label || formatAxisValue(t.value, units);
+        const width = ctx.measureText(text).width;
+        // above the line, or below it when it hugs the top of the plot
+        const above = py - area.top > 14;
+        const textY = above ? py - LABEL_GAP : py + LABEL_GAP;
+        ctx.textBaseline = above ? 'bottom' : 'top';
+        ctx.setLineDash([]);
+        ctx.fillStyle = withAlpha(surface, 0.82);
+        ctx.fillRect(area.right - width - 6, above ? textY - 11 : textY - 1, width + 6, 12);
+        ctx.fillStyle = color;
+        ctx.fillText(text, area.right - 3, textY);
+      });
+      ctx.restore();
+    },
   };
 }
 
 // Labels like dead/alive or HTTP 200/503 get ok/warn/danger colours instead of
 // palette order, so "dead" is never the friendly colour. null = not semantic.
-function toneColors(widget, labels) {
+function toneColors(widget, labels, otherIndex = -1) {
+  // the folded "Other" pie slice has no meaning of its own: tone the rest, grey it
+  if (otherIndex >= 0) {
+    const rest = toneColors(widget, labels.filter((_, i) => i !== otherIndex));
+    return rest && [...rest.slice(0, otherIndex), otherColor(), ...rest.slice(otherIndex)];
+  }
   const tones = axisTones(labels, widget.config.bindings[0]?.xField || '');
   return tones && tones.map((t) => token(TONE_TOKENS[t]));
 }
 
-// data: { labels, series: [{ label, values }] }
+const otherColor = () => withAlpha(token('--color-text-muted'), 0.45);
+
+// A point with no neighbours (gaps on both sides) draws no line segment, so
+// give it a dot or it vanishes.
+function isolatedRadius(ctx) {
+  const values = ctx.dataset.data;
+  const i = ctx.dataIndex;
+  const has = (j) => values[j] !== null && values[j] !== undefined;
+  return has(i) && !has(i - 1) && !has(i + 1) ? 2.5 : 0;
+}
+
+// A bar series, or (combo chart) a series drawn as a line over the bars.
+function barDataset(widget, s, i, data, fillColor, color) {
+  const combo = comboDatasetOptions(widget, i, data.series.length);
+  if (combo.type === 'line') {
+    return {
+      label: s.label,
+      data: s.values,
+      ...combo,
+      borderColor: color,
+      backgroundColor: color,
+      pointBackgroundColor: color,
+      // a bucketed axis has a slot for every minute/hour/day: a null there is a silence
+      spanGaps: !data.bucketed,
+    };
+  }
+  return {
+    label: s.label,
+    data: s.values,
+    order: BAR_ORDER,
+    backgroundColor: fillColor,
+    borderRadius: 3,
+    maxBarThickness: 48,
+  };
+}
+
+// data: { labels, series: [{ label, values }], otherIndex?, bucketed? }
+// (otherIndex: pie's folded slice; bucketed: a time-bucket axis whose nulls are real gaps)
 export function createChart(canvas, widget, data) {
   const { type, config } = widget;
   const colors = seriesColors(config.color, Math.max(data.series.length, data.labels.length));
   const multi = data.series.length > 1;
-  const tones = type !== 'line' && !multi ? toneColors(widget, data.labels) : null;
+  const otherIndex = type === 'pie' && Number.isInteger(data.otherIndex) ? data.otherIndex : -1;
+  const tones = type !== 'line' && !multi ? toneColors(widget, data.labels, otherIndex) : null;
 
   if (type === 'pie') {
     const options = baseOptions(config, config.legend);
@@ -70,7 +178,7 @@ export function createChart(canvas, widget, data) {
         labels: data.labels,
         datasets: [{
           data: data.series[0]?.values || [],
-          backgroundColor: tones || data.labels.map((_, i) => colors[i % colors.length]),
+          backgroundColor: tones || data.labels.map((_, i) => (i === otherIndex ? otherColor() : colors[i % colors.length])),
           borderColor: token('--color-surface'),
           borderWidth: 2,
         }],
@@ -89,14 +197,16 @@ export function createChart(canvas, widget, data) {
     options.indexAxis = config.horizontal ? 'y' : 'x';
     options.scales.x.stacked = Boolean(config.stacked);
     options.scales.y.stacked = Boolean(config.stacked);
-    if (config.horizontal) {
-      options.scales.x.beginAtZero = true;
-      delete options.scales.y.beginAtZero;
-    }
   }
+  applyValueAxis(options, config, type === 'bar' && config.horizontal ? 'x' : 'y');
+  const thresholds = type === 'line' ? normalizeThresholds(config.thresholds) : [];
+  const bounds = thresholdBounds(thresholds);
+  if (bounds) Object.assign(options.scales.y, bounds);
+  const units = { prefix: config.prefix || '', suffix: config.suffix || '', compact: config.compact === true };
 
   return new Chart(canvas, {
     type,
+    plugins: thresholds.length ? [thresholdPlugin(thresholds, units)] : [],
     data: {
       labels: data.labels,
       datasets: data.series.map((s, i) => (type === 'line'
@@ -108,18 +218,59 @@ export function createChart(canvas, widget, data) {
           fill: Boolean(config.fill),
           tension: config.smooth ? 0.35 : 0,
           borderWidth: 2,
-          pointRadius: 0,
+          pointRadius: data.bucketed ? isolatedRadius : 0,
           pointHoverRadius: 4,
-          spanGaps: true,
+          // a bucketed axis has a slot for every minute/hour/day: a null there is a silence, so show it
+          spanGaps: !data.bucketed,
         }
-        : {
-          label: s.label,
-          data: s.values,
-          backgroundColor: tones || colors[i],
-          borderRadius: 3,
-          maxBarThickness: 48,
-        })),
+        : barDataset(widget, s, i, data, tones || colors[i], colors[i]))),
     },
     options,
+  });
+}
+
+// ------------------------------------------------------------
+// Gauge: a half-donut, filled to `fraction` (0..1, or null for an empty
+// track) in the tone's colour. `onLayout({ x, y, inner, outer })` reports
+// where the arc sits after every draw, so the DOM value text can sit in
+// its bowl. Colours come from the tokens; a theme change re-renders.
+// ------------------------------------------------------------
+const GAUGE_LABEL_ROOM = 18; // px under the arc for the min / max labels
+
+export function createGaugeChart(canvas, { fraction, tone, color, onLayout }) {
+  const fill = tone && TONE_TOKENS[tone]
+    ? token(TONE_TOKENS[tone])
+    : (/^#[0-9a-f]{6}$/i.test(color) ? color : token(`--chart-${COLOR_TOKENS.includes(color) ? color : 'c1'}`));
+  const track = withAlpha(token('--color-text-muted'), 0.2);
+  const f = Number.isFinite(fraction) ? Math.min(Math.max(fraction, 0), 1) : 0;
+  return new Chart(canvas, {
+    type: 'doughnut',
+    data: {
+      datasets: [{
+        data: [f, 1 - f],
+        backgroundColor: [fill, track],
+        borderWidth: 0,
+        borderRadius: 0,
+        hoverOffset: 0,
+      }],
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      circumference: 180,
+      rotation: -90,
+      cutout: '75%',
+      animation: reducedMotion.matches ? false : { duration: 450 },
+      events: [],
+      layout: { padding: { top: 4, left: 4, right: 4, bottom: GAUGE_LABEL_ROOM } },
+      plugins: { legend: { display: false }, tooltip: { enabled: false } },
+    },
+    plugins: [{
+      id: 'hibeamGaugeLayout',
+      afterDraw(chart) {
+        const arc = chart.getDatasetMeta(0)?.data?.[0];
+        if (arc && onLayout) onLayout({ x: arc.x, y: arc.y, inner: arc.innerRadius, outer: arc.outerRadius });
+      },
+    }],
   });
 }

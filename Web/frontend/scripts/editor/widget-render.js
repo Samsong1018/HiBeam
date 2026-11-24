@@ -7,11 +7,13 @@
 
 import { h, clear } from './dom.js';
 import { WIDGET_TYPES, REFRESH_OPTIONS, isDataWidget } from './widget-types.js';
-import { AGGREGATIONS, aggregate, groupSeries, mergeSeries, fieldsOf, formatNumber } from './data.js';
+import { AGGREGATIONS, aggregate, groupSeries, mergeSeries, bucketSeries, mergeTimeSeries, fieldsOf, formatNumber, sortBars, foldPieSlices } from './data.js';
 import { createChart } from './charts.js';
-import { kpiStatus, kpiDelta, deltaTone } from './kpi.js';
+import { kpiStatus, kpiDelta, deltaTone, sparklinePoints } from './kpi.js';
 import { toneOf, isToneColumn } from './semantic.js';
 import { staleState, quietText } from './quiet.js';
+import { fitRows } from './fit-rows.js';
+import { renderGauge, renderStatus, statusFlag } from './render-gauge-status.js';
 
 const noop = () => {};
 
@@ -33,7 +35,7 @@ function bindingReady(type, b) {
   if (!b?.sourceId) return false;
   const needs = WIDGET_TYPES[type].bindingFields;
   if (needs.includes('xField') && !b.xField) return false;
-  if (needs.includes('yField') && !b.yField && b.agg !== 'count') return false;
+  if (needs.includes('yField') && !b.yField && (b.agg !== 'count' || !needs.includes('agg'))) return false;
   return true;
 }
 
@@ -54,7 +56,45 @@ function renderLabel(body, { config }) {
 // ------------------------------------------------------------
 // Data widgets
 // ------------------------------------------------------------
-const STATUS_TEXT = { warn: 'Warning', alert: 'Alert' };
+const SPARK_W = 100;
+const SPARK_H = 24;
+
+// The KPI's rows as a tiny trend line. Plain SVG, not a Chart: cheap, and
+// html2canvas exports it as-is. The viewBox stretches to the card's width;
+// non-scaling-stroke keeps the line a steady 1.5px.
+function sparkline(values, color) {
+  const points = sparklinePoints(values, SPARK_W, SPARK_H);
+  if (!points) return null;
+  const ns = 'http://www.w3.org/2000/svg';
+  const svg = document.createElementNS(ns, 'svg');
+  svg.setAttribute('class', 'kpi-spark');
+  svg.setAttribute('viewBox', `0 0 ${SPARK_W} ${SPARK_H}`);
+  svg.setAttribute('preserveAspectRatio', 'none');
+  svg.setAttribute('aria-hidden', 'true');
+  svg.setAttribute('focusable', 'false');
+  // the widget's colour as a variable; CSS swaps in the warn/alert tone when a threshold trips
+  svg.style.setProperty('--spark', /^#[0-9a-f]{6}$/i.test(color) ? color : `var(--chart-${color || 'c1'})`);
+  const area = document.createElementNS(ns, 'polygon');
+  area.setAttribute('class', 'kpi-spark-area');
+  area.setAttribute('points', `0,${SPARK_H} ${points} ${SPARK_W},${SPARK_H}`);
+  const line = document.createElementNS(ns, 'polyline');
+  line.setAttribute('class', 'kpi-spark-line');
+  line.setAttribute('points', points);
+  line.setAttribute('vector-effect', 'non-scaling-stroke');
+  svg.append(area, line);
+  return svg;
+}
+
+// html2canvas serialises an SVG on its own, where page CSS and var() don't
+// reach. Bake the resolved colour into attributes (re-run on every render,
+// and a theme change re-renders, so it stays in step with the theme).
+function bakeSparkColor(svg) {
+  if (!svg?.isConnected) return;
+  const color = getComputedStyle(svg).color;
+  if (!color) return;
+  svg.querySelector('.kpi-spark-line')?.setAttribute('stroke', color);
+  svg.querySelector('.kpi-spark-area')?.setAttribute('fill', color);
+}
 
 function renderKpi(body, widget, rows, source) {
   const { config } = widget;
@@ -65,66 +105,23 @@ function renderKpi(body, widget, rows, source) {
 
   const status = kpiStatus(value, config);
   if (status) body.dataset.status = status;
-  const limit = status === 'alert' ? config.alertAt : config.warnAt;
-  const flag = STATUS_TEXT[status] && h('span', {
-    class: 'kpi-flag',
-    title: `${STATUS_TEXT[status]}: ${config.higherIs === 'good' ? 'at or below' : 'at or above'} ${formatNumber(limit, config)}`,
-  }, `${STATUS_TEXT[status]} · ${config.higherIs === 'good' ? '≤' : '≥'} ${formatNumber(limit, config)}`);
+  const flag = statusFlag(status, config);
 
   const delta = config.showDelta ? kpiDelta(values, b.agg) : null;
   const change = delta !== null && h('span', { class: 'kpi-delta', dataset: { tone: deltaTone(delta, config) } },
     `${delta > 0 ? '▲' : delta < 0 ? '▼' : '■'} ${formatNumber(Math.abs(delta), config)}`,
     h('span', { class: 'visually-hidden' }, ' since the previous row'));
 
+  const spark = config.sparkline ? sparkline(values, config.color) : null;
+  if (spark) body.classList.add('has-spark');
+
   body.append(
     ...(flag ? [flag] : []),
     h('p', { class: 'kpi-value' }, formatNumber(value, config), change),
+    ...(spark ? [spark] : []),
     h('p', { class: 'kpi-caption' }, caption),
   );
-}
-
-// Show only rows that fit whole, with a "+N more" footer that switches the
-// table to scrolling. Exports and screenshots then never cut a row in half.
-function fitRows(wrap, more) {
-  let expanded = false;
-  const rowsOf = () => [...wrap.querySelectorAll('tbody tr')];
-  // how many rows fit whole in the wrap at its current height
-  const countFitting = (rows) => {
-    const room = wrap.clientHeight - (wrap.querySelector('thead')?.offsetHeight || 0);
-    let used = 0;
-    let n = 0;
-    for (const r of rows) {
-      used += r.offsetHeight;
-      if (used > room) break;
-      n += 1;
-    }
-    return n;
-  };
-  const fit = () => {
-    if (expanded) return;
-    const rows = rowsOf();
-    rows.forEach((r) => { r.hidden = false; });
-    more.hidden = true;
-    let shown = countFitting(rows);
-    if (shown < rows.length) {
-      more.textContent = '+0 more rows';
-      more.hidden = false; // the footer takes space from the wrap, so measure again
-      shown = Math.max(countFitting(rows), 1);
-    }
-    rows.forEach((r, i) => { r.hidden = i >= shown; });
-    const hidden = rows.length - shown;
-    more.hidden = hidden <= 0;
-    more.textContent = `+${hidden.toLocaleString()} more row${hidden === 1 ? '' : 's'}`;
-  };
-  more.addEventListener('click', () => {
-    expanded = true;
-    rowsOf().forEach((r) => { r.hidden = false; });
-    wrap.classList.add('is-expanded');
-    more.hidden = true;
-  });
-  const observer = new ResizeObserver(() => requestAnimationFrame(fit));
-  observer.observe(wrap);
-  return () => observer.disconnect();
+  bakeSparkColor(spark);
 }
 
 function cell(row, column) {
@@ -147,34 +144,51 @@ function renderTable(body, widget, rows) {
   return fitRows(wrap, more);
 }
 
+// "Group by time" on line/bar: one shared bucket axis for every series.
+// null when it's off or no row's x parses as a date (then x stays categories).
+function bucketedData(widget, rowSets, labels) {
+  const { bucket } = widget.config;
+  if (!['line', 'bar'].includes(widget.type) || !bucket || bucket === 'none') return null;
+  const series = widget.config.bindings.map((b, i) => bucketSeries(rowSets[i], b, bucket));
+  if (series.every((s) => !s.keys.length)) return null;
+  const merged = mergeTimeSeries(series, bucket);
+  return { labels: merged.labels, series: labels.map((label, i) => ({ label, values: merged.datasets[i] })), bucketed: true };
+}
+
 function chartData(widget, rowSets, sources) {
   const distinctSources = new Set(widget.config.bindings.map((b) => b.sourceId)).size;
-  const series = widget.config.bindings.map((b, i) => {
-    const grouped = groupSeries(rowSets[i], b);
+  const labels = widget.config.bindings.map((b, i) => {
     const name = b.agg === 'count' ? 'count' : b.yField;
-    const label = distinctSources > 1 ? `${name} · ${sources[i]?.name || 'source'}` : name;
-    return { ...grouped, label };
+    return distinctSources > 1 ? `${name} · ${sources[i]?.name || 'source'}` : name;
   });
+  const timed = bucketedData(widget, rowSets, labels);
+  if (timed) return timed; // a time axis stays in time order: sort/top N don't apply
+  const series = widget.config.bindings.map((b, i) => ({ ...groupSeries(rowSets[i], b), label: labels[i] }));
   const merged = mergeSeries(series);
-  return { labels: merged.labels, series: series.map((s, i) => ({ label: s.label, values: merged.datasets[i] })) };
+  const data = { labels: merged.labels, series: series.map((s, i) => ({ label: s.label, values: merged.datasets[i] })) };
+  if (widget.type === 'bar') return sortBars(data, widget.config);
+  if (widget.type === 'pie') return foldPieSlices(data, widget.config.topN);
+  return data;
 }
 
 // ------------------------------------------------------------
 // Problem states: no rows, a field that's gone, a failed load
 // ------------------------------------------------------------
-function missingField(bindings, rowSets) {
+function missingField(type, bindings, rowSets) {
   for (let i = 0; i < bindings.length; i += 1) {
     const rows = rowSets[i];
     if (!rows.length) continue;
-    const gone = neededFields(bindings[i]).find((f) => !rows.some((r) => r && typeof r === 'object' && f in r));
+    const gone = neededFields(type, bindings[i]).find((f) => !rows.some((r) => r && typeof r === 'object' && f in r));
     if (gone) return { field: gone, sourceId: bindings[i].sourceId };
   }
   return null;
 }
 
-// fields a binding reads that must exist in the rows
-function neededFields(b) {
-  return [b.xField, b.agg === 'count' ? '' : b.yField].filter(Boolean);
+// fields a binding reads that must exist in the rows (count ignores y, except
+// on types without an aggregate, like the uptime strip's status column)
+function neededFields(type, b) {
+  const countsRows = b.agg === 'count' && WIDGET_TYPES[type].bindingFields.includes('agg');
+  return [b.xField, countsRows ? '' : b.yField].filter(Boolean);
 }
 
 function problem(title, detail, tone, retry) {
@@ -259,7 +273,7 @@ async function renderData(body, widget, registry, isCurrent, opts) {
     body.append(problem('No rows yet', `${sources[0]?.name || 'This source'} came back empty.`, 'is-empty', opts.retry));
     return noop;
   }
-  const gone = missingField(bindings, rowSets);
+  const gone = missingField(widget.type, bindings, rowSets);
   if (gone) {
     const name = registry.byId(gone.sourceId)?.name || 'this source';
     body.append(problem(`No "${gone.field}" column`, opts.readOnly
@@ -274,6 +288,8 @@ async function renderData(body, widget, registry, isCurrent, opts) {
 
   let cleanup = noop;
   if (widget.type === 'kpi') renderKpi(body, scoped, rowSets[0], sources[0]);
+  else if (widget.type === 'gauge') cleanup = renderGauge(body, scoped, rowSets[0], sources[0]);
+  else if (widget.type === 'status') cleanup = renderStatus(body, scoped, rowSets[0]);
   else if (widget.type === 'table') cleanup = renderTable(body, scoped, rowSets[0]);
   else {
     const canvas = h('canvas', { role: 'img', 'aria-label': `${WIDGET_TYPES[widget.type].label}: ${widget.config.title || 'untitled'}` });

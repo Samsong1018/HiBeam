@@ -4,7 +4,7 @@
 
 **You don't build the board. The agent does.** Point Kiro at your data and HiBeam's MCP server lets it connect the sources, read the real rows, and draft a board. HiBeam's rule-based generator gives a reason for every widget ("`cpuPct` is a rate, so show the latest value, never a sum"). Kiro then looks at the result and fixes what reads badly. The board it saves is plain JSON you can review like code. Both applications in this repo were built that way, one prompt each.
 
-Underneath is an ordinary dashboard tool you can also drive by hand: accounts, six source types, a drag-and-drop editor, a read-only viewer, public links, and PNG/PDF export. Two very different applications are built on top of it, in [`APP1/`](APP1/) and [`APP2/`](APP2/), with no changes to the skeleton.
+Underneath is an ordinary dashboard tool you can also drive by hand: accounts, eight source types, a drag-and-drop editor, a read-only viewer, public links, and PNG/PDF export. Two very different applications are built on top of it, in [`APP1/`](APP1/) and [`APP2/`](APP2/), with no changes to the skeleton.
 
 **Who it's for:** anyone whose numbers live somewhere awkward and who wants them on one page without building a BI stack. That might be a developer watching their own server, someone in an office turning a weekly spreadsheet into a report, or someone tracking their own budget. If your data comes from an API, a database, a log, a web page or a spreadsheet, you can put it on a board, share a link to it, or export it as a PDF.
 
@@ -26,7 +26,8 @@ They're both better tools than HiBeam at what they were built for. HiBeam is for
 | Built for | Small mixed data: an API, a log, a sheet, a web page | Time-series metrics and logs at scale | Asking questions of a SQL database |
 | To get started you need | Node and a MySQL/MariaDB database for HiBeam itself | A metrics store (Prometheus, InfluxDB, Loki...) or a plugin per source type | A database to query. CSV uploads also land in a database you connect |
 | REST / JSON | Built in | Through a plugin such as Infinity | No native connector |
-| Excel / CSV | Upload a file | Through a plugin | CSV upload into a connected database |
+| Prometheus | Built in (PromQL) | Native, and far deeper | No |
+| Excel / CSV | Upload a file, or link a published Google Sheet | Through a plugin | CSV upload into a connected database |
 | Scrape a web page | Built in (CSS selector) | No | No |
 | First board | **Generate** reads the rows and lays one out, with a reason for each widget | You build each panel | X-rays suggest charts for a table |
 | An agent can build it | MCP server and a Kiro power, 17 tools | Possible through its HTTP API | Possible through its HTTP API |
@@ -66,15 +67,22 @@ Every source is fetched server-side, so credentials never reach the browser.
 
 | Type | What it reads |
 |------|---------------|
-| REST API | JSON from an HTTP endpoint, with an optional bearer token |
+| REST API | JSON from an HTTP endpoint, with an optional bearer token. Nested objects become dotted fields like `user.name` |
 | JSON | A JSON file by URL, with an optional array path like `data.items` |
 | SQL | A `SELECT` against your own MySQL / MariaDB database, run read-only with a 100-row cap |
 | Web scrape | A page plus a CSS selector — tables become columns, other elements become rows |
-| System logs | A log file by URL, parsed as JSON lines, nginx, apache, or syslog |
-| Excel / CSV | An uploaded `.xlsx` or `.csv` up to 5 MB |
+| System logs | A log file by URL, parsed as JSON lines, nginx, apache, or syslog. Only the end of the file is fetched (`Range`), so big access logs work |
+| Excel / CSV | An uploaded `.xlsx` or `.csv` up to 5 MB. **Replace file** swaps in next month's workbook without rebinding any widget |
+| CSV link | A CSV by URL, such as a Google Sheets "Publish to web" link. Up to 3 redirects, each one checked against the same private-network block |
+| Prometheus | A PromQL query, as the current value or a 1h / 6h / 24h range with one column per series |
 
 ### Editor
-Drag-and-drop grid with **line, bar, pie, KPI, table, text, and label** widgets. Autosave, undo/redo, per-widget refresh intervals, and a live preview link.
+Drag-and-drop grid with **line, bar, pie, KPI, gauge, uptime strip, table, text, and label** widgets. Autosave, undo/redo, per-widget refresh intervals, and a live preview link.
+
+- **Charts you can tune.** Units on the axis (`$`, `%`, 60k), a "start at zero" switch so a net worth line doesn't look flat, bars sorted with a top N, and pies that fold small slices into "Other". A bar chart with two series can draw one as a line, like the budget over actual spending.
+- **Real time on the x axis.** Group a timestamp column by minute, hour, day, week or month. Empty periods stay empty, so an outage shows up as a gap instead of the line jumping straight across it.
+- **Reference lines and trends.** Line charts take up to three dashed lines (a CPU limit, a budget target). KPIs can show a small sparkline under the number.
+- **Gauge and uptime strip.** A half-donut for a level against a limit, like disk at 82% of 100. The uptime strip gives each service a row of its last 15–90 checks, coloured up/degraded/down, with an uptime %.
 
 - **KPI alerts.** Set a warn and an alert threshold, and say whether higher is good or bad. Past a threshold the number turns amber or red and the card gets a flag. Optionally show the change since the previous row (net worth ▲ $950).
 - **Colours that mean something.** Values like `dead`/`alive`, `failed`/`active`, or HTTP 200/404/503 on a status field are coloured by meaning (ok, warn, danger) in charts and tables, not by palette order.
@@ -272,7 +280,7 @@ Open <http://localhost:8000>.
 npm test
 ```
 
-Tests don't need a database — they use in-memory fakes. There are 207 of them, 57 of which are `fast-check` property tests. 18 cover the APP1 agent, including one that runs its simulated log through HiBeam's real nginx parser, and the APP2 import tests run against the real sample workbook.
+Tests don't need a database — they use in-memory fakes. There are 276 of them, 61 of which are `fast-check` property tests. 18 cover the APP1 agent, including one that runs its simulated log through HiBeam's real nginx parser, and the APP2 import tests run against the real sample workbook.
 
 ---
 

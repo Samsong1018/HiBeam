@@ -7,12 +7,17 @@ const net = require('net');
 const { decryptKey } = require('./crypto-box');
 const { ScrapeRows, ScrapeError } = require('./connectors/scrape');
 const { ParseLogs } = require('./connectors/logs');
-const { SpreadsheetRows, SheetError } = require('./connectors/spreadsheet');
+const { SpreadsheetRows, SheetError, CsvTextRows } = require('./connectors/spreadsheet');
+const { FetchFollowing, HopError } = require('./connectors/redirects');
+const { BuildPromUrl, PromRows, PromError } = require('./connectors/prometheus');
 const { SqlRows, SqlError } = require('./connectors/sql');
+const { FlattenRow } = require('./connectors/flatten');
 
 const TIMEOUT_MS = 10000;
 const MAX_ROWS = 100;
 const MAX_BYTES = 2 * 1024 * 1024;
+// Log sources ask for only this much of the end of the file (Range: bytes=-N).
+const LOG_TAIL_BYTES = 1024 * 1024;
 
 // Fixed reason set. Upstream text, keys, and URLs are never echoed.
 const REASONS = Object.freeze({
@@ -34,7 +39,13 @@ const REASONS = Object.freeze({
   badConnection: 'Connection string is invalid (use mysql://user:pass@host:3306/db)',
   unsupportedDb: 'Only MySQL / MariaDB connections are supported',
   notSelect: 'Only a single SELECT query is allowed',
-  queryFailed: 'Query failed on the database'
+  queryFailed: 'Query failed on the database',
+  tooLarge: 'Source response is larger than 2 MB',
+  notCsv: 'Link did not return CSV (for Google Sheets use File > Share > Publish to web > CSV)',
+  tooManyRedirects: 'Source redirected too many times',
+  badQuery: 'PromQL query is required (up to 2000 characters)',
+  badRange: 'Range must be instant, 1h, 6h or 24h',
+  promRejected: 'Prometheus rejected the query'
 });
 
 // Connector error codes -> fixed reasons. Driver/parser text is never passed through.
@@ -48,7 +59,16 @@ const CODE_REASONS = {
   notSelect: REASONS.notSelect,
   rejected: REASONS.rejected,
   unreachable: REASONS.unreachable,
-  queryFailed: REASONS.queryFailed
+  queryFailed: REASONS.queryFailed,
+  // csv / prometheus (HopError, PromError)
+  tooManyRedirects: REASONS.tooManyRedirects,
+  badRedirect: REASONS.badResponse,
+  insecureRedirect: REASONS.blockedUrl,
+  badUrl: REASONS.badUrl,
+  badResponse: REASONS.badResponse,
+  badQuery: REASONS.badQuery,
+  badRange: REASONS.badRange,
+  promRejected: REASONS.promRejected
 };
 
 class SourceError extends Error
@@ -216,7 +236,27 @@ async function ResolveSafeAddress(pUrl, pResolve)
 
 // ---------------------------------------------------------------- transport
 
+// Appends pChunk to the rolling tail, dropping whole chunks from the front once the rest
+// still holds pMax bytes. Memory stays at pMax plus one chunk.
+function PushTail(pTail, pChunk, pMax)
+{
+  pTail.chunks.push(pChunk);
+  pTail.size += pChunk.length;
+  while (pTail.chunks.length > 1 && pTail.size - pTail.chunks[0].length >= pMax)
+  {
+    pTail.size -= pTail.chunks.shift().length;
+    pTail.dropped = true;
+  }
+}
+
+function TooLargeError()
+{
+  return Object.assign(new Error('too large'), { code: 'tooLarge' });
+}
+
 // Default transport: GET with no redirects, connection pinned to the vetted address.
+// A body over MAX_BYTES rejects with code 'tooLarge', unless pReq.tail is set: then only the
+// last MAX_BYTES are kept and the result says { truncated: true }.
 function DefaultTransport(pReq)
 {
   return new Promise((pResolve, pReject) =>
@@ -236,20 +276,28 @@ function DefaultTransport(pReq)
       signal: pReq.signal
     }, (pRes) =>
     {
-      const tmpChunks = [];
-      let tmpSize = 0;
+      const tmpTail = { chunks: [], size: 0, dropped: false };
       pRes.on('data', (pChunk) =>
       {
-        tmpSize += pChunk.length;
-        if (tmpSize > MAX_BYTES)
+        if (!pReq.tail && tmpTail.size + pChunk.length > MAX_BYTES)
         {
           pRes.destroy();
-          pReject(new Error('too large'));
+          pReject(TooLargeError());
           return;
         }
-        tmpChunks.push(pChunk);
+        PushTail(tmpTail, pChunk, MAX_BYTES);
       });
-      pRes.on('end', () => pResolve({ status: pRes.statusCode, body: Buffer.concat(tmpChunks).toString('utf8') }));
+      pRes.on('end', () =>
+      {
+        const tmpBody = Buffer.concat(tmpTail.chunks);
+        const tmpTruncated = tmpTail.dropped || tmpBody.length > MAX_BYTES;
+        pResolve({
+          status: pRes.statusCode,
+          headers: pRes.headers,
+          body: tmpBody.subarray(-MAX_BYTES).toString('utf8'),
+          truncated: tmpTruncated
+        });
+      });
       pRes.on('error', pReject);
     });
     tmpRequest.on('error', pReject);
@@ -265,6 +313,8 @@ function DefaultTransport(pReq)
 //   logs       { url, format, token? }
 //   sql        { connection, query }
 //   excel      { sheet? }   the file itself is stored separately (sources.file_data)
+//   csv        { url, token? }
+//   prometheus { url, query, range, token? }   range: instant | 1h | 6h | 24h
 function ReadConfig(pSource, pDecrypt)
 {
   let tmpPlain;
@@ -293,13 +343,16 @@ function ReadConfig(pSource, pDecrypt)
 
 const Str = (pValue) => (typeof pValue === 'string' && pValue.trim() !== '' ? pValue.trim() : null);
 
-// GET over the vetted, pinned transport. Returns the body text of a 2xx response.
-async function FetchText(pConfig, pAccept, pOpts, pSignal)
+// GET over the vetted, pinned transport. Returns { status, headers, body, truncated } for a 2xx
+// (206 included). pExtra: { headers, tail }. Without tail a body over MAX_BYTES is tooLarge; with
+// tail the newest MAX_BYTES are kept, even if a (fake) transport ignored the flag.
+async function FetchResponse(pConfig, pAccept, pOpts, pSignal, pExtra)
 {
+  const tmpExtra = pExtra || {};
   const tmpUrlText = Str(pConfig.url);
   if (!tmpUrlText) throw new SourceError(REASONS.badKey);
   const tmpUrl = ParseSourceUrl(tmpUrlText);
-  const tmpHeaders = { Accept: pAccept, 'User-Agent': 'dashboard-source-connector' };
+  const tmpHeaders = { ...(tmpExtra.headers || {}), Accept: pAccept, 'User-Agent': 'dashboard-source-connector' };
   const tmpToken = Str(pConfig.token);
   const tmpParam = Str(pConfig.queryParam);
   if (tmpToken)
@@ -311,16 +364,52 @@ async function FetchText(pConfig, pAccept, pOpts, pSignal)
   let tmpRes;
   try
   {
-    tmpRes = await pOpts.transport({ url: tmpUrl.toString(), address: tmpAddress, headers: tmpHeaders, signal: pSignal });
+    tmpRes = await pOpts.transport({ url: tmpUrl.toString(), address: tmpAddress, headers: tmpHeaders, signal: pSignal, tail: Boolean(tmpExtra.tail) });
   }
   catch (tmpErr)
   {
-    throw new SourceError(REASONS.unreachable);
+    throw new SourceError(tmpErr && tmpErr.code === 'tooLarge' ? REASONS.tooLarge : REASONS.unreachable);
   }
   const tmpStatus = tmpRes && tmpRes.status;
   if (tmpStatus === 401 || tmpStatus === 403) throw new SourceError(REASONS.rejected);
   if (!Number.isInteger(tmpStatus) || tmpStatus < 200 || tmpStatus >= 300) throw new SourceError(REASONS.upstreamError);
-  return typeof tmpRes.body === 'string' ? tmpRes.body : String(tmpRes.body || '');
+  let tmpBody = typeof tmpRes.body === 'string' ? tmpRes.body : String(tmpRes.body || '');
+  let tmpTruncated = Boolean(tmpRes.truncated);
+  if (Buffer.byteLength(tmpBody, 'utf8') > MAX_BYTES)
+  {
+    if (!tmpExtra.tail) throw new SourceError(REASONS.tooLarge);
+    tmpBody = Buffer.from(tmpBody, 'utf8').subarray(-MAX_BYTES).toString('utf8');
+    tmpTruncated = true;
+  }
+  const tmpResHeaders = tmpRes.headers && typeof tmpRes.headers === 'object' ? tmpRes.headers : {};
+  return { status: tmpStatus, headers: tmpResHeaders, body: tmpBody, truncated: tmpTruncated };
+}
+
+async function FetchText(pConfig, pAccept, pOpts, pSignal)
+{
+  return (await FetchResponse(pConfig, pAccept, pOpts, pSignal)).body;
+}
+
+// True when a 206 body starts mid-file. "Content-Range: bytes 0-..." means the whole file fit;
+// a 206 without a readable Content-Range is assumed to start mid-file.
+function StartsMidFile(pHeaders)
+{
+  const tmpRange = /^bytes (\d+)-/i.exec(String(pHeaders['content-range'] || ''));
+  return !tmpRange || Number(tmpRange[1]) > 0;
+}
+
+// Fetches the end of a log. Asks for the last LOG_TAIL_BYTES; a server that ignores Range gets
+// its newest MAX_BYTES kept. When the text starts mid-file the first (partial) line is dropped.
+async function FetchLogTail(pConfig, pOpts, pSignal)
+{
+  const tmpRes = await FetchResponse(pConfig, 'text/plain, */*', pOpts, pSignal, {
+    headers: { Range: `bytes=-${LOG_TAIL_BYTES}` },
+    tail: true
+  });
+  const tmpPartial = tmpRes.truncated || (tmpRes.status === 206 && StartsMidFile(tmpRes.headers));
+  if (!tmpPartial) return tmpRes.body;
+  const tmpBreak = tmpRes.body.indexOf('\n');
+  return tmpBreak === -1 ? '' : tmpRes.body.slice(tmpBreak + 1);
 }
 
 // "data.items" -> pData.data.items. Own properties only.
@@ -356,8 +445,9 @@ function ToRows(pData)
   {
     throw new SourceError(REASONS.badResponse);
   }
+  // Nested objects/arrays become dotted primitive fields (rules in connectors/flatten.js).
   return tmpList.slice(0, MAX_ROWS).map((pItem) =>
-    (pItem && typeof pItem === 'object' && !Array.isArray(pItem) ? pItem : { value: pItem }));
+    FlattenRow(pItem && typeof pItem === 'object' && !Array.isArray(pItem) ? pItem : { value: pItem }));
 }
 
 // Connector-specific errors (ScrapeError, SheetError, SqlError) carry a code; map it to a reason.
@@ -369,6 +459,40 @@ function FromCode(pErr)
     return new SourceError(CODE_REASONS[pErr.code] || REASONS.unreachable);
   }
   return new SourceError(REASONS.unreachable);
+}
+
+// Like FetchText, but follows up to 3 redirects, re-vetting and re-pinning every hop (csv and
+// prometheus only). pStatusCodes maps extra upstream statuses to connector codes.
+async function FetchFollowingText(pConfig, pAccept, pOpts, pSignal, pStatusCodes)
+{
+  const tmpUrlText = Str(pConfig.url);
+  if (!tmpUrlText) throw new SourceError(REASONS.badKey);
+  const tmpHeaders = { Accept: pAccept, 'User-Agent': 'dashboard-source-connector' };
+  const tmpToken = Str(pConfig.token);
+  if (tmpToken) tmpHeaders.Authorization = `Bearer ${tmpToken}`;
+  let tmpRes;
+  try
+  {
+    tmpRes = await FetchFollowing(tmpUrlText, tmpHeaders, {
+      parseUrl: ParseSourceUrl,
+      resolveSafe: (pUrl) => ResolveSafeAddress(pUrl, pOpts.resolve),
+      transport: pOpts.transport,
+      transportError: (pErr) => new SourceError(pErr && pErr.code === 'tooLarge' ? REASONS.tooLarge : REASONS.unreachable)
+    }, pSignal);
+  }
+  catch (tmpErr)
+  {
+    if (tmpErr instanceof HopError) throw new SourceError(CODE_REASONS[tmpErr.code] || REASONS.unreachable);
+    throw tmpErr;
+  }
+  const tmpStatus = tmpRes && tmpRes.status;
+  if (tmpStatus === 401 || tmpStatus === 403) throw new SourceError(REASONS.rejected);
+  const tmpCode = pStatusCodes && Object.prototype.hasOwnProperty.call(pStatusCodes, tmpStatus) ? pStatusCodes[tmpStatus] : null;
+  if (tmpCode) throw new SourceError(CODE_REASONS[tmpCode]);
+  if (!Number.isInteger(tmpStatus) || tmpStatus < 200 || tmpStatus >= 300) throw new SourceError(REASONS.upstreamError);
+  const tmpBody = typeof tmpRes.body === 'string' ? tmpRes.body : String(tmpRes.body || '');
+  if (Buffer.byteLength(tmpBody, 'utf8') > MAX_BYTES) throw new SourceError(REASONS.tooLarge);
+  return tmpBody;
 }
 
 const HANDLERS = {
@@ -395,7 +519,7 @@ const HANDLERS = {
 
   async logs(pSource, pConfig, pOpts, pSignal)
   {
-    const tmpText = await FetchText(pConfig, 'text/plain, */*', pOpts, pSignal);
+    const tmpText = await FetchLogTail(pConfig, pOpts, pSignal);
     const tmpResult = ParseLogs(tmpText, Str(pConfig.format) || 'json', MAX_ROWS);
     if (tmpResult.rows.length === 0 && tmpResult.lines > 0) throw new SourceError(REASONS.noLogLines);
     return tmpResult.rows;
@@ -416,6 +540,32 @@ const HANDLERS = {
   {
     const tmpFile = await pOpts.loadFile(pSource);
     return SpreadsheetRows(tmpFile, pConfig.sheet, MAX_ROWS);
+  },
+
+  // CSV by URL, e.g. a Google Sheets "Publish to web -> CSV" link (302s to googleusercontent).
+  // Parsed exactly like an uploaded .csv.
+  async csv(pSource, pConfig, pOpts, pSignal)
+  {
+    const tmpText = await FetchFollowingText(pConfig, 'text/csv, text/plain;q=0.9, */*;q=0.5', pOpts, pSignal, null);
+    if (/^\s*</.test(tmpText)) throw new SourceError(REASONS.notCsv); // an HTML sign-in or error page
+    return CsvTextRows(tmpText, MAX_ROWS);
+  },
+
+  // PromQL over /api/v1/query (instant) or /api/v1/query_range (1h / 6h / 24h).
+  async prometheus(pSource, pConfig, pOpts, pSignal)
+  {
+    try
+    {
+      const tmpUrl = BuildPromUrl(pConfig, Date.now(), MAX_ROWS);
+      const tmpBody = await FetchFollowingText({ url: tmpUrl, token: pConfig.token }, 'application/json', pOpts, pSignal,
+        { 400: 'promRejected', 422: 'promRejected' });
+      return PromRows(tmpBody, MAX_ROWS);
+    }
+    catch (tmpErr)
+    {
+      if (tmpErr instanceof PromError) throw new SourceError(CODE_REASONS[tmpErr.code] || REASONS.badResponse);
+      throw tmpErr;
+    }
   }
 };
 HANDLERS.json = HANDLERS.rest;
@@ -515,6 +665,9 @@ module.exports = {
   SourceError,
   REASONS,
   isBlockedAddress: IsBlockedAddress,
+  defaultTransport: DefaultTransport,
   TIMEOUT_MS,
-  MAX_ROWS
+  MAX_ROWS,
+  MAX_BYTES,
+  LOG_TAIL_BYTES
 };

@@ -11,9 +11,12 @@
 // ============================================================
 
 import { WIDGET_TYPES, COLOR_TOKENS, REFRESH_OPTIONS } from './widget-types.js';
-import { scaleLayout } from './data.js';
+import { scaleLayout, TIME_BUCKETS, normalizeThresholds } from './data.js';
 import { normalizeKpiConfig } from './kpi.js';
 import { normalizeQuietConfig } from './quiet.js';
+import { normalizeGaugeConfig } from './gauge.js';
+import { normalizeStatusConfig } from './status-strip.js';
+import { normalizeSeriesKind } from './combo.js';
 
 export const COLUMN_OPTIONS = [
   { value: 24, label: 'Coarse · 24' },
@@ -102,26 +105,55 @@ const int = (v, min, max, fallback) => {
 };
 const str = (v, max = 200) => (typeof v === 'string' ? v.slice(0, max) : '');
 
-function normalizeBinding(b) {
-  return {
+// `as` (bar charts only) is kept only when it's 'line': bars are the default,
+// so boards saved before combo charts normalize exactly as they did.
+function normalizeBinding(b, type) {
+  const out = {
     sourceId: str(b?.sourceId, 64),
     xField: str(b?.xField, 120),
     yField: str(b?.yField, 120),
     agg: str(b?.agg, 10) || 'sum',
   };
+  const as = normalizeSeriesKind(type, b?.as);
+  return as ? { ...out, as } : out;
+}
+
+// Axis, unit and ordering settings on line/bar/pie. Only keys the type has
+// in its defaults are touched; anything off-menu falls back to the default.
+export const BAR_SORTS = ['none', 'desc', 'asc'];
+export const MAX_TOP_N = 50;
+const MAX_UNIT = 8;
+
+export function normalizeChartConfig(config, defaults) {
+  const out = {};
+  if ('zeroBased' in defaults) out.zeroBased = typeof config.zeroBased === 'boolean' ? config.zeroBased : defaults.zeroBased;
+  if ('prefix' in defaults) out.prefix = str(config.prefix, MAX_UNIT);
+  if ('suffix' in defaults) out.suffix = str(config.suffix, MAX_UNIT);
+  if ('compact' in defaults) out.compact = config.compact === true;
+  if ('sort' in defaults) out.sort = BAR_SORTS.includes(config.sort) ? config.sort : 'none';
+  if ('topN' in defaults) {
+    const n = config.topN;
+    out.topN = Number.isInteger(n) && n >= 0 ? Math.min(n, MAX_TOP_N) : 0;
+  }
+  if ('bucket' in defaults) out.bucket = TIME_BUCKETS.includes(config.bucket) ? config.bucket : 'none';
+  if ('thresholds' in defaults) out.thresholds = normalizeThresholds(config.thresholds);
+  return out;
 }
 
 function normalizeWidget(raw, columns) {
   const def = WIDGET_TYPES[raw?.type];
   if (!def) return null;
   const config = { ...structuredClone(def.defaults), ...(raw.config || {}) };
-  config.bindings = (Array.isArray(config.bindings) ? config.bindings : []).slice(0, def.maxBindings).map(normalizeBinding);
+  config.bindings = (Array.isArray(config.bindings) ? config.bindings : []).slice(0, def.maxBindings).map((b) => normalizeBinding(b, raw.type));
   if ('title' in config) config.title = str(config.title, MAX_NAME);
   if ('body' in config) config.body = str(config.body, MAX_TEXT);
   if ('text' in config) config.text = str(config.text, MAX_NAME);
   // only the intervals the editor offers; anything else (0.01, '5', NaN) means off
   if ('refresh' in config && !REFRESH_OPTIONS.some((o) => o.value === config.refresh)) config.refresh = 0;
   if (raw.type === 'kpi') Object.assign(config, normalizeKpiConfig(config));
+  if (raw.type === 'gauge') Object.assign(config, normalizeGaugeConfig(config));
+  if (raw.type === 'status') Object.assign(config, normalizeStatusConfig(config));
+  if (['line', 'bar', 'pie'].includes(raw.type)) Object.assign(config, normalizeChartConfig(config, def.defaults));
   if ('quietAfter' in def.defaults) Object.assign(config, normalizeQuietConfig(config));
   else { delete config.quietAfter; delete config.quietField; }
   if ('color' in config && !COLOR_TOKENS.includes(config.color) && !/^#[0-9a-f]{6}$/i.test(config.color)) config.color = 'c1';

@@ -91,6 +91,8 @@ export const api = {
     return { id, name, type, status: 'untested' };
   },
   deleteSource: (id) => http('DELETE', `/api/sources/${encodeURIComponent(id)}`),
+  // New bytes for an existing excel source; the server resets its status to 'untested'.
+  replaceSourceFile: (id, file) => uploadFile(`/api/sources/${encodeURIComponent(id)}/file`, file),
   previewSource: (id) => http('GET', `/api/sources/${encodeURIComponent(id)}/preview`).then((rows) => ({ rows: Array.isArray(rows) ? rows : [] })),
 };
 

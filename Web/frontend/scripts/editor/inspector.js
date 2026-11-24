@@ -7,9 +7,11 @@
 
 import { h, clear, uid } from './dom.js';
 import { WIDGET_TYPES, COLOR_TOKENS, REFRESH_OPTIONS, iconSvg, isDataWidget } from './widget-types.js';
-import { AGGREGATIONS } from './data.js';
+import { AGGREGATIONS, BUCKET_OPTIONS, MAX_THRESHOLDS, MAX_THRESHOLD_LABEL } from './data.js';
 import { QUIET_OPTIONS, findTimeField } from './quiet.js';
 import { COLUMN_OPTIONS, BOARD_THEMES, setGrid, setTheme, updateConfig, removeWidget, duplicateWidget } from './model.js';
+import { extraSections, bindingLabels, yTakesAnyField, pickDefaults, afterPickSource } from './inspector-extra.js';
+import { comboAllowed } from './combo.js';
 
 const NEW_SOURCE = '__new__';
 const EMPTY_BINDING = { sourceId: '', xField: '', yField: '', agg: 'sum' };
@@ -51,9 +53,10 @@ export function createInspector({ el, store, registry, onSelect, openSourceDialo
     return field(label, control);
   }
 
-  function toggle(label, key) {
+  // rebuild: the toggle shows or hides other controls (Horizontal hides "Draw as")
+  function toggle(label, key, { rebuild = false } = {}) {
     return h('label', { class: 'check' },
-      h('input', { type: 'checkbox', checked: Boolean(selected().config[key]), onchange: (e) => patch({ [key]: e.target.checked }) }),
+      h('input', { type: 'checkbox', checked: Boolean(selected().config[key]), onchange: (e) => { patch({ [key]: e.target.checked }); if (rebuild) render(); } }),
       h('span', {}, label));
   }
 
@@ -77,8 +80,8 @@ export function createInspector({ el, store, registry, onSelect, openSourceDialo
     return section('Alerts',
       h('div', { class: 'field-row' }, numberField('Warn at', 'warnAt'), numberField('Alert at', 'alertAt')),
       selectField('Higher is', 'higherIs', [{ value: 'bad', label: 'Bad (CPU, spending)' }, { value: 'good', label: 'Good (savings, uptime)' }]),
-      h('div', { class: 'check-list' }, toggle('Show change since previous row', 'showDelta')),
-      h('p', { class: 'field-hint' }, 'The number turns amber or red once it crosses a threshold. Leave a box empty to turn that level off.'));
+      h('div', { class: 'check-list' }, toggle('Show change since previous row', 'showDelta'), toggle('Show trend', 'sparkline')),
+      h('p', { class: 'field-hint' }, 'The number turns amber or red once it crosses a threshold. Leave a box empty to turn that level off. The trend line follows the rows in order and hides on short cards.'));
   }
 
   function swatches() {
@@ -115,7 +118,10 @@ export function createInspector({ el, store, registry, onSelect, openSourceDialo
     const fields = sourceId ? await registry.fields(sourceId).catch(() => []) : [];
     const firstText = fields.find((f) => f.type === 'string')?.name || fields[0]?.name || '';
     const firstNum = fields.find((f) => f.type === 'number')?.name || '';
-    setBinding(index, { ...binding, sourceId, xField: firstText, yField: firstNum });
+    const type = selected()?.type;
+    setBinding(index, { ...binding, sourceId, xField: firstText, yField: firstNum, ...pickDefaults(type, fields) });
+    const forId = selectedId;
+    await afterPickSource(type, sourceId, { registry, patch: (values) => { if (selectedId === forId) patch(values); } });
     render();
   }
 
@@ -145,22 +151,25 @@ export function createInspector({ el, store, registry, onSelect, openSourceDialo
       }, 'Remove')),
     field('Source', sourceSelect));
 
+    if (binding.sourceId && comboAllowed(widget)) row.append(drawAsField(binding, index));
     if (!binding.sourceId || !def.bindingFields.length) return row;
 
     const slot = h('div', { class: 'binding-fields' });
     row.append(slot);
     const fill = (fields) => {
       clear(slot);
-      const numeric = fields && fields.filter((f) => f.type === 'number');
+      const numeric = fields && (yTakesAnyField(widget.type) ? fields : fields.filter((f) => f.type === 'number'));
+      const labels = bindingLabels(widget.type);
       if (def.bindingFields.includes('xField')) {
-        slot.append(fieldSelect(widget.type === 'pie' ? 'Slices by' : 'X axis', binding.xField, fields,
+        slot.append(fieldSelect(labels.x, binding.xField, fields,
           (v) => setBinding(index, { ...binding, xField: v }), fieldId(`x-${index}`)));
       }
-      if (def.bindingFields.includes('yField') && binding.agg !== 'count') {
-        slot.append(fieldSelect(widget.type === 'pie' ? 'Size' : 'Value', binding.yField, numeric,
+      const counts = binding.agg === 'count' && def.bindingFields.includes('agg');
+      if (def.bindingFields.includes('yField') && !counts) {
+        slot.append(fieldSelect(labels.y, binding.yField, numeric,
           (v) => setBinding(index, { ...binding, yField: v }), fieldId(`y-${index}`)));
       }
-      slot.append(field('Aggregate', h('select', {
+      if (def.bindingFields.includes('agg')) slot.append(field('Aggregate', h('select', {
         id: fieldId(`agg-${index}`), value: binding.agg,
         onchange: (e) => { setBinding(index, { ...binding, agg: e.target.value }); render(); },
       }, Object.entries(AGGREGATIONS).map(([value, a]) => h('option', { value }, a.label)))));
@@ -170,6 +179,18 @@ export function createInspector({ el, store, registry, onSelect, openSourceDialo
       clear(slot).append(h('p', { class: 'field-error' }, 'Couldn\'t load fields for this source.'));
     });
     return row;
+  }
+
+  // combo bar chart: this series as bars (the default, so the key is dropped) or a line
+  function drawAsField(binding, index) {
+    return field('Draw as', h('select', {
+      id: fieldId(`as-${index}`), value: binding.as === 'line' ? 'line' : 'bar',
+      onchange: (e) => {
+        // read it fresh: the field selects may have changed it since this row was built
+        const { as: _drop, ...rest } = selected().config.bindings[index] || binding;
+        setBinding(index, e.target.value === 'line' ? { ...rest, as: 'line' } : rest);
+      },
+    }, h('option', { value: 'bar' }, 'Bars'), h('option', { value: 'line' }, 'Line')));
   }
 
   function tableColumns(widget) {
@@ -255,13 +276,94 @@ export function createInspector({ el, store, registry, onSelect, openSourceDialo
     return h('section', { class: 'insp-section' }, h('h3', { class: 'insp-heading' }, title), ...children);
   }
 
+  // Line/bar value axis: units on ticks and tooltips, and the zero baseline
+  function axisFormat() {
+    return [
+      h('div', { class: 'field-row' }, textField('Prefix', 'prefix', { max: 8, placeholder: '$' }), textField('Suffix', 'suffix', { max: 8, placeholder: '%' })),
+      h('div', { class: 'check-list' }, toggle('Short numbers (60k)', 'compact'), toggle('Start at zero', 'zeroBased')),
+    ];
+  }
+
+  // "Show" picker for topN; keeps a value set elsewhere (MCP, import) selectable
+  function topNField(label, counts, noun) {
+    const current = selected().config.topN;
+    const list = [...new Set([...counts, current])].filter((n) => n > 0).sort((a, b) => a - b);
+    return selectField(label, 'topN', [{ value: 0, label: 'All' }, ...list.map((n) => ({ value: n, label: `Top ${n} ${noun}` }))], { numeric: true });
+  }
+
+  // line/bar x axis as time buckets; only does anything when x holds dates
+  function bucketField() {
+    return [
+      selectField('Group by time', 'bucket', BUCKET_OPTIONS),
+      h('p', { class: 'field-hint' }, 'When the x axis is a date or timestamp, rows are grouped per minute, hour, day, week or month. Empty stretches show as gaps.'),
+    ];
+  }
+
+  // Line chart reference lines: up to MAX_THRESHOLDS dashed rules (an SLO, a limit)
+  const TONE_OPTIONS = [{ value: 'warn', label: 'Warning' }, { value: 'danger', label: 'Danger' }, { value: 'ok', label: 'Target' }];
+
+  function thresholdSection(widget) {
+    const list = Array.isArray(widget.config.thresholds) ? widget.config.thresholds : [];
+    // read the live list on every edit: typing commits without rebuilding the panel
+    const current = () => (Array.isArray(selected().config.thresholds) ? selected().config.thresholds : []);
+    const setLine = (index, values, coalesce) => {
+      patch({ thresholds: current().map((t, i) => (i === index ? { ...t, ...values } : t)) }, coalesce);
+    };
+    const row = (t, i) => h('div', { class: 'binding' },
+      h('div', { class: 'binding-head' },
+        h('span', { class: 'binding-num' }, `Line ${i + 1}`),
+        h('button', {
+          type: 'button', class: 'binding-remove', 'aria-label': `Remove reference line ${i + 1}`,
+          onclick: () => { patch({ thresholds: current().filter((_, j) => j !== i) }); render(); },
+        }, 'Remove')),
+      h('div', { class: 'field-row' },
+        field('Value', h('input', {
+          id: fieldId(`thr-value-${i}`), type: 'number', step: 'any', inputmode: 'decimal', placeholder: '90',
+          value: Number.isFinite(t.value) ? String(t.value) : '',
+          oninput: (e) => {
+            const raw = e.target.value.trim();
+            const n = Number(raw);
+            if (raw === '') setLine(i, { value: null }, `thr-value-${i}`);
+            else if (Number.isFinite(n)) setLine(i, { value: n }, `thr-value-${i}`);
+          },
+        })),
+        field('Tone', h('select', {
+          id: fieldId(`thr-tone-${i}`), value: t.tone || 'warn',
+          onchange: (e) => setLine(i, { tone: e.target.value }),
+        }, TONE_OPTIONS.map((o) => h('option', { value: o.value }, o.label))))),
+      field('Label', h('input', {
+        id: fieldId(`thr-label-${i}`), type: 'text', maxlength: String(MAX_THRESHOLD_LABEL), placeholder: 'The value, formatted',
+        value: t.label || '',
+        oninput: (e) => setLine(i, { label: e.target.value.slice(0, MAX_THRESHOLD_LABEL) }, `thr-label-${i}`),
+      })));
+    return section('Reference lines',
+      list.map(row),
+      list.length < MAX_THRESHOLDS && h('button', {
+        type: 'button', class: 'btn btn-ghost btn-sm',
+        onclick: () => { patch({ thresholds: [...current(), { value: null, label: '', tone: 'warn' }].slice(0, MAX_THRESHOLDS) }); render(); },
+      }, '+ Add line'),
+      h('p', { class: 'field-hint' }, 'Dashed lines across the chart, like an SLO or a limit. The axis stretches to show them. A line with no value isn\'t drawn.'));
+  }
+
+  const BAR_SORT_OPTIONS = [{ value: 'none', label: 'Source order' }, { value: 'desc', label: 'Largest first' }, { value: 'asc', label: 'Smallest first' }];
+
   const SIZES = [{ value: 'sm', label: 'Small' }, { value: 'md', label: 'Medium' }, { value: 'lg', label: 'Large' }, { value: 'xl', label: 'Huge' }];
 
   function appearance(widget) {
     switch (widget.type) {
-      case 'line': return section('Appearance', swatches(), h('div', { class: 'check-list' }, toggle('Smooth lines', 'smooth'), toggle('Fill area', 'fill'), toggle('Legend', 'legend'), toggle('Rows are newest first', 'reverseData')));
-      case 'bar': return section('Appearance', swatches(), h('div', { class: 'check-list' }, toggle('Horizontal', 'horizontal'), toggle('Stacked', 'stacked'), toggle('Legend', 'legend')));
-      case 'pie': return section('Appearance', swatches(), h('div', { class: 'check-list' }, toggle('Donut', 'donut'), toggle('Legend', 'legend')));
+      case 'line': return [
+        section('Appearance', swatches(), h('div', { class: 'check-list' }, toggle('Smooth lines', 'smooth'), toggle('Fill area', 'fill'), toggle('Legend', 'legend'), toggle('Rows are newest first', 'reverseData'))),
+        section('Values', ...bucketField(), ...axisFormat()),
+        thresholdSection(widget)];
+      case 'bar': return [
+        section('Appearance', swatches(), h('div', { class: 'check-list' }, toggle('Horizontal', 'horizontal', { rebuild: true }), toggle('Stacked', 'stacked'), toggle('Legend', 'legend'))),
+        section('Values', ...bucketField(), ...axisFormat(),
+          h('div', { class: 'field-row' }, selectField('Order', 'sort', BAR_SORT_OPTIONS), topNField('Show', [5, 10, 15, 20], 'bars')),
+          h('p', { class: 'field-hint' }, 'Order and top N go by the first series. They are off when grouping by time.'))];
+      case 'pie': return section('Appearance', swatches(),
+        topNField('Slices', [3, 4, 5, 6, 8, 10], 'slices'),
+        h('div', { class: 'check-list' }, toggle('Donut', 'donut'), toggle('Legend', 'legend')),
+        h('p', { class: 'field-hint' }, 'With a top N, the smaller slices are folded into "Other".'));
       case 'kpi': return section('Format',
         h('div', { class: 'field-row' }, textField('Prefix', 'prefix', { max: 6, placeholder: '$' }), textField('Suffix', 'suffix', { max: 8, placeholder: '%' })),
         selectField('Decimals', 'decimals', [0, 1, 2, 3].map((n) => ({ value: n, label: String(n) })), { numeric: true }),
@@ -271,7 +373,7 @@ export function createInspector({ el, store, registry, onSelect, openSourceDialo
       case 'label': return section('Content', textField('Text', 'text'), selectField('Size', 'size', SIZES),
         selectField('Align', 'align', [{ value: 'left', label: 'Left' }, { value: 'center', label: 'Center' }, { value: 'right', label: 'Right' }]),
         h('div', { class: 'check-list' }, toggle('Muted color', 'muted')));
-      default: return null;
+      default: return extraSections(widget, { section, field, textField, selectField, numberField, toggle, swatches, fieldId, patch, selected, registry });
     }
   }
 
@@ -284,7 +386,7 @@ export function createInspector({ el, store, registry, onSelect, openSourceDialo
         h('button', { type: 'button', class: 'insp-close', 'aria-label': 'Deselect component', onclick: () => onSelect(null) }, '×')),
       'title' in widget.config && section('General', textField('Title', 'title', { placeholder: 'Untitled' })),
       isDataWidget(widget.type) && dataSection(widget),
-      appearance(widget),
+      ...[appearance(widget)].flat(),
       isDataWidget(widget.type) && 'quietAfter' in widget.config && quietSection(widget),
       widget.type === 'kpi' && kpiAlerts(),
       h('div', { class: 'insp-actions' },

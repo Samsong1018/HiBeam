@@ -374,7 +374,7 @@ _server.tool(
 
 _server.tool(
     'list_sources',
-    'List all data sources configured by the logged-in user. Returns each source\'s id, type (rest, json, sql, scrape, logs, excel), and name.',
+    'List all data sources configured by the logged-in user. Returns each source\'s id, type (rest, json, sql, scrape, logs, excel, csv, prometheus), and name.',
     {},
     async () =>
     {
@@ -406,7 +406,7 @@ _server.tool(
 
 // ---- Writes: sources ----
 
-const SOURCE_TYPES = ['rest', 'json', 'sql', 'scrape', 'logs', 'excel'];
+const SOURCE_TYPES = ['rest', 'json', 'sql', 'scrape', 'logs', 'excel', 'csv', 'prometheus'];
 const MAX_UPLOAD_BYTES = 5 * 1024 * 1024;
 
 _server.tool(
@@ -414,7 +414,11 @@ _server.tool(
     'Create a data source. config is the connection settings for the type: '
     + 'rest/json { url, token?, path? }, logs { url, format: json|nginx|apache|syslog, token? }, '
     + 'scrape { url, selector }, sql { connection: "mysql://user:pass@host:3306/db", query }, excel { sheet? } '
-    + '(then call upload_source_file). URLs must be publicly reachable; private and loopback addresses are refused. '
+    + '(then call upload_source_file), csv { url, token? } (a CSV link such as a Google Sheets '
+    + '"Publish to web" CSV URL; up to 3 redirects are followed), prometheus { url: Prometheus base URL, '
+    + 'query: PromQL, range?: instant|1h|6h|24h (default instant), token? } (range queries return one row per '
+    + 'timestamp with an ISO time column and one column per series). '
+    + 'URLs must be publicly reachable; private and loopback addresses are refused. '
     + 'Returns the new source id.',
     {
         name: z.string().min(1).max(100).describe('Display name for the source'),
@@ -492,19 +496,25 @@ const _bindingSchema = z.object({
     xField: z.string().optional(),
     yField: z.string().optional(),
     agg: z.enum(['sum', 'avg', 'min', 'max', 'count', 'last']).optional(),
+    as: z.enum(['bar', 'line']).optional()
+        .describe('Bar charts with 2+ series only: draw this series as bars (default) or as a line over the bars, e.g. budget as a line vs actual as bars. Ignored when horizontal.'),
 });
 
 const _widgetSchema = z.object({
     id: z.string().describe('Unique widget id, letters/digits/_/- e.g. w_cpu'),
-    type: z.enum(['line', 'bar', 'pie', 'kpi', 'table', 'text', 'label']),
+    type: z.enum(['line', 'bar', 'pie', 'kpi', 'gauge', 'status', 'table', 'text', 'label']),
     x: z.number().int().min(0),
     y: z.number().int().min(0),
     w: z.number().int().min(1),
     h: z.number().int().min(1),
     config: z.object({ bindings: z.array(_bindingSchema).max(6).optional() }).passthrough()
         .describe('Widget settings. Common: title, color (c1-c6), refresh (0|30|60|300|900 seconds). '
-            + 'line/bar/pie: bindings [{sourceId,xField,yField,agg}]; line: smooth, fill, legend; bar: horizontal, stacked; pie: donut; '
-            + 'kpi: bindings [{sourceId,yField,agg}], prefix, suffix, decimals; table: bindings [{sourceId}], columns [], limit; '
+            + 'line/bar/pie: bindings [{sourceId,xField,yField,agg}]; line: smooth, fill, legend; bar: horizontal, stacked, sort (none|desc|asc), topN (0=all), per-binding as (bar|line) for combo charts; '
+            + 'line/bar: zeroBased (default true), prefix, suffix, compact (60000 -> 60k), bucket (none|minute|hour|day|week|month: group a timestamp x field by time, empty periods show as gaps); pie: donut, topN (0=all, rest folded into Other); '
+            + 'line: thresholds [{value,label (<=24 chars),tone (warn|danger|ok)}] max 3, dashed reference lines; '
+            + 'kpi: bindings [{sourceId,yField,agg}], prefix, suffix, decimals, sparkline (trend line under the number); table: bindings [{sourceId}], columns [], limit; '
+            + 'gauge (half-donut toward a limit, e.g. CPU %, disk %, budget spent): bindings [{sourceId,yField,agg}] (use agg last for levels), min (default 0), max (default 100), prefix, suffix, decimals, warnAt, alertAt, higherIs (bad|good); '
+            + 'status (uptime strip, a row per service with its last N checks coloured up/down): bindings [{sourceId,xField: service name column,yField: status column}], slots (15|30|60|90, default 30), timeField (time column to order checks by, "" = row order); '
             + 'text: body, fontSize (sm|md|lg); label: text, size (sm|md|lg), align, muted'),
 });
 

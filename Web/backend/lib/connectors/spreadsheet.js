@@ -96,12 +96,18 @@ function ParseCsvRecords(pText, pMaxRecords)
   return tmpRecords.filter((pRec) => pRec.some((pCell) => pCell.trim() !== ''));
 }
 
-function CsvRows(pBuf, pMax)
+// CSV text -> row objects: first record is the header. Shared by uploads and CSV links.
+function CsvTextRows(pText, pMax)
 {
-  const tmpRecords = ParseCsvRecords(pBuf.toString('utf8'), pMax + 1);
+  const tmpRecords = ParseCsvRecords(String(pText), pMax + 1);
   if (tmpRecords.length === 0) return [];
   const tmpNames = HeaderNames(tmpRecords[0]);
   return tmpRecords.slice(1).map((pRec) => RowObject(tmpNames, pRec.map(ToValue)));
+}
+
+function CsvRows(pBuf, pMax)
+{
+  return CsvTextRows(pBuf.toString('utf8'), pMax);
 }
 
 // ----------------------------------------------------------------- XLSX
@@ -168,4 +174,4 @@ function CheckUpload(pBuf)
   return 'unsupported';
 }
 
-module.exports = { SpreadsheetRows, CheckUpload, SheetError, ParseCsvRecords, MAX_FILE_BYTES };
+module.exports = { SpreadsheetRows, CheckUpload, SheetError, ParseCsvRecords, CsvTextRows, MAX_FILE_BYTES };

@@ -229,6 +229,32 @@
 }
 @media (hover: hover) { .source-remove:hover { color: var(--color-danger); background: var(--color-danger-bg); } }
 
+.source-actions { display: inline-flex; align-items: center; gap: var(--space-xs); }
+
+.source-replace {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4em;
+  padding: 0.35rem 0.6rem;
+  border-radius: var(--radius-sm);
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+  color: var(--color-text-muted);
+  transition: color var(--dur-fast), background-color var(--dur-fast);
+}
+@media (hover: hover) { .source-replace:hover { color: var(--color-accent-text); background: var(--color-bg-alt); } }
+.source-replace.is-loading { cursor: progress; color: var(--color-accent-text); }
+.source-replace.is-loading::after {
+  content: '';
+  width: 0.8em;
+  height: 0.8em;
+  border: 2px solid currentColor;
+  border-right-color: transparent;
+  border-radius: 50%;
+  animation: replaceSpin 0.8s linear infinite;
+}
+@keyframes replaceSpin { to { transform: rotate(360deg); } }
+
 .empty-state {
   margin: var(--space-md);
   padding: var(--space-lg);

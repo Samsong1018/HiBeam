@@ -114,7 +114,14 @@ async function boot() {
   }
 
   canvas = createCanvas({ el: els.grid, scroller: els.canvasScroll, store, registry, onSelect: select });
-  const sourcePanel = createSourcePanel({ listEl: els.sourceList, addButton: els.addSource, dialog: els.sourceDialog, registry, store });
+  const sourcePanel = createSourcePanel({
+    listEl: els.sourceList,
+    addButton: els.addSource,
+    dialog: els.sourceDialog,
+    registry,
+    store,
+    onSourceReplaced: (sourceId) => canvas.rerenderSource(sourceId),
+  });
   inspector = createInspector({ el: els.inspector, store, registry, onSelect: select, openSourceDialog: sourcePanel.openDialog });
   inspector.render();
   sourcePanel.renderList();

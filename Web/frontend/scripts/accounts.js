@@ -257,7 +257,8 @@ function renderSourceItem(source) {
   const info = el('div');
   info.append(
     el('p', 'source-name', source.name),
-    el('p', 'source-meta', `${source.type} · key ••••${source.last4} · ${source.synced}`),
+    // No key hint: keys are stored as JSON, so the last 4 characters were always `"}` or part of a token.
+    el('p', 'source-meta', `${source.type} · ${source.synced}`),
   );
 
   // backend statuses: ok | failed | untested (the default until a test runs)
@@ -269,8 +270,61 @@ function renderSourceItem(source) {
   remove.setAttribute('aria-label', `Remove ${source.name}`);
   remove.addEventListener('click', () => removeSource(source));
 
-  item.append(icon, info, status, remove);
+  const actions = el('div', 'source-actions');
+  if (source.type === 'excel') actions.append(...renderReplaceControl(source));
+  actions.append(remove);
+
+  item.append(icon, info, status, actions);
   return item;
+}
+
+// ------------------------------------------------------------
+// Replace a spreadsheet's file in place (same id, so dashboards keep their bindings)
+// The size/extension check lives in the editor's pure module; this page is a
+// classic script, so it's pulled in with a dynamic import.
+// ------------------------------------------------------------
+const SPREADSHEET_ACCEPT = '.xlsx,.csv,text/csv,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
+const sourceFileCheck = import('./editor/source-file.js');
+
+function renderReplaceControl(source) {
+  const input = el('input');
+  input.type = 'file';
+  input.accept = SPREADSHEET_ACCEPT;
+  input.hidden = true;
+  input.tabIndex = -1;
+  input.setAttribute('aria-hidden', 'true');
+
+  const button = el('button', 'source-replace', 'Replace file');
+  button.type = 'button';
+  button.setAttribute('aria-label', `Replace file for ${source.name}`);
+  button.addEventListener('click', () => input.click());
+  input.addEventListener('change', () => {
+    const file = input.files[0];
+    input.value = '';
+    if (file) replaceSourceFile(source, file, button);
+  });
+  return [button, input];
+}
+
+async function replaceSourceFile(source, file, button) {
+  const { checkSpreadsheetFile } = await sourceFileCheck;
+  const problem = checkSpreadsheetFile(file);
+  if (problem) {
+    toast(`Couldn't update ${source.name}. ${problem}`, true);
+    return;
+  }
+  setLoading(button, true);
+  try {
+    await accountApi.replaceSourceFile(source.id, file);
+    // the server resets the status until the source is tested again
+    sources = sources.map((s) => (s.id === source.id ? { ...s, status: 'untested' } : s));
+    renderSources();
+    toast(`Updated ${source.name}`);
+    sourceList.querySelector(`.source-item[data-id="${CSS.escape(source.id)}"] .source-replace`)?.focus();
+  } catch (err) {
+    setLoading(button, false);
+    toast(`Couldn't update ${source.name}. ${err && err.message ? err.message : 'The upload failed.'}`, true);
+  }
 }
 
 function renderSources() {

@@ -54,5 +54,6 @@ We ran low on Kiro credits near the end. These were done without Kiro running th
 - KPI thresholds and change since the previous row, semantic status colours, tables that show only whole rows, and the Kiroween theme
 - The `generate_dashboard` MCP tool, which explains each widget the generator chose
 - "Gone quiet" ghost widgets, the per-widget error, empty and missing-column states, layout import/export as `.template.json`, and the `power-hibeam/` packaging
+- The chart options round: axis units and start-at-zero, bar sort and top N, pie "Other", time grouping with gaps, KPI sparklines, reference lines, combo bar + line, and the gauge and uptime strip widgets. Each one came with its own tests (`tests/chart-options`, `time-bucket`, `sparkline-thresholds`, `gauge-status`, `combo-chart`)
 
 TODO (team): say plainly what tool you used for these, if any, and which teammate did them.

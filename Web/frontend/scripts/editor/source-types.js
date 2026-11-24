@@ -63,6 +63,27 @@ export const SOURCE_TYPES = [
       { name: 'path', label: 'Array path', type: 'text', placeholder: 'data.items', optional: true },
     ],
   },
+  {
+    id: 'csv',
+    label: 'CSV link',
+    short: 'CSV',
+    fields: [
+      // Google Sheets: File > Share > Publish to web > CSV. The server follows its redirect.
+      { name: 'url', label: 'CSV URL', type: 'url', placeholder: 'https://docs.google.com/spreadsheets/d/e/2PACX-…/pub?gid=0&single=true&output=csv' },
+      { name: 'auth', label: 'Auth header', type: 'password', placeholder: 'Bearer …', optional: true, secret: true },
+    ],
+  },
+  {
+    id: 'prometheus',
+    label: 'Prometheus',
+    short: 'PRM',
+    fields: [
+      { name: 'url', label: 'Prometheus URL', type: 'url', placeholder: 'https://prom.example.com' },
+      { name: 'query', label: 'PromQL query', type: 'textarea', placeholder: 'sum by (instance) (rate(http_requests_total[5m]))' },
+      { name: 'range', label: 'Range', type: 'select', options: ['instant', '1h', '6h', '24h'] },
+      { name: 'auth', label: 'Auth header', type: 'password', placeholder: 'Bearer …', optional: true, secret: true },
+    ],
+  },
 ];
 
 export const SOURCE_TYPE_BY_ID = Object.fromEntries(SOURCE_TYPES.map((t) => [t.id, t]));
@@ -70,7 +91,8 @@ export const SOURCE_TYPE_BY_ID = Object.fromEntries(SOURCE_TYPES.map((t) => [t.i
 // The backend stores one encrypted `key` string per source, read as JSON by the
 // connector: { url, token, path } for rest/json, { url, selector } for scrape,
 // { url, format, token } for logs, { connection, query } for sql, { sheet } for
-// excel (the file itself is uploaded separately). `auth` becomes a bearer token.
+// excel (the file itself is uploaded separately), { url, token } for csv,
+// { url, query, range, token } for prometheus. `auth` becomes a bearer token.
 export function packSourceKey(type, config = {}) {
   const { auth, ...rest } = config;
   const token = typeof auth === 'string' ? auth.trim().replace(/^Bearer\s+/i, '') : '';

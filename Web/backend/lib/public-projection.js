@@ -6,6 +6,7 @@
   chosen `columns`, or every column when none are chosen (the owner picked "show all", so all
   columns are already on screen). A widget with a "gone quiet" check also gets its `quietField`,
   the timestamp column the check reads (only its age is shown, but the value has to reach the page).
+  An uptime strip (`status`) also gets its `timeField`, the column its checks are ordered by.
 
   AllowedFields(def) -> Map<sourceId, Set<string> | null>   null = all columns allowed
   ProjectRows(rows, fields) -> new rows holding only the allowed keys (input is not mutated)
@@ -49,6 +50,7 @@ function AllowedFields(pDef)
       AddField(tmpSet, tmpBinding.xField);
       AddField(tmpSet, tmpBinding.yField);
       if (Number(tmpConfig.quietAfter) > 0) AddField(tmpSet, tmpConfig.quietField);
+      if (tmpWidget.type === 'status') AddField(tmpSet, tmpConfig.timeField);
       if (tmpWidget.type === 'table') tmpColumns.forEach((pCol) => tmpSet.add(pCol));
       tmpAllowed.set(tmpId, tmpSet);
     }

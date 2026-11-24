@@ -185,6 +185,32 @@
 .kpi-delta[data-tone="good"] { color: var(--color-ok); }
 .kpi-delta[data-tone="bad"] { color: var(--color-danger); }
 
+/* ------------------------------------------------------------
+   KPI sparkline · a trend line under the number, in the widget's
+   colour or the warn/alert tone. Its height comes out of the
+   number's share of the card, so the two never overlap, and it
+   hides on short cards where it would squeeze the number.
+   ------------------------------------------------------------ */
+.widget-body.has-spark .kpi-value { font-size: clamp(1rem, min(36cqh, 17cqw), 4.25rem); }
+.kpi-spark {
+  display: block;
+  flex: none;
+  width: 100%;
+  height: clamp(12px, 20cqh, 44px);
+  margin-top: 0.35rem;
+  overflow: visible;
+  color: var(--spark, var(--chart-c1));
+}
+.widget-body[data-status="warn"] .kpi-spark,
+.widget-body[data-status="alert"] .kpi-spark { color: var(--tone); }
+.kpi-spark-line { fill: none; stroke: currentColor; stroke-width: 1.5; stroke-linejoin: round; stroke-linecap: round; }
+.kpi-spark-area { fill: currentColor; stroke: none; opacity: 0.12; }
+:root[data-theme="kiroween"] .kpi-spark-line { filter: drop-shadow(0 0 3px currentColor); }
+@container (max-height: 76px) {
+  .kpi-spark { display: none; }
+  .widget-body.has-spark .kpi-value { font-size: clamp(1rem, min(48cqh, 17cqw), 5rem); }
+}
+
 /* ============================================================
    Tables · whole rows only, "+N more" switches to scrolling;
    status-like columns get a tone dot
@@ -320,4 +346,130 @@
 @container (max-height: 120px) {
   .widget-problem-detail { display: none; }
   .widget-problem { gap: 0.15rem; padding-block: 0.3rem; }
+}
+
+/* ============================================================
+   Gauge · a half-donut (canvas) with the value as DOM text in its
+   bowl. charts.js reports where the arc sits (--gx/--gy centre,
+   --gr inner radius, --gm mid radius) so the text follows resizes.
+   ============================================================ */
+.widget[data-type="gauge"] .widget-body { container-type: size; }
+.gauge { position: relative; flex: 1; min-height: 0; }
+.gauge-canvas { position: absolute; inset: 0; }
+.gauge-value,
+.gauge-end { position: absolute; opacity: 0; white-space: nowrap; pointer-events: none; }
+.gauge.is-placed > .gauge-value,
+.gauge.is-placed > .gauge-end { opacity: 1; }
+.gauge-value {
+  left: var(--gx, 50%);
+  top: var(--gy, 50%);
+  transform: translate(-50%, calc(-100% + 0.06em));
+  max-width: calc(var(--gr, 40px) * 1.75);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  font-family: var(--font-display);
+  /* by radius, and by length so a 5-6 character value still fits inside the arc */
+  font-size: clamp(0.85rem, min(calc(var(--gr, 40px) * 0.56), calc(var(--gr, 40px) * 2.3 / var(--gch, 3))), 3.75rem);
+  font-weight: 500;
+  line-height: 1;
+  letter-spacing: -0.02em;
+  font-variant-numeric: tabular-nums;
+}
+.gauge-end {
+  top: calc(var(--gy, 50%) + 3px);
+  transform: translateX(-50%);
+  font-family: var(--font-mono);
+  font-size: 0.62rem;
+  color: var(--color-text-muted);
+  font-variant-numeric: tabular-nums;
+}
+.gauge-min { left: calc(var(--gx, 50%) - var(--gm, 40px)); }
+.gauge-max { left: calc(var(--gx, 50%) + var(--gm, 40px)); }
+.widget-body[data-status="warn"] .gauge-value,
+.widget-body[data-status="alert"] .gauge-value { color: var(--tone); }
+@media (prefers-reduced-motion: no-preference) {
+  .gauge-value, .gauge-end { transition: opacity var(--dur-fast); }
+}
+:root[data-theme="kiroween"] .widget-body[data-status="alert"] .gauge-canvas { filter: drop-shadow(0 0 8px color-mix(in srgb, var(--color-danger) 45%, transparent)); }
+/* short cards: the caption goes first, then the scale ends */
+@container (max-height: 120px) {
+  .widget[data-type="gauge"] .kpi-caption { display: none; }
+}
+@container (max-height: 80px) {
+  .gauge-end { display: none; }
+}
+
+/* ============================================================
+   Uptime strip · a row per service: name, a block per check
+   (oldest → newest, toned by meaning, grey = no data), uptime %.
+   Whole rows only, "+N more" like tables. Narrow cards drop the
+   % first, then stack the name over the strip.
+   ============================================================ */
+.widget[data-type="status"] .widget-body { container-type: inline-size; }
+.status-list {
+  flex: 1;
+  min-height: 0;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  overflow: hidden;
+  cursor: auto;
+  scrollbar-width: thin;
+}
+.status-list.is-expanded { overflow: auto; }
+.status-row {
+  display: grid;
+  grid-template-columns: minmax(3.5rem, 28%) minmax(0, 1fr) 3.2rem;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 0.3rem 0;
+  border-bottom: 1px solid color-mix(in srgb, var(--color-border) 60%, transparent);
+}
+.status-row:last-child { border-bottom: 0; }
+.status-row[hidden] { display: none; }
+.status-name {
+  min-width: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+}
+.status-strip {
+  display: grid;
+  grid-template-columns: repeat(var(--slots, 30), minmax(0, 1fr));
+  gap: 2px;
+  height: 0.9rem;
+}
+.status-list[data-slots="60"] .status-strip,
+.status-list[data-slots="90"] .status-strip { gap: 1px; }
+.status-slot {
+  --slot: color-mix(in srgb, var(--color-text-muted) 16%, transparent);
+  min-width: 0;
+  border-radius: 2px;
+  background: var(--slot);
+}
+.status-list[data-slots="90"] .status-slot { border-radius: 1px; }
+.status-slot[data-tone="ok"] { --slot: var(--color-ok); }
+.status-slot[data-tone="info"] { --slot: var(--chart-c6); }
+.status-slot[data-tone="warn"] { --slot: var(--color-warn); }
+.status-slot[data-tone="danger"] { --slot: var(--color-danger); }
+.status-slot[data-tone="unknown"] { --slot: color-mix(in srgb, var(--color-text-muted) 55%, transparent); }
+.status-pct {
+  text-align: right;
+  font-family: var(--font-mono);
+  font-size: 0.68rem;
+  font-variant-numeric: tabular-nums;
+  color: var(--color-text-muted);
+}
+.status-pct[data-level="part"] { color: var(--color-text); }
+.status-pct[data-level="full"] { color: var(--color-ok); }
+:root[data-theme="kiroween"] .status-slot[data-tone="danger"] { box-shadow: 0 0 5px -1px var(--color-danger); }
+:root[data-theme="kiroween"] .status-slot[data-tone="ok"] { opacity: 0.85; }
+@container (max-width: 300px) {
+  .status-row { grid-template-columns: minmax(3rem, 30%) minmax(0, 1fr); }
+  .status-pct { display: none; }
+}
+@container (max-width: 170px) {
+  .status-row { grid-template-columns: minmax(0, 1fr); gap: 0.2rem; }
 }

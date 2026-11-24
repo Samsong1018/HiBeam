@@ -12,8 +12,8 @@ const MAX_PASSWORD_BYTES = 72;
 const MIN_NEW_PASSWORD_BYTES = 10;
 
 const CHART_TYPES = ['line', 'bar', 'pie', 'kpi', 'table'];
-const SOURCE_TYPES = ['excel', 'scrape', 'logs', 'rest', 'sql', 'json'];
-const WIDGET_TYPE_IDS = ['line', 'bar', 'pie', 'kpi', 'table', 'text', 'label'];
+const SOURCE_TYPES = ['excel', 'scrape', 'logs', 'rest', 'sql', 'json', 'csv', 'prometheus'];
+const WIDGET_TYPE_IDS = ['line', 'bar', 'pie', 'kpi', 'gauge', 'status', 'table', 'text', 'label'];
 const GRID_COLUMNS = [24, 48, 72, 96];
 
 const isString = (v) => typeof v === 'string';
@@ -173,6 +173,8 @@ const bindingSchema = z.object({
   xField: z.string().max(120).optional(),
   yField: z.string().max(120).optional(),
   agg: z.string().max(10).optional(),
+  // bar charts: draw this series as bars (default) or as a line over them
+  as: z.enum(['bar', 'line']).optional(),
 }).strict();
 
 const widgetSchema = z.object({

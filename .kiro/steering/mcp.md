@@ -17,6 +17,8 @@ The `hibeam` MCP server (`mcp/hibeam-server.mjs`) logs in as a real HiBeam accou
 - Bind KPIs for rates and balances with `agg: "last"`. Never `sum` an id or a status code.
 - Use the template's widget ids, so a later `update_dashboard` diff stays small.
 - For live sources with a timestamp column, set `quietAfter` (minutes) and an explicit `quietField`, so the widget shows "gone quiet" when the source stops reporting. Public links only get the columns a board uses, so don't rely on auto-detect.
+- Time-series from a log or agent: set `bucket` on the line chart so outages show as gaps. CPU, memory and disk lines get `thresholds` that match the KPI's `warnAt` / `alertAt`.
+- A pie with more than about 6 slices gets `topN`. Levels like net worth get `zeroBased: false`.
 - `delete_*` only when the user names the thing to delete.
 
 The two templates, for the shape a finished board has:

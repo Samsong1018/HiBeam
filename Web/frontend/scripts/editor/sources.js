@@ -39,6 +39,17 @@ export function createSourceRegistry() {
       emit();
     },
 
+    // Upload a new workbook for an excel source. The old rows (and lastGood)
+    // are dropped so nothing keeps showing last month's data, and listeners
+    // are told so the inspector rebuilds its field pickers from fresh rows.
+    async replaceFile(id, file) {
+      await api.replaceSourceFile(id, file);
+      this.invalidate(id);
+      lastGood.delete(id);
+      sources = sources.map((s) => (s.id === id ? { ...s, status: 'untested' } : s));
+      emit();
+    },
+
     // Shared promise so five widgets on one source make one request.
     rows(id) {
       if (!id) return Promise.resolve([]);

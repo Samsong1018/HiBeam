@@ -24,6 +24,7 @@ The `hibeam` MCP server logs in as a real HiBeam account and works on that accou
 - KPIs for rates, percentages and balances use `agg: "last"`. Never `sum` an id, a status code or a percentage.
 - Newest-first feeds set `reverseData: true`, so lines read left to right and "Latest" is the newest row.
 - Status fields (`status`, `state`, HTTP codes) get coloured by meaning automatically. Bind them as categories (pie or bar with `agg: "count"`), not as numbers.
+- Widget types: `line`, `bar`, `pie`, `kpi`, `gauge`, `status`, `table`, `text`, `label`. Use `gauge` for a level against a known limit (CPU %, disk %, share of budget spent) with `agg: "last"`. Use `status` (uptime strip) for a per-service up/down history: `xField` is the service name, `yField` the status column.
 - Keep a template's widget ids when you update, so the diff stays small and reviewable.
 - `delete_*` only when the user names the thing to delete.
 
@@ -34,6 +35,16 @@ The `hibeam` MCP server logs in as a real HiBeam account and works on that accou
 | `refresh` | data widgets | 0, 30, 60, 300 or 900 seconds. The viewer refetches while the tab is visible |
 | `warnAt`, `alertAt`, `higherIs` | kpi | Amber/red thresholds. `higherIs: "bad"` for CPU or spending, `"good"` for savings |
 | `showDelta` | kpi | Change since the previous row (▲ / ▼) |
+| `zeroBased` | line, bar | Start the value axis at zero (default `true`). Set `false` for levels that move a little, like net worth or a price, or the line looks flat |
+| `prefix`, `suffix`, `compact` | line, bar | Units on the axis and tooltips (`$`, `%`). `compact: true` shows 60000 as 60k |
+| `bucket` | line, bar | Group a timestamp x field by `minute`, `hour`, `day`, `week` or `month`. Empty periods show as gaps, so an agent that went silent is visible. Needs full timestamps, not clock labels like `18:01` |
+| `sort`, `topN` | bar | Order bars (`desc`, `asc`) and keep the top N. Ignored on a time-grouped axis |
+| `topN` | pie | Keep the N biggest slices and fold the rest into "Other". Use it when a pie has more than about 6 slices |
+| `as` (per binding) | bar | `"line"` draws that series as a line over the bars, e.g. budget as a line vs actual as bars. Needs 2+ series, ignored when horizontal |
+| `sparkline` | kpi | Small trend line of the rows under the number, in the alert colour once a threshold trips |
+| `min`, `max` | gauge | Ends of the half-donut (default 0 and 100). The arc clamps to them, the number shows the real value. `warnAt` / `alertAt` / `higherIs` work as on a kpi and colour the arc |
+| `slots`, `timeField` | status | Uptime strip: one row per service (`xField`) with its last 15, 30, 60 or 90 checks of `yField`, coloured up/degraded/down, plus an uptime %. Set `timeField` to order checks by time; empty means row order |
+| `thresholds` | line | Up to 3 dashed reference lines: `[{ "value": 90, "label": "CPU limit", "tone": "danger" }]`. Tone is `warn`, `danger` or `ok`; the y axis stretches to show them |
 | `quietAfter`, `quietField` | data widgets | **Gone quiet.** Minutes (5, 15, 60, 1440, 10080, 44640). When the newest timestamp in `quietField` is older than that, the widget fades and a ghost says when the source last reported. A failed refresh does the same on its own |
 | `theme: "kiroween"` | board | Halloween palette for everyone who opens the board |
 

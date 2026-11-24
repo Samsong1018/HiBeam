@@ -7,9 +7,29 @@
 
 import { h, clear, toast, setLoading } from './dom.js';
 import { SOURCE_TYPES, SOURCE_TYPE_BY_ID } from './source-types.js';
+import { SPREADSHEET_ACCEPT, MAX_SOURCE_FILE_BYTES as MAX_FILE_BYTES, checkSpreadsheetFile } from './source-file.js';
 
 const MAX_NAME = 60;
-const MAX_FILE_BYTES = 5 * 1024 * 1024; // matches the server's upload limit
+const SVG_NS = 'http://www.w3.org/2000/svg';
+
+// small "upload" arrow for the Replace file button
+function replaceIcon() {
+  const svg = document.createElementNS(SVG_NS, 'svg');
+  svg.setAttribute('viewBox', '0 0 16 16');
+  svg.setAttribute('width', '14');
+  svg.setAttribute('height', '14');
+  svg.setAttribute('aria-hidden', 'true');
+  svg.setAttribute('focusable', 'false');
+  const path = document.createElementNS(SVG_NS, 'path');
+  path.setAttribute('d', 'M8 10.5V2.5M4.75 5.75 8 2.5l3.25 3.25M2.75 10.5v2.75h10.5V10.5');
+  path.setAttribute('fill', 'none');
+  path.setAttribute('stroke', 'currentColor');
+  path.setAttribute('stroke-width', '1.5');
+  path.setAttribute('stroke-linecap', 'round');
+  path.setAttribute('stroke-linejoin', 'round');
+  svg.append(path);
+  return svg;
+}
 
 function isHttpUrl(value) {
   try {
@@ -20,7 +40,9 @@ function isHttpUrl(value) {
   }
 }
 
-export function createSourcePanel({ listEl, addButton, dialog, registry, store }) {
+// onSourceReplaced(id): called after a new spreadsheet uploads, so the
+// canvas can redraw the widgets bound to that source.
+export function createSourcePanel({ listEl, addButton, dialog, registry, store, onSourceReplaced }) {
   const form = dialog.querySelector('form');
   const nameInput = form.querySelector('#source-name');
   const typeGroup = form.querySelector('#source-type-group');
@@ -58,13 +80,72 @@ export function createSourcePanel({ listEl, addButton, dialog, registry, store }
     sources.forEach((source) => {
       const type = SOURCE_TYPE_BY_ID[source.type];
       const used = usageCount(source.id);
-      listEl.append(h('li', { class: 'side-source' },
+      const busy = uploading.has(source.id);
+      const meta = busy ? 'Uploading…' : `${type?.label || source.type}${used ? ` · ${used} in use` : ''}`;
+      listEl.append(h('li', { class: `side-source${busy ? ' is-busy' : ''}`, 'aria-busy': busy ? 'true' : undefined },
         h('span', { class: 'source-chip', 'aria-hidden': 'true' }, type?.short || '···'),
         h('span', { class: 'side-source-text' },
           h('span', { class: 'side-source-name' }, source.name),
-          h('span', { class: 'side-source-meta' }, `${type?.label || source.type}${used ? ` · ${used} in use` : ''}`)),
-        h('button', { type: 'button', class: 'side-source-remove', 'aria-label': `Remove ${source.name}`, onclick: () => remove(source) }, '×')));
+          h('span', { class: 'side-source-meta' }, meta)),
+        h('span', { class: 'side-source-actions' },
+          source.type === 'excel' && replaceControl(source, busy),
+          h('button', { type: 'button', class: 'side-source-remove', 'aria-label': `Remove ${source.name}`, onclick: () => remove(source) }, '×'))));
     });
+    if (refocusId) {
+      listEl.querySelector(`.side-source-replace[data-source-id="${CSS.escape(refocusId)}"]`)?.focus();
+      refocusId = null;
+    }
+  }
+
+  // ----------------------------------------------------------
+  // Replace a spreadsheet's file in place (keeps the id, so every
+  // widget bound to it stays bound)
+  // ----------------------------------------------------------
+  const uploading = new Set(); // source ids with an upload in flight
+  let refocusId = null;
+
+  function replaceControl(source, busy) {
+    const input = h('input', { type: 'file', accept: SPREADSHEET_ACCEPT, hidden: true, tabindex: '-1', 'aria-hidden': 'true' });
+    input.addEventListener('change', () => {
+      const file = input.files[0];
+      input.value = ''; // picking the same file again should still fire change
+      if (file) replaceFile(source, file);
+    });
+    const button = h('button', {
+      type: 'button',
+      class: `side-source-replace${busy ? ' is-loading' : ''}`,
+      'aria-label': busy ? `Uploading a new file for ${source.name}` : `Replace file for ${source.name}`,
+      title: 'Replace file',
+      disabled: busy,
+      dataset: { sourceId: source.id },
+      onclick: () => input.click(),
+    }, replaceIcon());
+    return [button, input];
+  }
+
+  async function replaceFile(source, file) {
+    if (uploading.has(source.id)) return;
+    const problem = checkSpreadsheetFile(file);
+    if (problem) {
+      toast(`Couldn't update ${source.name}. ${problem}`, true);
+      return;
+    }
+    uploading.add(source.id);
+    renderList();
+    try {
+      await registry.replaceFile(source.id, file); // emits, which re-renders the list and inspector
+      toast(`Updated ${source.name}`);
+      onSourceReplaced?.(source.id);
+    } catch (err) {
+      const reason = err instanceof Error && err.message ? err.message : 'The upload failed.';
+      toast(`Couldn't update ${source.name}. ${reason}`, true);
+    } finally {
+      uploading.delete(source.id);
+      // put focus back on the button, unless the user has moved on elsewhere
+      const active = document.activeElement;
+      if (!active || active === document.body || listEl.contains(active)) refocusId = source.id;
+      renderList();
+    }
   }
 
   registry.subscribe(renderList);

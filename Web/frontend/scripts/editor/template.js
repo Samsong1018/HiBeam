@@ -33,6 +33,7 @@ function fieldsUsed(widget, binding) {
   const c = widget.config || {};
   return [binding.xField, binding.agg === 'count' ? '' : binding.yField,
     ...(widget.type === 'table' && Array.isArray(c.columns) ? c.columns : []),
+    widget.type === 'status' ? c.timeField : '',
     Number(c.quietAfter) > 0 ? c.quietField : '']
     .filter((f) => typeof f === 'string' && f);
 }

@@ -7,7 +7,7 @@
 // ============================================================
 
 import { WIDGET_TYPES } from './widget-types.js';
-import { scaleSize, toNumber } from './data.js';
+import { scaleSize, toNumber, parseTime } from './data.js';
 
 const SAMPLE_SIZE = 100;
 const MAX_FIELD_NAME = 120; // normalizeBinding cuts xField/yField at 120
@@ -20,6 +20,11 @@ const MAX_KPIS = 3;
 const MAX_SERIES = 3;
 const MAX_PIE_SLICES = 6;
 const ORDERED_SHARE = 0.8;
+// time bucketing on log-like line charts: enough rows, and timestamps with a clock
+const BUCKET_MIN_ROWS = 20;
+const BUCKET_MAX_COUNT = 360;
+const HAS_CLOCK = /^\d{4}-\d{2}-\d{2}[T ]\d{2}:\d{2}/;
+const BUCKET_SIZES = [['minute', 6e4], ['hour', 36e5], ['day', 864e5], ['week', 6048e5], ['month', 26784e5]];
 
 const ISO_DATE = /^\d{4}-\d{2}-\d{2}([T ]\d{2}:\d{2}(:\d{2}(\.\d+)?)?(Z|[+-]\d{2}:?\d{2})?)?$/;
 const SLASH_DATE = /^\d{4}\/\d{2}\/\d{2}$/;
@@ -172,12 +177,32 @@ function pickKpis(ctx) {
   }));
 }
 
-function lineOver(ctx, xField, reverse) {
+// A log-like timestamp column (many rows, values with a clock) gets a time
+// bucket: the smallest one at least as wide as the typical gap between rows,
+// widened until the sample's span fits in BUCKET_MAX_COUNT buckets.
+// 'none' otherwise, so daily or monthly tables keep their plain axis.
+function pickBucket(rows, field) {
+  if (rows.length < BUCKET_MIN_ROWS) return 'none';
+  const present = rows.map((r) => r[field]).filter(isPresent);
+  if (!present.every((v) => typeof v === 'string' && HAS_CLOCK.test(v))) return 'none';
+  const times = [...new Set(present.map(parseTime).filter((t) => t !== null))].sort((a, b) => a - b);
+  if (times.length < 2) return 'none';
+  const gaps = times.slice(1).map((t, i) => t - times[i]).sort((a, b) => a - b);
+  const typical = gaps[Math.floor(gaps.length / 2)];
+  const span = times[times.length - 1] - times[0];
+  const fit = BUCKET_SIZES.find(([, size]) => size >= typical && span / size <= BUCKET_MAX_COUNT);
+  return fit ? fit[0] : 'none';
+}
+
+function lineOver(ctx, xField, reverse, bucket = 'none') {
   const ys = ctx.measures.slice(0, MAX_SERIES);
   return widget('line', ctx.makeId, {
     title: cut(`${ys.map((f) => f.name).join(', ')} over ${xField}`),
     bindings: ys.map((f) => binding(ctx.sourceId, { xField, yField: f.name, agg: chartAgg(f.name) })),
     reverseData: reverse,
+    ...(bucket !== 'none' ? { bucket } : {}),
+    // levels like net worth or a price sit far from zero; a zero baseline flattens them
+    ...(ys.length && ys.every((f) => IS_STOCK(f.name)) ? { zeroBased: false } : {}),
   });
 }
 
@@ -206,7 +231,7 @@ function categoryCharts(ctx, cat) {
 function pickCharts(ctx, { time, category, label }) {
   if (ctx.rowCount < 2) return [];
   const out = [];
-  if (time && ctx.measures.length) out.push(lineOver(ctx, time.name, isDescending(ctx.rows, time.name)));
+  if (time && ctx.measures.length) out.push(lineOver(ctx, time.name, isDescending(ctx.rows, time.name), pickBucket(ctx.rows, time.name)));
   if (category) out.push(...categoryCharts(ctx, category));
   if (!time && !category && label && ctx.measures.length) {
     if (label.ordered) out.push(lineOver(ctx, label.name, false));
