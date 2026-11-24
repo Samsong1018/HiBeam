@@ -225,7 +225,7 @@ function CreateAuthRouter(pDeps)
                 );
             });
             // No mail service: the link goes to the server console.
-            tmpLogger.log(`[auth] password reset link for ${tmpEmail}: ${GetBaseUrl()}/pages/login.html?reset=${tmpReset.token}`);
+            tmpLogger.log(`[auth] password reset link for ${tmpEmail}: ${GetBaseUrl()}/login?reset=${tmpReset.token}`);
         }
 
         return tmpEnvelope.ok(pRes, 200, { message: FORGOT_MESSAGE });

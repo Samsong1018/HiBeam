@@ -76,10 +76,10 @@ function BuildCard(pDash)
 {
     const tmpLi = document.createElement("li");
 
-    // Clickable body → view.html
+    // Clickable body → /view/<id>
     const tmpLink = document.createElement("a");
     tmpLink.className  = "card-body";
-    tmpLink.href       = `view.html?id=${encodeURIComponent(pDash.id)}`;
+    tmpLink.href       = `/view/${encodeURIComponent(pDash.id)}`;
 
     const tmpName = document.createElement("h2");
     tmpName.className  = "card-name";
@@ -113,7 +113,7 @@ function BuildCard(pDash)
 
     const tmpEdit = document.createElement("a");
     tmpEdit.className   = "btn btn-ghost card-edit";
-    tmpEdit.href        = `edit.html?id=${encodeURIComponent(pDash.id)}`;
+    tmpEdit.href        = `/edit/${encodeURIComponent(pDash.id)}`;
     tmpEdit.textContent = "Edit";
     tmpEdit.setAttribute("aria-label", `Edit ${pDash.name}`);
 
@@ -238,7 +238,7 @@ async function CreateDashboard(pButton)
 
         const tmpPayload = await tmpRes.json();
         const tmpId = tmpPayload.data?.id ?? tmpPayload.id;
-        window.location.href = `edit.html?id=${encodeURIComponent(tmpId)}`;
+        window.location.href = `/edit/${encodeURIComponent(tmpId)}`;
     }
     catch (tmpErr)
     {
@@ -259,7 +259,7 @@ async function LoadDashboards()
 
         if (tmpRes.status === 401)
         {
-            window.location.href = "login.html";
+            window.location.href = "/login";
             return;
         }
 
@@ -287,7 +287,7 @@ async function SignOut()
     {
         // best-effort
     }
-    window.location.href = "login.html";
+    window.location.href = "/login";
 }
 
 // ── Wire events ───────────────────────────────────────────────────────────────

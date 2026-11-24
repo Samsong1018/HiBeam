@@ -422,7 +422,7 @@ document.getElementById('signout-all-btn').addEventListener('click', async (even
   setLoading(button, true);
   try {
     await accountApi.revokeAllSessions();
-    window.location.href = 'login.html';
+    window.location.href = '/login';
   } catch (err) {
     setLoading(button, false);
     toast('Couldn\'t sign out other devices', true);
@@ -450,7 +450,7 @@ deleteForm.addEventListener('submit', async (event) => {
   setLoading(deleteButton, true);
   try {
     await accountApi.deleteAccount();
-    window.location.href = 'login.html';
+    window.location.href = '/login';
   } catch (err) {
     setLoading(deleteButton, false);
     toast('Couldn\'t delete your account', true);
@@ -577,7 +577,7 @@ async function LoadAccount()
   {
     if (tmpErr && tmpErr.status === 401)
     {
-      window.location.href = 'login.html';
+      window.location.href = '/login';
       return;
     }
     console.error('Could not load account:', tmpErr);
@@ -615,7 +615,7 @@ async function LoadSources()
   {
     if (tmpErr && tmpErr.status === 401)
     {
-      window.location.href = 'login.html';
+      window.location.href = '/login';
       return;
     }
     console.error('Could not load sources:', tmpErr);

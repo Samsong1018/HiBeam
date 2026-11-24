@@ -8,7 +8,7 @@ import fc from 'fast-check';
 
 const require = createRequire(import.meta.url);
 const express = require('express');
-const { pageMeta, buildMeta, renderPage, pageTitle, normalizeBaseUrl, escapeHtml, MARKER, PAGES } = require('../Web/backend/lib/page-meta.js');
+const { pageMeta, buildMeta, renderPage, pageTitle, matchRoute, legacyRedirect, normalizeBaseUrl, escapeHtml, MARKER, PAGES } = require('../Web/backend/lib/page-meta.js');
 
 const FRONTEND = path.join(import.meta.dirname, '../Web/frontend');
 const PUBLIC_ID = 'abc123DEF456';
@@ -59,11 +59,11 @@ test('normalizeBaseUrl keeps http(s) origins and drops anything else', () => {
 });
 
 test('buildMeta uses absolute URLs when a base URL is set', () => {
-  const html = buildMeta({ baseUrl: 'https://dash.example.com', title: 'Log in', url: '/pages/login.html', index: true });
+  const html = buildMeta({ baseUrl: 'https://dash.example.com', title: 'Log in', url: '/login', index: true });
   assert.match(html, /property="og:image" content="https:\/\/dash\.example\.com\/og-image\.jpg"/);
   assert.match(html, /property="og:title" content="Log in · HiBeam"/);
   assert.match(html, /name="twitter:card" content="summary_large_image"/);
-  assert.match(html, /rel="canonical" href="https:\/\/dash\.example\.com\/pages\/login\.html"/);
+  assert.match(html, /rel="canonical" href="https:\/\/dash\.example\.com\/login"/);
   assert.match(html, /name="robots" content="index, follow"/);
 });
 
@@ -93,28 +93,30 @@ test('renderPage swaps the marker and the <title>', () => {
 });
 
 test('a public board link gets the board name and widget count', async () => {
-  const { status, body, type } = await fetchPage(async (id) => (id === PUBLIC_ID ? BOARD : null), `/pages/view.html?id=${PUBLIC_ID}`);
+  const { status, body, type } = await fetchPage(async (id) => (id === PUBLIC_ID ? BOARD : null), `/view/${PUBLIC_ID}`);
   assert.equal(status, 200);
   assert.match(type, /text\/html/);
   assert.match(body, /<title>Homelab &lt;Ops&gt; · HiBeam<\/title>/);
   assert.match(body, /property="og:title" content="Homelab &lt;Ops&gt; · HiBeam"/);
   assert.match(body, /A live dashboard with 3 widgets/);
-  assert.match(body, new RegExp(`property="og:url" content="https://dash\\.example\\.com/pages/view\\.html\\?id=${PUBLIC_ID}"`));
+  assert.match(body, new RegExp(`property="og:url" content="https://dash\\.example\\.com/view/${PUBLIC_ID}"`));
   assert.ok(!body.includes(MARKER));
 });
 
 test('a private or unknown board gets the same generic tags', async () => {
-  const priv = await fetchPage(async () => null, `/pages/view.html?id=${PUBLIC_ID}`);
-  const none = await fetchPage(async () => null, '/pages/view.html');
+  const priv = await fetchPage(async () => null, `/view/${PUBLIC_ID}`);
+  const none = await fetchPage(async () => null, '/view/dash_doesNotExist1');
   assert.match(priv.body, /<title>Dashboard · HiBeam<\/title>/);
-  assert.equal(priv.body, none.body);
+  // only og:url / canonical (the requested address) may differ
+  const strip = (b) => b.replace(/\/view\/[^"]+"/g, '/view/X"');
+  assert.equal(strip(priv.body), strip(none.body));
 });
 
 test('an invalid id never reaches the database', async () => {
   let calls = 0;
   const lookup = async () => { calls += 1; return BOARD; };
   for (const id of ['../etc', '%00', 'a'.repeat(500), "x' OR 1=1"]) {
-    const { body } = await fetchPage(lookup, `/pages/view.html?id=${encodeURIComponent(id)}`);
+    const { body } = await fetchPage(lookup, `/view/${encodeURIComponent(id)}`);
     assert.match(body, /<title>Dashboard · HiBeam<\/title>/);
   }
   assert.equal(calls, 0);
@@ -124,7 +126,7 @@ test('a failing lookup still serves the page', async () => {
   const original = console.error;
   console.error = () => {};
   try {
-    const { status, body } = await fetchPage(async () => { throw new Error('db down'); }, `/pages/view.html?id=${PUBLIC_ID}`);
+    const { status, body } = await fetchPage(async () => { throw new Error('db down'); }, `/view/${PUBLIC_ID}`);
     assert.equal(status, 200);
     assert.match(body, /<title>Dashboard · HiBeam<\/title>/);
   } finally {
@@ -133,8 +135,57 @@ test('a failing lookup still serves the page', async () => {
 });
 
 test('unlisted paths fall through to the next handler', async () => {
-  for (const p of ['/pages/nope.html', '/pages/../favicon.svg', '/style/style.css', '/pages/']) {
+  for (const p of ['/pages/nope.html', '/style/style.css', '/pages/', '/view', '/view/a/b', '/login/x', '/home']) {
     const { body } = await fetchPage(async () => null, p);
     assert.equal(body, 'fallthrough', p);
+  }
+});
+
+test('clean URLs map to their pages and capture the board id', () => {
+  assert.deepEqual(matchRoute('/'), { page: 'home.html', id: null });
+  assert.deepEqual(matchRoute('/login'), { page: 'login.html', id: null });
+  assert.deepEqual(matchRoute('/login/'), { page: 'login.html', id: null });
+  assert.deepEqual(matchRoute('/account'), { page: 'account.html', id: null });
+  assert.deepEqual(matchRoute('/edit'), { page: 'edit.html', id: null });
+  assert.deepEqual(matchRoute('/edit/dash_abc'), { page: 'edit.html', id: 'dash_abc' });
+  assert.deepEqual(matchRoute('/view/dash_abc'), { page: 'view.html', id: 'dash_abc' });
+  assert.deepEqual(matchRoute('/view/%E0%A4%A'), { page: 'view.html', id: '' });
+  for (const p of ['/view', '/home', '/pages/home.html', '/view/a/b', '/style/style.css']) assert.equal(matchRoute(p), null, p);
+});
+
+test('old /pages/*.html links move to the clean URL, keeping other query params', () => {
+  assert.equal(legacyRedirect('/pages/home.html'), '/');
+  assert.equal(legacyRedirect('/index.html'), '/');
+  assert.equal(legacyRedirect('/pages/login.html', { reset: 'tok' }), '/login?reset=tok');
+  assert.equal(legacyRedirect('/pages/account.html'), '/account');
+  assert.equal(legacyRedirect('/pages/view.html', { id: 'dash_abc' }), '/view/dash_abc');
+  assert.equal(legacyRedirect('/pages/view.html'), '/');
+  assert.equal(legacyRedirect('/pages/edit.html', { id: 'dash_abc', x: '1' }), '/edit/dash_abc?x=1');
+  assert.equal(legacyRedirect('/pages/edit.html'), '/edit');
+  assert.equal(legacyRedirect('/pages/view.html', { id: 'a/../b' }), '/view/a%2F..%2Fb');
+  for (const p of ['/pages/nope.html', '/view/x', '/', '/pages/']) assert.equal(legacyRedirect(p), null, p);
+});
+
+test('the middleware 301s old links and serves the clean ones', async () => {
+  const { server, url } = await serve(async () => null);
+  try {
+    const old = await fetch(`${url}/pages/view.html?id=${PUBLIC_ID}`, { redirect: 'manual' });
+    assert.equal(old.status, 301);
+    assert.equal(old.headers.get('location'), `/view/${PUBLIC_ID}`);
+    for (const p of ['/', '/login', '/account', '/edit', `/edit/${PUBLIC_ID}`, `/view/${PUBLIC_ID}`]) {
+      const res = await fetch(url + p, { redirect: 'manual' });
+      assert.equal(res.status, 200, p);
+      assert.match(res.headers.get('content-type'), /text\/html/, p);
+    }
+  } finally {
+    server.close();
+  }
+});
+
+test('pages use root-absolute asset paths and clean links only', () => {
+  for (const name of Object.keys(PAGES)) {
+    const html = fs.readFileSync(path.join(FRONTEND, 'pages', name), 'utf8');
+    assert.doesNotMatch(html, /(href|src)="\.\.\//, name);
+    assert.doesNotMatch(html, /href="[a-z]+\.html/, name);
   }
 });

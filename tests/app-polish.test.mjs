@@ -18,13 +18,14 @@ async function withApp(app, fn) {
   }
 }
 
-test('/ and /index.html redirect to the dashboards page instead of a blank page', async () => {
+test('/ serves the dashboards page, and /index.html moves to /', async () => {
   await withApp(CreateApp(), async (base) => {
-    for (const path of ['/', '/index.html']) {
-      const res = await fetch(base + path, { redirect: 'manual' });
-      assert.equal(res.status, 302, path);
-      assert.equal(res.headers.get('location'), '/pages/home.html');
-    }
+    const home = await fetch(`${base}/`, { redirect: 'manual' });
+    assert.equal(home.status, 200);
+    assert.match(await home.text(), /<title>My Dashboards · HiBeam<\/title>/);
+    const old = await fetch(`${base}/index.html`, { redirect: 'manual' });
+    assert.equal(old.status, 301);
+    assert.equal(old.headers.get('location'), '/');
   });
 });
 
@@ -51,5 +52,16 @@ test('versioned avatar URLs are cacheable for a day; unversioned ones revalidate
       const res = await fetch(`${base}/api/account/avatar${query}`);
       assert.equal(res.headers.get('cache-control'), 'private, no-cache', query || '(none)');
     }
+  });
+});
+
+test('/view/<id> pages share the public dashboards rate limit', async () => {
+  await withApp(CreateApp(), async (base) => {
+    // the id is malformed, so no database lookup happens; only the limiter is exercised
+    let last;
+    for (let i = 0; i < 121; i += 1) last = await fetch(`${base}/view/not*valid`, { redirect: 'manual' });
+    assert.equal(last.status, 429);
+    const other = await fetch(`${base}/login`);
+    assert.equal(other.status, 200);
   });
 });

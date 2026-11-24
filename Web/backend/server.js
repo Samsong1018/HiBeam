@@ -86,15 +86,12 @@ function CreateApp()
     tmpApp.use(`/api/dashboards`, libRequireSession.requireSession(),
         OnlyFor(SOURCE_FETCH_PATHS.dashboards, tmpLimiters.sourceFetch), libDashboardsRoutes());
 
-    // the root has no page of its own: send people to their dashboards. home.html bounces
-    // to login.html when there's no session. Must come before static, which would serve index.html.
-    tmpApp.get([`/`, `/index.html`],
-        (pRequest, pResponse) =>
-        {
-            pResponse.redirect(302, `/pages/home.html`);
-        });
-
-    // pages get link-preview tags (Open Graph etc.) written into <head>; see lib/page-meta.js
+    // pages at clean URLs (/, /login, /account, /view/:id, /edit/:id) with link-preview tags
+    // written into <head>; old /pages/*.html links 301 to them. See lib/page-meta.js.
+    // Must come before static, which would serve index.html and the raw page files.
+    // /view/<id> looks up the board for its preview tags without a session, so it shares the
+    // per-IP limit of the public dashboards API.
+    tmpApp.use(`/view/`, tmpLimiters.publicDashboards);
     tmpApp.use(libPageMeta.pageMeta({ dir: libPath.join(__dirname, `../frontend`) }));
 
     // frontend

@@ -126,7 +126,7 @@ async function Main()
     }
 
     Log('');
-    Log(`Board: ${tmpClient.baseUrl}/pages/view.html?id=${encodeURIComponent(tmpState.dashboardId)}`);
+    Log(`Board: ${tmpClient.baseUrl}/view/${encodeURIComponent(tmpState.dashboardId)}`);
     Log(`Then Export → Export as PDF, and save it as ${PdfName(tmpReport)}`);
 }
 

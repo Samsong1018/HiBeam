@@ -1,27 +1,27 @@
 <!DOCTYPE html>
 <html lang="en">
     <head>
-        <script src="../scripts/theme.js"></script>
+        <script src="/scripts/theme.js"></script>
         <meta charset="UTF-8">
-        <link rel="icon" href="../favicon.svg" type="image/svg+xml">
-        <link rel="icon" href="../icon-192.png" type="image/png" sizes="192x192">
+        <link rel="icon" href="/favicon.svg" type="image/svg+xml">
+        <link rel="icon" href="/icon-192.png" type="image/png" sizes="192x192">
         <!--#meta-->
         <title>My Dashboards · HiBeam</title>
         <meta name="viewport" content="width=device-width, initial-scale=1">
         <link rel="preconnect" href="https://fonts.googleapis.com">
         <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
         <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400..600&family=JetBrains+Mono:wght@400..600&family=Work+Sans:wght@400..600&display=swap">
-        <link rel="stylesheet" href="../style/style.css">
-        <link rel="stylesheet" href="../style/general.css">
-        <link rel="stylesheet" href="../style/home.css">
+        <link rel="stylesheet" href="/style/style.css">
+        <link rel="stylesheet" href="/style/general.css">
+        <link rel="stylesheet" href="/style/home.css">
     </head>
     <body>
         <header class="site-header">
             <nav class="site-nav" aria-label="Main navigation">
-                <a class="site-logo" href="home.html">HiBeam</a>
+                <a class="site-logo" href="/">HiBeam</a>
                 <ul class="nav-links">
-                    <li><a href="home.html" aria-current="page">Dashboards</a></li>
-                    <li><a href="account.html">Account</a></li>
+                    <li><a href="/" aria-current="page">Dashboards</a></li>
+                    <li><a href="/account">Account</a></li>
                     <li><button type="button" class="nav-signout">Sign Out</button></li>
                 </ul>
             </nav>
@@ -56,7 +56,7 @@
                 <div class="home-state-actions">
                     <button type="button" class="btn btn-primary" id="empty-create-btn">Create your first dashboard</button>
                     <button type="button" class="btn btn-ghost" id="empty-import-btn" aria-haspopup="dialog">Import a layout</button>
-                    <a class="btn btn-ghost" href="account.html#sources">Connect a data source</a>
+                    <a class="btn btn-ghost" href="/account#sources">Connect a data source</a>
                 </div>
                 <p class="home-state-body home-state-note">Have a <code>dashboard.template.json</code>, like the ones in <code>APP1/</code> and <code>APP2/</code>? Import it and point each slot at one of your sources.</p>
             </div>
@@ -113,13 +113,13 @@
         <footer class="site-footer">
             <p class="footer-brand">HiBeam</p>
             <ul class="footer-links">
-                <li><a href="home.html">Dashboards</a></li>
-                <li><a href="account.html">Account</a></li>
+                <li><a href="/">Dashboards</a></li>
+                <li><a href="/account">Account</a></li>
             </ul>
             <p class="footer-copy">&copy; 2026 HiBeam</p>
         </footer>
 
-        <script src="../scripts/script.js" defer></script>
-        <script type="module" src="../scripts/home/import.js"></script>
+        <script src="/scripts/script.js" defer></script>
+        <script type="module" src="/scripts/home/import.js"></script>
     </body>
 </html>

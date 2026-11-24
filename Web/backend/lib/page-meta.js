@@ -7,11 +7,12 @@ const { isValidId } = require('./validators');
 /*
   Link-preview metadata (Open Graph, Twitter card, description, icons) for the HTML pages.
 
-  Each page in Web/frontend/pages has a `<!--#meta-->` marker in its <head>. This middleware
-  serves /pages/<name>.html with that marker swapped for the page's tags, so a crawler that
-  never runs JS (Slack, Discord, iMessage, X) still gets a title, description and image.
+  Pages are served at clean URLs (ROUTES below): /, /login, /account, /view/<id>, /edit[/<id>].
+  Each page in Web/frontend/pages has a `<!--#meta-->` marker in its <head> that is swapped for
+  the page's tags, so a crawler that never runs JS (Slack, Discord, iMessage, X) still gets a
+  title, description and image. Old /pages/<name>.html links get a 301 to the clean URL.
 
-  view.html?id=<public dashboard> gets the board's own name. Private or missing boards get the
+  /view/<public dashboard> gets the board's own name. Private or missing boards get the
   generic tags, so a preview never says whether a private id exists.
 
   Absolute URLs come from APP_BASE_URL. Without it the tags use root-relative paths, which most
@@ -27,14 +28,26 @@ const THEME_COLOR = '#1d1823';
 
 // url: canonical path; index: whether search engines may index it
 const PAGES = Object.freeze({
-  'login.html': { title: 'Log in', url: '/pages/login.html', index: true },
+  'login.html': { title: 'Log in', url: '/login', index: true },
   'home.html': { title: 'My Dashboards', url: '/', index: true },
-  'view.html': { title: 'Dashboard', url: '/pages/view.html', index: false },
-  'edit.html': { title: 'Edit dashboard', url: '/pages/edit.html', index: false },
-  'account.html': { title: 'Account', url: '/pages/account.html', index: false },
+  'view.html': { title: 'Dashboard', url: '/view', index: false },
+  'edit.html': { title: 'Edit dashboard', url: '/edit', index: false },
+  'account.html': { title: 'Account', url: '/account', index: false },
 });
 
-const PAGE_PATTERN = /^\/pages\/([a-z]+\.html)$/;
+// clean URL -> page file. A captured group is the dashboard id (still validated before use).
+const ROUTES = Object.freeze([
+  { pattern: /^\/$/, page: 'home.html' },
+  { pattern: /^\/login\/?$/, page: 'login.html' },
+  { pattern: /^\/account\/?$/, page: 'account.html' },
+  { pattern: /^\/edit\/?$/, page: 'edit.html' },
+  { pattern: /^\/edit\/([^/]+)\/?$/, page: 'edit.html' },
+  { pattern: /^\/view\/([^/]+)\/?$/, page: 'view.html' },
+]);
+
+// old file URL -> clean URL; the ?id= query moves into the path
+const LEGACY_PATTERN = /^\/(?:pages\/([a-z]+)\.html|index\.html)$/;
+const LEGACY_TARGETS = Object.freeze({ home: '/', login: '/login', account: '/account', view: '/view', edit: '/edit' });
 const MAX_NAME = 120;
 
 function escapeHtml(value) {
@@ -126,7 +139,43 @@ async function publicBoardMeta(getPublic, rawId) {
   const description = count > 0
     ? `A live dashboard with ${count} widget${count === 1 ? '' : 's'}, built with HiBeam.`
     : 'A live dashboard built with HiBeam.';
-  return { title: name, description, url: `/pages/view.html?id=${encodeURIComponent(rawId)}` };
+  return { title: name, description, url: `/view/${encodeURIComponent(rawId)}` };
+}
+
+// Pure: which page a clean URL serves, or null. id is the raw (decoded) path segment, if any.
+function matchRoute(urlPath) {
+  for (const route of ROUTES) {
+    const m = route.pattern.exec(urlPath);
+    if (!m) continue;
+    if (m[1] === undefined) return { page: route.page, id: null };
+    try {
+      return { page: route.page, id: decodeURIComponent(m[1]) };
+    } catch (err) {
+      return { page: route.page, id: '' }; // malformed escape: the page shows "not found"
+    }
+  }
+  return null;
+}
+
+// Pure: the clean URL an old /pages/<name>.html link moves to, or null.
+// query is the parsed query object; anything besides id is kept (e.g. ?reset= on login).
+function legacyRedirect(urlPath, query = {}) {
+  const m = LEGACY_PATTERN.exec(urlPath);
+  if (!m) return null;
+  const target = LEGACY_TARGETS[m[1] || 'home'];
+  if (!target) return null;
+
+  const rest = new URLSearchParams();
+  for (const [key, value] of Object.entries(query)) {
+    if (key === 'id') continue;
+    for (const v of [].concat(value)) if (typeof v === 'string') rest.append(key, v);
+  }
+  const id = typeof query.id === 'string' && query.id !== '' ? query.id : null;
+  let location = target;
+  if (id && (target === '/view' || target === '/edit')) location = `${target}/${encodeURIComponent(id)}`;
+  else if (target === '/view') location = '/'; // a view link without a board goes to the list
+  const qs = rest.toString();
+  return qs ? `${location}?${qs}` : location;
 }
 
 /*
@@ -147,21 +196,27 @@ function pageMeta({ dir, baseUrl = process.env.APP_BASE_URL, getPublic } = {}) {
 
   return async function pageMetaMiddleware(req, res, next) {
     if (req.method !== 'GET' && req.method !== 'HEAD') return next();
-    const match = PAGE_PATTERN.exec(req.path);
-    const page = match && PAGES[match[1]];
-    if (!page) return next();
+
+    const moved = legacyRedirect(req.path, req.query);
+    if (moved) return res.redirect(301, moved);
+
+    const route = matchRoute(req.path);
+    if (!route) return next();
+    const page = PAGES[route.page];
 
     let html;
     try {
-      html = readPage(match[1]);
+      html = readPage(route.page);
     } catch (err) {
       return next();
     }
 
     let meta = { ...page, baseUrl: base };
-    if (match[1] === 'view.html' && req.query.id !== undefined) {
+    if (route.page === 'edit.html' && route.id) meta = { ...meta, url: `/edit/${encodeURIComponent(route.id)}` };
+    if (route.page === 'view.html' && route.id) {
+      meta = { ...meta, url: `/view/${encodeURIComponent(route.id)}` };
       try {
-        const board = await publicBoardMeta(lookup, req.query.id);
+        const board = await publicBoardMeta(lookup, route.id);
         if (board) meta = { ...meta, ...board };
       } catch (err) {
         // DB trouble: still serve the page with generic tags; the page reports its own errors
@@ -175,4 +230,7 @@ function pageMeta({ dir, baseUrl = process.env.APP_BASE_URL, getPublic } = {}) {
   };
 }
 
-module.exports = { pageMeta, buildMeta, renderPage, pageTitle, normalizeBaseUrl, publicBoardMeta, escapeHtml, MARKER, PAGES };
+module.exports = {
+  pageMeta, buildMeta, renderPage, pageTitle, normalizeBaseUrl, publicBoardMeta, matchRoute, legacyRedirect,
+  escapeHtml, MARKER, PAGES, ROUTES,
+};

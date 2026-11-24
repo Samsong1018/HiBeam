@@ -48,7 +48,7 @@ async function loadSources() {
   try {
     sources = await api.listSources();
   } catch (err) {
-    if (err?.status === 401) { window.location.assign('login.html'); return []; }
+    if (err?.status === 401) { window.location.assign('/login'); return []; }
     sources = null;
     throw err;
   }
@@ -129,9 +129,9 @@ async function onSubmit(e) {
   setLoading(els.submit, true);
   try {
     const created = await api.createDashboard(definition);
-    window.location.assign(`edit.html?id=${encodeURIComponent(created.id)}`);
+    window.location.assign(`/edit/${encodeURIComponent(created.id)}`);
   } catch (err) {
-    if (err?.status === 401) { window.location.assign('login.html'); return; }
+    if (err?.status === 401) { window.location.assign('/login'); return; }
     els.error.textContent = `Couldn't create the dashboard · ${err?.message || 'try again'}`;
     setLoading(els.submit, false);
   }

@@ -1,31 +1,31 @@
 <!DOCTYPE html>
 <html lang="en">
     <head>
-        <script src="../scripts/theme.js"></script>
+        <script src="/scripts/theme.js"></script>
         <!-- This is the read-only page for viewing and sharing a dashboard -->
 
         <meta charset="UTF-8">
-        <link rel="icon" href="../favicon.svg" type="image/svg+xml">
-        <link rel="icon" href="../icon-192.png" type="image/png" sizes="192x192">
+        <link rel="icon" href="/favicon.svg" type="image/svg+xml">
+        <link rel="icon" href="/icon-192.png" type="image/png" sizes="192x192">
         <!--#meta-->
         <title>Dashboard · HiBeam</title>
         <meta name="viewport" content="width=device-width, initial-scale=1">
         <link rel="preconnect" href="https://fonts.googleapis.com">
         <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
         <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400..600&family=JetBrains+Mono:wght@400..600&family=Work+Sans:wght@400..600&display=swap">
-        <link rel="stylesheet" href="../style/style.css">
-        <link rel="stylesheet" href="../style/general.css">
-        <link rel="stylesheet" href="../style/widgets.css">
-        <link rel="stylesheet" href="../style/view.css">
+        <link rel="stylesheet" href="/style/style.css">
+        <link rel="stylesheet" href="/style/general.css">
+        <link rel="stylesheet" href="/style/widgets.css">
+        <link rel="stylesheet" href="/style/view.css">
     </head>
     <body class="page-view">
         <!-- Shared nav: copy this <header> to every page -->
         <header class="site-header">
             <nav class="site-nav" aria-label="Main navigation">
-                <a class="site-logo" href="home.html">HiBeam</a>
+                <a class="site-logo" href="/">HiBeam</a>
                 <ul class="nav-links">
-                    <li><a href="home.html" aria-current="page">Dashboards</a></li>
-                    <li><a href="account.html">Account</a></li>
+                    <li><a href="/" aria-current="page">Dashboards</a></li>
+                    <li><a href="/account">Account</a></li>
                     <li><button type="button" class="nav-signout">Sign Out</button></li>
                 </ul>
             </nav>
@@ -33,7 +33,7 @@
 
         <main class="viewer" id="viewer" aria-busy="true">
             <header class="view-head">
-                <a class="view-back" href="home.html" aria-label="Back to dashboards">&larr;</a>
+                <a class="view-back" href="/" aria-label="Back to dashboards">&larr;</a>
                 <div class="view-heading">
                     <p class="eyebrow">Dashboard</p>
                     <h1 class="view-title" id="view-title">Loading…</h1>
@@ -64,8 +64,8 @@
         <footer class="site-footer">
             <p class="footer-brand">HiBeam</p>
             <ul class="footer-links">
-                <li><a href="home.html">Dashboards</a></li>
-                <li><a href="account.html">Account</a></li>
+                <li><a href="/">Dashboards</a></li>
+                <li><a href="/account">Account</a></li>
             </ul>
             <p class="footer-copy">&copy; 2026 HiBeam</p>
         </footer>
@@ -111,7 +111,7 @@
                 integrity="sha384-cdIgRLgsj7/96PN5gfNytJnHsoo2mpew4+UtLHdjtWkiOpKIiOfshwmWtwgXDjtq" crossorigin="anonymous"></script>
         <script src="https://cdn.jsdelivr.net/npm/jspdf@4.2.1/dist/jspdf.umd.min.js"
                 integrity="sha384-qovJwSBbRDPP5cEjCp8S0UP66wrvnjaa60XMOGzTNanrThcrGfXfnZkvgY8N1KT3" crossorigin="anonymous"></script>
-        <script src="../scripts/script.js" defer></script>
-        <script type="module" src="../scripts/view/main.js"></script>
+        <script src="/scripts/script.js" defer></script>
+        <script type="module" src="/scripts/view/main.js"></script>
     </body>
 </html>

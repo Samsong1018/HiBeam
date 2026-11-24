@@ -1,6 +1,6 @@
 // ============================================================
 // VIEW DASHBOARD · entry point
-// view.html?id=<id>  → read-only render of a saved dashboard
+// /view/<id>  → read-only render of a saved dashboard
 //
 // Reuses the editor's api, model, source registry and widget renderer,
 // so a dashboard looks the same here as it does on the canvas.
@@ -47,7 +47,7 @@ function showFatal(title, detail) {
     h('p', { class: 'eyebrow' }, 'Dashboard'),
     h('h1', {}, title),
     h('p', {}, detail),
-    h('a', { class: 'btn btn-primary', href: 'home.html' }, 'Back to dashboards')));
+    h('a', { class: 'btn btn-primary', href: '/' }, 'Back to dashboards')));
   els.viewer.removeAttribute('aria-busy');
 }
 
@@ -139,7 +139,7 @@ function createSharing({ id, isOwner, initialPublic }) {
   let isPublic = initialPublic;
   let busy = false;
 
-  els.url.value = new URL(`view.html?id=${encodeURIComponent(id)}`, window.location.href).href;
+  els.url.value = new URL(`/view/${encodeURIComponent(id)}`, window.location.href).href;
   els.switchRow.hidden = !isOwner;
 
   function paint() {
@@ -237,20 +237,27 @@ async function loadDashboard(id) {
 function showSignedOutNav() {
   const loginItem = () => {
     const a = document.createElement('a');
-    a.href = 'login.html';
+    a.href = '/login';
     a.textContent = 'Log in';
     const li = document.createElement('li');
     li.append(a);
     return li;
   };
   document.querySelectorAll('.nav-links, .footer-links').forEach((list) => list.replaceChildren(loginItem()));
-  document.querySelectorAll('.site-logo').forEach((logo) => { logo.href = 'login.html'; });
+  document.querySelectorAll('.site-logo').forEach((logo) => { logo.href = '/login'; });
   document.querySelector('.view-back')?.remove();
+}
+
+// /view/<id> -> '<id>'; anything else -> null. A malformed escape gives '' (fails ID_RE).
+function idFromPath() {
+  const segment = window.location.pathname.split('/')[2];
+  if (!segment) return null;
+  try { return decodeURIComponent(segment); } catch (err) { return ''; }
 }
 
 // ------------------------------------------------------------
 async function boot() {
-  const rawId = new URLSearchParams(window.location.search).get('id');
+  const rawId = idFromPath();
   if (!rawId || !ID_RE.test(rawId)) {
     showFatal('Dashboard not found', 'That link doesn\'t point to a dashboard.');
     return;
@@ -260,7 +267,7 @@ async function boot() {
   try {
     loaded = await loadDashboard(rawId);
   } catch (err) {
-    if (err?.status === 401) { window.location.assign('login.html'); return; }
+    if (err?.status === 401) { window.location.assign('/login'); return; }
     const notFound = err?.status === 404 || err?.status === 403;
     showFatal(notFound ? 'Dashboard not found' : 'Couldn\'t load this dashboard',
       notFound ? 'It may have been deleted, or it\'s private.' : 'Something went wrong. Try again in a moment.');
@@ -272,7 +279,7 @@ async function boot() {
   // backend returns { id, definition, updatedAt }; a bare definition is accepted too
   const dash = normalizeDashboard(raw?.definition ?? raw);
   const isOwner = raw?.isOwner === true; // missing flag = read-only, never show owner controls by default
-  const editHref = `edit.html?id=${encodeURIComponent(rawId)}`;
+  const editHref = `/edit/${encodeURIComponent(rawId)}`;
 
   document.title = `${dash.name} · HiBeam`;
   els.title.textContent = dash.name;

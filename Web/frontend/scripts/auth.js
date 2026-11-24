@@ -4,7 +4,7 @@
 (function () {
   'use strict';
 
-  const HOME = 'home.html';
+  const HOME = '/';
 
   // ---- rules mirrored from Web/backend/lib/validators.js ----
   const USERNAME_RE = /^[a-z0-9_]{3,24}$/;

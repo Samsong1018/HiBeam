@@ -1,7 +1,7 @@
 // ============================================================
 // EDIT DASHBOARD · entry point
-// edit.html            → new dashboard (created on first save)
-// edit.html?id=<id>    → load and edit an existing one
+// /edit         → new dashboard (created on first save)
+// /edit/<id>    → load and edit an existing one
 // ============================================================
 
 import { h, toast, setLoading, isTypingTarget, relativeTime, uid } from './dom.js';
@@ -42,7 +42,7 @@ function showFatal(title, detail) {
     h('p', { class: 'eyebrow' }, 'Editor'),
     h('h1', {}, title),
     h('p', {}, detail),
-    h('a', { class: 'btn btn-primary', href: 'home.html' }, 'Back to dashboards')));
+    h('a', { class: 'btn btn-primary', href: '/' }, 'Back to dashboards')));
   els.editor.classList.add('is-ready');
 }
 
@@ -56,7 +56,7 @@ async function loadDashboard(id) {
 
 function setPreview(id) {
   if (id) {
-    els.preview.href = `view.html?id=${encodeURIComponent(id)}`;
+    els.preview.href = `/view/${encodeURIComponent(id)}`;
     els.preview.removeAttribute('aria-disabled');
   } else {
     els.preview.removeAttribute('href');
@@ -81,10 +81,16 @@ function paintStatus(status = lastStatus) {
   els.status.dataset.state = status.state;
 }
 
+// /edit/<id> -> '<id>'; /edit -> null. A malformed escape gives '' (fails ID_RE).
+function idFromPath() {
+  const segment = window.location.pathname.split('/')[2];
+  if (!segment) return null;
+  try { return decodeURIComponent(segment); } catch (err) { return ''; }
+}
+
 // ------------------------------------------------------------
 async function boot() {
-  const params = new URLSearchParams(window.location.search);
-  const rawId = params.get('id');
+  const rawId = idFromPath();
   if (rawId !== null && !ID_RE.test(rawId)) {
     showFatal('Dashboard not found', 'That link doesn\'t point to a dashboard you can edit.');
     return;
@@ -95,7 +101,7 @@ async function boot() {
   try {
     [initial] = await Promise.all([loadDashboard(rawId), registry.load()]);
   } catch (err) {
-    if (err?.status === 401) { window.location.assign('login.html'); return; }
+    if (err?.status === 401) { window.location.assign('/login'); return; }
     const notFound = err?.status === 404 || err?.status === 403;
     showFatal(notFound ? 'Dashboard not found' : 'Couldn\'t open the editor',
       notFound ? 'It may have been deleted, or it isn\'t yours.' : 'Something went wrong loading this dashboard. Try again in a moment.');
@@ -145,9 +151,7 @@ async function boot() {
     id: rawId,
     onStatus: paintStatus,
     onCreated(id) {
-      const url = new URL(window.location.href);
-      url.searchParams.set('id', id);
-      window.history.replaceState(null, '', url);
+      window.history.replaceState(null, '', `/edit/${encodeURIComponent(id)}${window.location.search}`);
       setPreview(id);
     },
   });

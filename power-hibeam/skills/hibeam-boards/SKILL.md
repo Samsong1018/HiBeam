@@ -15,7 +15,7 @@ The `hibeam` MCP server logs in as a real HiBeam account and works on that accou
    - `generate_dashboard` for a rule-based draft. It returns a reason for every widget ("`cpuPct` is a rate, so show the latest value"). It only previews unless you pass `create`.
    - Or fill in a template: swap each `{{placeholder}}` source id for a real source id. `APP1/dashboard.template.json` is a live homelab status page, and `APP2/dashboard.template.json` is a monthly budget report.
 4. **Save.** `create_dashboard`, or `update_dashboard` with the full definition.
-5. **Look at it.** Get a screenshot from the user (or open `view.html?id=<id>`). Then `update_dashboard` to fix what reads badly: overlapping labels, a pie with too many slices, a KPI that sums a rate, a line chart drawn right to left.
+5. **Look at it.** Get a screenshot from the user (or open `/view/<id>`). Then `update_dashboard` to fix what reads badly: overlapping labels, a pie with too many slices, a KPI that sums a rate, a line chart drawn right to left.
 6. **Check the numbers.** `get_dashboard_data` and compare against `preview_source`.
 7. **Share** only when asked: `set_dashboard_visibility`.
 
