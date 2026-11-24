@@ -1,0 +1,11 @@
+{
+  "$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
+  "name": "hibeam",
+  "version": "1.0.0",
+  "description": "Build, check and share HiBeam dashboards from Kiro: connect sources, read real rows, draft a board with the rule-based generator, then fix what reads badly.",
+  "author": { "name": "Aesop, Alex, Amos" },
+  "keywords": ["hibeam", "dashboard", "board", "kpi", "chart", "status page", "homelab", "budget report", "data source"],
+  "homepage": "https://github.com/Samsong1018/KiroweenHackathon",
+  "repository": "https://github.com/Samsong1018/KiroweenHackathon",
+  "license": "MIT"
+}

@@ -14,10 +14,12 @@ Web/backend/lib/repos/          SQL, every query takes the owner id
 Web/backend/lib/connectors/     logs, scrape, spreadsheet, sql parsers
 Web/backend/lib/source-connector.js   All outbound fetches (SSRF guard lives here)
 Web/frontend/pages/             login, home, edit, view, account (.html)
-Web/frontend/scripts/editor/    Editor modules; pure ones (data, model, generator, kpi, semantic) are unit-tested
+Web/frontend/scripts/editor/    Editor modules; pure ones (data, model, generator, kpi, semantic, quiet, template) are unit-tested
 Web/frontend/scripts/view/      Read-only viewer, export
+Web/frontend/scripts/home/      Dashboards page: import a layout (.template.json)
 Web/frontend/style/style.css    Design tokens (light, dark, kiroween)
 mcp/hibeam-server.mjs           MCP server: Kiro reads and builds boards through it
+power-hibeam/                   The MCP server packaged as a Kiro power (plugin.json, mcp.json, a skill)
 APP1/                           Homelab Ops: metrics agent, deploy configs, template
 APP2/                           Monthly Money Report: workbook, template, monthly import script
 tests/                          *.test.mjs; property tests are named <spec>-p<N>-<topic>.test.mjs

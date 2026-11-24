@@ -8,6 +8,33 @@ Underneath is an ordinary dashboard tool you can also drive by hand: accounts, s
 
 **Who it's for:** anyone whose numbers live somewhere awkward and who wants them on one page without building a BI stack. That might be a developer watching their own server, someone in an office turning a weekly spreadsheet into a report, or someone tracking their own budget. If your data comes from an API, a database, a log, a web page or a spreadsheet, you can put it on a board, share a link to it, or export it as a PDF.
 
+### Who uses it
+
+| | The homelabber | The spreadsheet keeper | The small-team dev |
+|---|---|---|---|
+| Has | A box at home or a cheap VPS running a few services, plus nginx logs | A budget or a weekly report in Excel that gets updated by hand | A handful of internal APIs and a MySQL database, and no one assigned to "dashboards" |
+| Wants | A page to glance at, and a status page to give friends when something's down | The same numbers as a clean page or a PDF every month, without learning a BI tool | One board the team can open, kept in the repo next to the code |
+| Uses | REST and log sources refreshing every 30s, CPU/disk thresholds, a public link, "gone quiet" when the agent stops reporting | One `.xlsx` upload, the generator for a first draft, PDF export | Kiro and the MCP server to draft the board, layouts exported as JSON and reviewed in PRs |
+| Built as | [APP1: Homelab Ops](APP1/) | [APP2: Monthly Money Report](APP2/) | This repo's own workflow (see [Built with Kiro](#built-with-kiro)) |
+
+### Why not Grafana or Metabase?
+
+They're both better tools than HiBeam at what they were built for. HiBeam is for the cases where they're more setup than the job needs.
+
+| | HiBeam | Grafana | Metabase |
+|---|---|---|---|
+| Built for | Small mixed data: an API, a log, a sheet, a web page | Time-series metrics and logs at scale | Asking questions of a SQL database |
+| To get started you need | Node and a MySQL/MariaDB database for HiBeam itself | A metrics store (Prometheus, InfluxDB, Loki...) or a plugin per source type | A database to query. CSV uploads also land in a database you connect |
+| REST / JSON | Built in | Through a plugin such as Infinity | No native connector |
+| Excel / CSV | Upload a file | Through a plugin | CSV upload into a connected database |
+| Scrape a web page | Built in (CSS selector) | No | No |
+| First board | **Generate** reads the rows and lays one out, with a reason for each widget | You build each panel | X-rays suggest charts for a table |
+| An agent can build it | MCP server and a Kiro power, 17 tools | Possible through its HTTP API | Possible through its HTTP API |
+| Share | Public link, PNG, PDF, layout as JSON | Snapshots, public dashboards, PDF reporting in paid tiers | Public links, embedding, subscriptions |
+| Where it's stronger than HiBeam | | Alert routing, long retention, millions of points, a huge plugin ecosystem | Ad-hoc queries, joins, permissions for a whole company |
+
+If you already run Prometheus, use Grafana. If your company's data lives in a warehouse, use Metabase. If your numbers are in five different awkward places and you want one page by tonight, that's what HiBeam is for.
+
 ![The HiBeam viewer showing a sales dashboard with KPI tiles, a line chart, a pie chart, a bar chart and a table](docs/screenshots/viewer.png)
 
 ---
@@ -52,6 +79,8 @@ Drag-and-drop grid with **line, bar, pie, KPI, table, text, and label** widgets.
 - **KPI alerts.** Set a warn and an alert threshold, and say whether higher is good or bad. Past a threshold the number turns amber or red and the card gets a flag. Optionally show the change since the previous row (net worth ▲ $950).
 - **Colours that mean something.** Values like `dead`/`alive`, `failed`/`active`, or HTTP 200/404/503 on a status field are coloured by meaning (ok, warn, danger) in charts and tables, not by palette order.
 - **Tables never cut a row in half.** They show the rows that fit, plus a "+N more rows" button that switches to scrolling, so exports and screenshots stay clean.
+- **"Gone quiet" ghost widgets.** Pick a window (5 minutes to a month) and a timestamp column. When the newest row is older than that, the widget fades, its border goes dashed, and a little ghost says when the source last reported ("No new rows · last heard 14 min ago"). If a refresh fails outright, the widget keeps the last rows it had and says "Can't reach the source" instead of blanking. A dead agent reads as a dead agent, not a board full of zeros.
+- **States that say what's wrong.** Each widget has its own loading shimmer, a "Try again" button when a source fails, "No rows yet" when a source comes back empty, and `No "cpuPct" column` when a field it was bound to has disappeared.
 - **Themes.** Light, dark, and **Kiroween**. A board can carry its own theme, so a public Kiroween status page looks the same for everyone.
 
 **Generate** builds a board from your sources in one step. It reads each source's rows, works out what every column is (a date, a measure, a category, an axis like months or clock times, an ID, free text), and lays out a heading, up to three KPIs, the charts that fit and a table per source. Percentages and balances show their latest value instead of being summed, status codes and IDs are never added up, and newest-first feeds are flipped so lines read left to right. It's rule-based and runs in the browser, so the same rows always give the same board, and one Undo takes it back.
@@ -63,8 +92,12 @@ A read-only view of any dashboard. Flip it public and anyone with the link can s
 From the view page, click **Export** and choose:
 - **Export as PNG** — captures the full rendered board at 2× resolution and downloads it as a `.png`.
 - **Export as PDF** — wraps the same capture in a PDF page sized exactly to the board and downloads it as a `.pdf`.
+- **Layout as JSON** — downloads the board as a `.template.json` with no data in it. Each source id is swapped for a placeholder named after the source, like `{{metrics}}`.
 
 Charts, KPIs, tables, and all widget styles are captured as they appear on screen.
+
+### Templates
+**Import layout** on the dashboards page takes any `.template.json`: one you exported, or the ones in [`APP1/`](APP1/dashboard.template.json) and [`APP2/`](APP2/dashboard.template.json). HiBeam lists each placeholder with the widgets and fields it feeds, and picks your source when the names match. Slots you leave empty come in unbound, ready to connect in the editor. So you can rebuild either app's board without Kiro: connect the sources, import the template, done.
 
 ### Accounts
 Sign up and log in, profile and avatar, email change with confirmation, password reset, preferences, sign-out-everywhere, and account deletion.
@@ -134,6 +167,10 @@ This is how both applications were made. For each one, Kiro created and tested t
 The same tools work on any dashboard, so you can also ask Kiro things like "what is my CPU board showing right now?"
 
 To set it up, copy `mcp/.env.example` to `mcp/.env` and fill in a HiBeam account (a dedicated one is best), with HiBeam running. Kiro starts the server on its own. `autoApprove` is left empty on purpose, so every tool call, including deletes and uploads, waits for your OK.
+
+### Power
+
+[`power-hibeam/`](power-hibeam/) packages the same MCP server as a **Kiro power** in the Agent Plugins layout: `plugin.json` with activation keywords ("dashboard", "status page", "kpi"...), an `mcp.json` that starts the server, and a `hibeam-boards` skill holding the build → look → fix loop and the rules that keep numbers right. The `.kiro/` setup only works inside this repo. The power carries the tools into any Kiro workspace, and it only loads when someone asks for a board. Install it from the Powers panel with **Add Custom Power → Import power from a folder**. Details are in [`power-hibeam/README.md`](power-hibeam/README.md).
 
 ---
 
@@ -235,7 +272,7 @@ Open <http://localhost:8000>.
 npm test
 ```
 
-Tests don't need a database — they use in-memory fakes. There are 186 of them, 55 of which are `fast-check` property tests. 18 cover the APP1 agent, including one that runs its simulated log through HiBeam's real nginx parser, and the APP2 import tests run against the real sample workbook.
+Tests don't need a database — they use in-memory fakes. There are 207 of them, 57 of which are `fast-check` property tests. 18 cover the APP1 agent, including one that runs its simulated log through HiBeam's real nginx parser, and the APP2 import tests run against the real sample workbook.
 
 ---
 
@@ -259,12 +296,13 @@ Web/
     index.html
     pages/                 login · home · edit · view · account
     scripts/
-      editor/              Dashboard editor modules
+      editor/              Dashboard editor modules (pure ones like quiet.js and template.js are unit-tested)
       view/                Read-only viewer (including export.js)
+      home/                Dashboards page: import a layout
     style/
-    TODO.md                Frontend and project task list
 mcp/
   hibeam-server.mjs        MCP server that lets Kiro read and build sources and dashboards
+power-hibeam/              The MCP server packaged as a Kiro power, with its skill
 tests/                     node:test suites
 .kiro/                     Specs, steering, hooks, agents, a skill, and the MCP config
 APP1/                      Homelab Ops: metrics agent, deploy configs, dashboard template

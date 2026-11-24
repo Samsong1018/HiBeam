@@ -8,6 +8,7 @@
 import { h, clear, uid } from './dom.js';
 import { WIDGET_TYPES, COLOR_TOKENS, REFRESH_OPTIONS, iconSvg, isDataWidget } from './widget-types.js';
 import { AGGREGATIONS } from './data.js';
+import { QUIET_OPTIONS, findTimeField } from './quiet.js';
 import { COLUMN_OPTIONS, BOARD_THEMES, setGrid, setTheme, updateConfig, removeWidget, duplicateWidget } from './model.js';
 
 const NEW_SOURCE = '__new__';
@@ -208,6 +209,46 @@ export function createInspector({ el, store, registry, onSelect, openSourceDialo
   }
 
   // ----------------------------------------------------------
+  // Gone quiet: fade the widget when its newest row gets old
+  // ----------------------------------------------------------
+  function quietSection(widget) {
+    const [binding] = widget.config.bindings;
+    const { quietAfter, quietField } = widget.config;
+    const after = h('select', {
+      id: fieldId('quietAfter'), value: String(quietAfter),
+      onchange: async (e) => {
+        const minutes = Number(e.target.value);
+        const forId = selectedId;
+        // pin the column now, so public links (which only get the columns in use) can run the check too
+        let column = quietField;
+        if (minutes && !column && binding?.sourceId) column = findTimeField(await registry.rows(binding.sourceId).catch(() => []));
+        if (selectedId !== forId) return;
+        patch({ quietAfter: minutes, quietField: column });
+        render();
+      },
+    }, QUIET_OPTIONS.map((o) => h('option', { value: String(o.value) }, o.label)));
+
+    const parts = [field('Go quiet', after)];
+    if (quietAfter && binding?.sourceId) {
+      const slot = h('div', {}, h('p', { class: 'field-hint' }, 'Loading columns…'));
+      registry.rows(binding.sourceId).then((rows) => {
+        const names = [...new Set(rows.slice(0, 25).flatMap((r) => Object.keys(r || {})))];
+        const found = findTimeField(rows);
+        slot.replaceChildren(field('Time column', h('select', {
+          id: fieldId('quietField'), value: quietField,
+          onchange: (e) => patch({ quietField: e.target.value }),
+        },
+        h('option', { value: '' }, found ? `Find it (${found})` : 'Find it'),
+        names.map((n) => h('option', { value: n }, n))),
+        found || quietField ? null : 'No column here looks like a full date and time, so this check can\'t run yet.'));
+      }, () => slot.replaceChildren(h('p', { class: 'field-error' }, 'Couldn\'t load columns.')));
+      parts.push(slot);
+    }
+    parts.push(h('p', { class: 'field-hint' }, 'When the newest row is older than this, the widget fades and says when the source last reported. A failed refresh does the same on its own.'));
+    return section('Gone quiet', ...parts);
+  }
+
+  // ----------------------------------------------------------
   // Per-type settings
   // ----------------------------------------------------------
   function section(title, ...children) {
@@ -244,6 +285,7 @@ export function createInspector({ el, store, registry, onSelect, openSourceDialo
       'title' in widget.config && section('General', textField('Title', 'title', { placeholder: 'Untitled' })),
       isDataWidget(widget.type) && dataSection(widget),
       appearance(widget),
+      isDataWidget(widget.type) && 'quietAfter' in widget.config && quietSection(widget),
       widget.type === 'kpi' && kpiAlerts(),
       h('div', { class: 'insp-actions' },
         h('button', {

@@ -86,7 +86,11 @@ The agent calls `create_source`, then `test_source`, then `preview_source` to ch
    - REST: `.../hibeam-agent/history`, auth `Bearer <token>`
    - REST: `.../hibeam-agent/services`, auth `Bearer <token>`
    - System logs: `.../hibeam-agent/logs/access`, format `nginx`, auth `Bearer <token>`
-2. Open the editor and lay out the widgets from `dashboard.template.json`.
+2. On the dashboards page, click **Import layout**, pick `APP1/dashboard.template.json`, and point `metrics`, `history`, `services` and `logs` at the four sources. Name your sources the same and they're picked for you.
+
+### When the agent goes quiet
+
+The CPU, memory, disk and uptime tiles have a 5-minute "gone quiet" check on the agent's `sampledAt` column. If the agent stops reporting, those tiles fade, their borders go dashed, and a ghost shows when the box was last heard from. If the agent can't be reached at all, every widget on a refresh timer does the same and keeps the last numbers it had. To see it, stop the agent (`systemctl stop hibeam-agent`) and wait for the next refresh.
 
 ## Security notes
 

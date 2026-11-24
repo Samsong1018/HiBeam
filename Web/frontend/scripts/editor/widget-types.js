@@ -26,7 +26,7 @@ export const WIDGET_TYPES = {
     min: { w: 6, h: 5 },
     maxBindings: 6,
     bindingFields: ['xField', 'yField', 'agg'],
-    defaults: { title: 'Line chart', bindings: [], color: 'c1', smooth: true, fill: false, legend: true, reverseData: false, refresh: 0 },
+    defaults: { title: 'Line chart', bindings: [], color: 'c1', smooth: true, fill: false, legend: true, reverseData: false, refresh: 0, quietAfter: 0, quietField: '' },
   },
   bar: {
     label: 'Bar chart',
@@ -36,7 +36,7 @@ export const WIDGET_TYPES = {
     min: { w: 6, h: 5 },
     maxBindings: 6,
     bindingFields: ['xField', 'yField', 'agg'],
-    defaults: { title: 'Bar chart', bindings: [], color: 'c1', horizontal: false, stacked: false, legend: true, refresh: 0 },
+    defaults: { title: 'Bar chart', bindings: [], color: 'c1', horizontal: false, stacked: false, legend: true, refresh: 0, quietAfter: 0, quietField: '' },
   },
   pie: {
     label: 'Pie chart',
@@ -46,7 +46,7 @@ export const WIDGET_TYPES = {
     min: { w: 5, h: 5 },
     maxBindings: 1,
     bindingFields: ['xField', 'yField', 'agg'],
-    defaults: { title: 'Pie chart', bindings: [], color: 'c1', donut: true, legend: true, refresh: 0 },
+    defaults: { title: 'Pie chart', bindings: [], color: 'c1', donut: true, legend: true, refresh: 0, quietAfter: 0, quietField: '' },
   },
   kpi: {
     label: 'Number',
@@ -56,7 +56,7 @@ export const WIDGET_TYPES = {
     min: { w: 5, h: 4 },
     maxBindings: 1,
     bindingFields: ['yField', 'agg'],
-    defaults: { title: 'Total', bindings: [], color: 'c1', prefix: '', suffix: '', decimals: 0, reverseData: false, refresh: 0, warnAt: null, alertAt: null, higherIs: 'bad', showDelta: false },
+    defaults: { title: 'Total', bindings: [], color: 'c1', prefix: '', suffix: '', decimals: 0, reverseData: false, refresh: 0, warnAt: null, alertAt: null, higherIs: 'bad', showDelta: false, quietAfter: 0, quietField: '' },
   },
   table: {
     label: 'Table',
@@ -66,7 +66,7 @@ export const WIDGET_TYPES = {
     min: { w: 6, h: 4 },
     maxBindings: 1,
     bindingFields: [],
-    defaults: { title: 'Table', bindings: [], columns: [], limit: 50, refresh: 0 },
+    defaults: { title: 'Table', bindings: [], columns: [], limit: 50, refresh: 0, quietAfter: 0, quietField: '' },
   },
   text: {
     label: 'Text box',

@@ -1,0 +1,11 @@
+{
+  "$schema": "https://agent-plugins.org/schemas/1.0.0/mcp.schema.json",
+  "mcpServers": {
+    "hibeam": {
+      "type": "stdio",
+      "command": "node",
+      "args": ["--disable-warning=MODULE_TYPELESS_PACKAGE_JSON", "${PLUGIN_ROOT}/server.mjs"],
+      "cwd": "${PLUGIN_ROOT}"
+    }
+  }
+}

@@ -11,6 +11,7 @@ import { fieldsOf } from './data.js';
 export function createSourceRegistry() {
   let sources = [];
   const rowCache = new Map(); // id -> Promise<rows[]>
+  const lastGood = new Map(); // id -> { rows, at }: what to keep showing if a refresh fails
   const listeners = new Set();
   const emit = () => listeners.forEach((fn) => fn(sources));
 
@@ -34,6 +35,7 @@ export function createSourceRegistry() {
       await api.deleteSource(id);
       sources = sources.filter((s) => s.id !== id);
       rowCache.delete(id);
+      lastGood.delete(id);
       emit();
     },
 
@@ -41,7 +43,11 @@ export function createSourceRegistry() {
     rows(id) {
       if (!id) return Promise.resolve([]);
       if (!rowCache.has(id)) {
-        const pending = api.previewSource(id).then((res) => (Array.isArray(res?.rows) ? res.rows : []));
+        const pending = api.previewSource(id).then((res) => {
+          const rows = Array.isArray(res?.rows) ? res.rows : [];
+          lastGood.set(id, { rows, at: Date.now() });
+          return rows;
+        });
         pending.catch(() => rowCache.delete(id)); // let the next render retry
         rowCache.set(id, pending);
       }
@@ -52,6 +58,9 @@ export function createSourceRegistry() {
     invalidate(id) {
       rowCache.delete(id);
     },
+
+    // the last rows that loaded for a source, or null if none ever did
+    lastGood: (id) => lastGood.get(id) || null,
 
     async fields(id) {
       return fieldsOf(await this.rows(id));

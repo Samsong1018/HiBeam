@@ -15,6 +15,7 @@ import { WIDGET_TYPES, isDataWidget } from '../editor/widget-types.js';
 import { readingOrder, placement, cellSize, updatedLabel } from './layout.js';
 import { createPublicRegistry } from './public-registry.js';
 import { WireExportButton } from './export.js';
+import { toTemplate } from '../editor/template.js';
 
 const $ = (sel) => document.querySelector(sel);
 
@@ -60,7 +61,11 @@ function createBoard(dash, registry) {
     inst.cleanup();
     inst.cleanup = () => {};
     const ticket = ++inst.renders;
-    renderWidget(inst.content, inst.widget, registry, () => ticket === inst.renders, { emptyText: EMPTY_TEXT })
+    const retry = () => {
+      inst.widget.config.bindings.forEach((b) => registry.invalidate(b.sourceId));
+      render(inst);
+    };
+    renderWidget(inst.content, inst.widget, registry, () => ticket === inst.renders, { emptyText: EMPTY_TEXT, readOnly: true, retry })
       .then((cleanup) => {
         if (ticket === inst.renders) inst.cleanup = cleanup;
         else cleanup();
@@ -290,7 +295,8 @@ async function boot() {
   createSharing({ id: rawId, isOwner, initialPublic: raw?.public === true });
 
   // Export button: available once the board is in a known state.
-  WireExportButton(els.export, els.board, () => dash.name);
+  WireExportButton(els.export, els.board, () => dash.name,
+    () => toTemplate(dash, (sourceId) => registry.byId(sourceId)?.name || null).definition);
 
   clear(els.board);
   if (!dash.widgets.length) {

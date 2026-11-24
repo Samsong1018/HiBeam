@@ -4,7 +4,8 @@
   Anonymous viewers of a public dashboard only get the columns its widgets display, not every
   column a source returns. A chart or KPI shows its binding's xField / yField; a table shows its
   chosen `columns`, or every column when none are chosen (the owner picked "show all", so all
-  columns are already on screen).
+  columns are already on screen). A widget with a "gone quiet" check also gets its `quietField`,
+  the timestamp column the check reads (only its age is shown, but the value has to reach the page).
 
   AllowedFields(def) -> Map<sourceId, Set<string> | null>   null = all columns allowed
   ProjectRows(rows, fields) -> new rows holding only the allowed keys (input is not mutated)
@@ -47,6 +48,7 @@ function AllowedFields(pDef)
       const tmpSet = tmpAllowed.get(tmpId) || new Set();
       AddField(tmpSet, tmpBinding.xField);
       AddField(tmpSet, tmpBinding.yField);
+      if (Number(tmpConfig.quietAfter) > 0) AddField(tmpSet, tmpConfig.quietField);
       if (tmpWidget.type === 'table') tmpColumns.forEach((pCol) => tmpSet.add(pCol));
       tmpAllowed.set(tmpId, tmpSet);
     }

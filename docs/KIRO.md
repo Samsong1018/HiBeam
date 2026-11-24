@@ -40,11 +40,19 @@ TODO (team), in a few sentences each:
 - What did one do better than the other? (For example, specs and hooks in the IDE versus quick shell-driven fixes in the CLI.)
 - Did a hook or agent behave differently between the two?
 
+## Powers
+
+- **Built:** [`power-hibeam/`](../power-hibeam/) packages `mcp/hibeam-server.mjs` as a Kiro power in the Agent Plugins layout. It has a `plugin.json` with activation keywords, an `mcp.json` for the stdio server, and a `hibeam-boards` skill made from the `#mcp` steering doc. Inside the repo, `.kiro/settings/mcp.json` and `#mcp` already do this job. The power is how the same tools reach a workspace that isn't this repo, and it loads only when a board is asked for.
+- **Checked:** the power's entry point answers the MCP handshake and lists all 17 tools.
+- TODO (team): install it through Kiro's Powers panel (**Add Custom Power → Import power from a folder**), confirm it activates on "make me a dashboard", and record what happened here. Did Kiro run it in place or copy the folder?
+- TODO (team): did we use any third-party powers while building? Name them, or say no.
+
 ## After the credits ran out
 
 We ran low on Kiro credits near the end. These were done without Kiro running them, but they follow the steering, specs and conventions above, and the same hooks and tests check them:
 - The steering rebuild (#10) and the `app2-monthly-import` spec and code (#11)
 - KPI thresholds and change since the previous row, semantic status colours, tables that show only whole rows, and the Kiroween theme
 - The `generate_dashboard` MCP tool, which explains each widget the generator chose
+- "Gone quiet" ghost widgets, the per-widget error, empty and missing-column states, layout import/export as `.template.json`, and the `power-hibeam/` packaging
 
 TODO (team): say plainly what tool you used for these, if any, and which teammate did them.

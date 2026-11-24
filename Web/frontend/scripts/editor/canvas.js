@@ -99,7 +99,11 @@ export function createCanvas({ el, scroller, store, registry, onSelect }) {
     const ticket = ++inst.renders;
     inst.content.dataset.type = widget.type;
     inst.content.setAttribute('aria-label', `${WIDGET_TYPES[widget.type].label}${widget.config.title ? `: ${widget.config.title}` : ''}`);
-    renderWidget(inst.content, widget, registry, () => ticket === inst.renders && instances.has(widget.id))
+    const retry = () => {
+      widget.config.bindings.forEach((b) => registry.invalidate(b.sourceId));
+      render(inst, inst.widget);
+    };
+    renderWidget(inst.content, widget, registry, () => ticket === inst.renders && instances.has(widget.id), { retry })
       .then((cleanup) => {
         if (ticket === inst.renders) inst.cleanup = cleanup;
         else cleanup();

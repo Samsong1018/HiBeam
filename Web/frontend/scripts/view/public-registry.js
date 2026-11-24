@@ -10,12 +10,17 @@
 export function createPublicRegistry(fetchData) {
   let pending = null; // Promise<map> shared by every widget until invalidated
   let names = new Map(); // sourceId -> display name, filled once data arrives
+  const lastGood = new Map(); // sourceId -> { rows, at }: kept when a later refresh fails
 
   function load() {
     if (!pending) {
       pending = Promise.resolve().then(fetchData).then((map) => {
         const safe = map && typeof map === 'object' ? map : {};
-        names = new Map(Object.entries(safe).map(([id, entry]) => [id, entry?.name || null]));
+        names = new Map(Object.entries(safe).map(([id, entry]) => [id, entry?.name || names.get(id) || null]));
+        const at = Date.now();
+        Object.entries(safe).forEach(([id, entry]) => {
+          if (entry && !entry.error && Array.isArray(entry.rows)) lastGood.set(id, { rows: entry.rows, at });
+        });
         return safe;
       });
       pending.catch(() => { pending = null; }); // let the next render retry
@@ -34,6 +39,8 @@ export function createPublicRegistry(fetchData) {
       if (!entry || entry.error) throw new Error(entry?.error || 'Source unavailable');
       return Array.isArray(entry.rows) ? entry.rows : [];
     },
+
+    lastGood: (id) => lastGood.get(id) || null,
 
     // every source comes from one request, so dropping any of them refetches all
     invalidate() {

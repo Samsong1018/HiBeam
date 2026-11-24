@@ -530,7 +530,20 @@ async function LoadAccount()
     toast('Couldn\'t load your account. Refresh to try again.', true);
   }
 
-  // Load real sources
+  await LoadSources();
+
+  if (tmpHero) tmpHero.removeAttribute('aria-busy');
+}
+
+// Sources load on their own, so a failure here doesn't hide the profile,
+// and the list gets a loading line, an error with Retry, or the empty state.
+async function LoadSources()
+{
+  const tmpLoading = document.getElementById('source-loading');
+  const tmpError = document.getElementById('source-error');
+  if (tmpLoading) tmpLoading.hidden = false;
+  if (tmpError) tmpError.hidden = true;
+  sourceEmpty.hidden = true;
   try
   {
     const tmpRaw = await accountApi.listSources();
@@ -546,12 +559,22 @@ async function LoadAccount()
   }
   catch (tmpErr)
   {
+    if (tmpErr && tmpErr.status === 401)
+    {
+      window.location.href = 'login.html';
+      return;
+    }
     console.error('Could not load sources:', tmpErr);
     sourceCount.textContent = '—';
+    if (tmpError) tmpError.hidden = false;
   }
-
-  if (tmpHero) tmpHero.removeAttribute('aria-busy');
+  finally
+  {
+    if (tmpLoading) tmpLoading.hidden = true;
+  }
 }
+
+document.getElementById('source-retry')?.addEventListener('click', LoadSources);
 
 LoadAccount();
 

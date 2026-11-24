@@ -102,15 +102,45 @@ function DownloadPdf(pCanvas, pName)
 // pBtnEl   - the <button> element to attach the click handler to
 // pBoardEl - the #board section to capture
 // GetName  - function that returns the current dashboard name string
+// GetLayout - optional; returns the board as a template object, which
+//             adds "Layout as JSON" to the menu (import it from the home page)
 // ------------------------------------------------------------
-export function WireExportButton(pBtnEl, pBoardEl, GetName)
+export function WireExportButton(pBtnEl, pBoardEl, GetName, GetLayout)
 {
-    pBtnEl.addEventListener('click', () => ShowExportMenu(pBtnEl, pBoardEl, GetName));
+    pBtnEl.addEventListener('click', () => ShowExportMenu(pBtnEl, pBoardEl, GetName, GetLayout));
+}
+
+function SafeName(GetName)
+{
+    return (GetName() || 'dashboard').replace(/[/\\:*?"<>|]/g, '-');
+}
+
+// Download the layout as a .json template. Source ids are already swapped
+// for {{placeholders}}, so the file holds no ids from this account.
+function DownloadLayout(pBtnEl, GetName, GetLayout)
+{
+    try
+    {
+        const tmpJson = `${JSON.stringify(GetLayout(), null, 2)}\n`;
+        const tmpUrl = URL.createObjectURL(new Blob([tmpJson], { type: 'application/json' }));
+        const tmpLink = document.createElement('a');
+        tmpLink.download = `${SafeName(GetName)}.template.json`;
+        tmpLink.href = tmpUrl;
+        tmpLink.click();
+        setTimeout(() => URL.revokeObjectURL(tmpUrl), 1000);
+        toast('Layout downloaded · import it from the dashboards page');
+    }
+    catch (tmpErr)
+    {
+        console.error('Layout export failed:', tmpErr);
+        toast('Couldn\'t export the layout', true);
+    }
+    pBtnEl.focus();
 }
 
 let _closeMenu = null;
 
-function ShowExportMenu(pBtnEl, pBoardEl, GetName)
+function ShowExportMenu(pBtnEl, pBoardEl, GetName, GetLayout)
 {
     // Second click on the button closes the open menu.
     if (_closeMenu)
@@ -138,6 +168,18 @@ function ShowExportMenu(pBtnEl, pBoardEl, GetName)
     tmpPdf.textContent = 'Export as PDF';
 
     tmpMenu.append(tmpPng, tmpPdf);
+
+    let tmpJson = null;
+    if (GetLayout)
+    {
+        tmpJson = document.createElement('button');
+        tmpJson.type = 'button';
+        tmpJson.className = 'export-menu-item';
+        tmpJson.setAttribute('role', 'menuitem');
+        tmpJson.textContent = 'Layout as JSON';
+        tmpJson.title = 'A template with no data in it. Import it on any HiBeam account.';
+        tmpMenu.append(tmpJson);
+    }
     document.body.append(tmpMenu);
 
     // Position below the trigger button.
@@ -186,6 +228,12 @@ function ShowExportMenu(pBtnEl, pBoardEl, GetName)
         CloseMenu();
         await RunExport('pdf', pBtnEl, pBoardEl, GetName);
     });
+
+    tmpJson?.addEventListener('click', () =>
+    {
+        CloseMenu();
+        DownloadLayout(pBtnEl, GetName, GetLayout);
+    });
 }
 
 function PositionMenu(pMenuEl, pAnchorEl)
@@ -210,7 +258,7 @@ async function RunExport(pFormat, pBtnEl, pBoardEl, GetName)
         await WaitForLibs();
 
         const tmpCanvas = await CaptureBoard(pBoardEl);
-        const tmpName = (GetName() || 'dashboard').replace(/[/\\:*?"<>|]/g, '-');
+        const tmpName = SafeName(GetName);
 
         if (pFormat === 'png')
         {

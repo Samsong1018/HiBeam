@@ -28,7 +28,10 @@
         <main>
             <div class="home-header">
                 <h1>My Dashboards</h1>
-                <button type="button" class="btn btn-primary" id="new-dashboard-btn">+ New dashboard</button>
+                <div class="home-header-actions">
+                    <button type="button" class="btn btn-ghost" id="import-btn" aria-haspopup="dialog" title="Start from a .template.json file, like APP1/ and APP2/ ship">Import layout</button>
+                    <button type="button" class="btn btn-primary" id="new-dashboard-btn">+ New dashboard</button>
+                </div>
             </div>
 
             <!-- States are shown/hidden by script.js -->
@@ -50,8 +53,10 @@
                 <p class="home-state-body">Connect a REST API, SQL database, spreadsheet, or website and turn it into a shareable dashboard — no code required.</p>
                 <div class="home-state-actions">
                     <button type="button" class="btn btn-primary" id="empty-create-btn">Create your first dashboard</button>
+                    <button type="button" class="btn btn-ghost" id="empty-import-btn" aria-haspopup="dialog">Import a layout</button>
                     <a class="btn btn-ghost" href="account.html#sources">Connect a data source</a>
                 </div>
+                <p class="home-state-body home-state-note">Have a <code>dashboard.template.json</code>, like the ones in <code>APP1/</code> and <code>APP2/</code>? Import it and point each slot at one of your sources.</p>
             </div>
 
             <ul id="dashboard-grid" class="dashboard-grid" aria-label="Your dashboards" hidden></ul>
@@ -69,6 +74,38 @@
             </div>
         </dialog>
 
+        <!-- Import a layout (.template.json) -->
+        <dialog class="modal modal-import" id="import-dialog" aria-labelledby="import-dialog-title" aria-describedby="import-dialog-desc">
+            <form class="modal-body" id="import-form" novalidate>
+                <div>
+                    <p class="eyebrow">Template</p>
+                    <h2 id="import-dialog-title">Import a layout</h2>
+                    <p id="import-dialog-desc">Pick a <code>.template.json</code> file. You then choose which of your sources fills each slot. Anything you leave empty comes in unbound, and you can connect it in the editor.</p>
+                </div>
+                <div class="field">
+                    <label for="import-file">Layout file</label>
+                    <input id="import-file" type="file" accept=".json,application/json">
+                    <p class="field-error" id="import-file-error" role="alert"></p>
+                </div>
+                <div class="import-details" id="import-details" hidden>
+                    <div class="field">
+                        <label for="import-name">Dashboard name</label>
+                        <input id="import-name" type="text" maxlength="80" autocomplete="off" required>
+                    </div>
+                    <fieldset class="field import-slots-field">
+                        <legend class="field-label">Sources</legend>
+                        <p class="field-hint" id="import-slots-hint"></p>
+                        <ul class="import-slots" id="import-slots"></ul>
+                    </fieldset>
+                </div>
+                <p class="field-error" id="import-error" role="alert"></p>
+                <div class="modal-actions">
+                    <button class="btn btn-ghost" type="button" data-close-dialog>Cancel</button>
+                    <button class="btn btn-primary" type="submit" id="import-submit" disabled>Import and edit</button>
+                </div>
+            </form>
+        </dialog>
+
         <div class="toast" id="toast" role="status" aria-live="polite"></div>
 
         <footer class="site-footer">
@@ -81,5 +118,6 @@
         </footer>
 
         <script src="../scripts/script.js" defer></script>
+        <script type="module" src="../scripts/home/import.js"></script>
     </body>
 </html>

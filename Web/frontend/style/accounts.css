@@ -305,3 +305,11 @@ fieldset.field { border: none; }
   .danger-row { flex-direction: column; align-items: flex-start; }
   .avatar-row { align-items: flex-start; }
 }
+
+.source-error:not([hidden]) {
+  display: grid;
+  justify-items: center;
+  gap: var(--space-sm);
+  border-color: color-mix(in srgb, var(--color-danger) 45%, var(--color-border));
+}
+.source-error p { color: var(--color-text-muted); }

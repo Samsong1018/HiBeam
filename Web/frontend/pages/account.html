@@ -184,7 +184,12 @@
                         </header>
 
                         <ul class="source-list" id="source-list" aria-live="polite"></ul>
+                        <p class="empty-state" id="source-loading">Loading sources…</p>
                         <p class="empty-state" id="source-empty" hidden>No sources yet. Add one to start building dashboards.</p>
+                        <div class="empty-state source-error" id="source-error" role="alert" hidden>
+                            <p>Couldn't load your sources. Your dashboards still have them, this page just couldn't fetch the list.</p>
+                            <button type="button" class="btn btn-ghost" id="source-retry">Try again</button>
+                        </div>
                     </section>
 
                     <!-- 04 PREFERENCES -->
