@@ -18,7 +18,16 @@ const libDashboardsRoutes = require("./lib/routes/dashboards");
 const libPublicDashboardsRoutes = require("./lib/routes/public-dashboards");
 const libSecurity = require("./lib/security");
 const libMaintenance = require("./lib/maintenance");
+const libPageMeta = require("./lib/page-meta");
 const _serverPort = Number(process.env.PORT) || 8000;
+// HOST=127.0.0.1 in production so only the reverse proxy can reach the app; unset = all interfaces
+const _serverHost = process.env.HOST || undefined;
+
+// paths that make the server fetch a user-chosen source; case-insensitive because Express routes are
+const SOURCE_FETCH_PATHS = Object.freeze({
+    sources: /^\/[^/]+\/(test|preview)\/?$/i,
+    dashboards: /^\/[^/]+\/data\/?$/i,
+});
 
 // runs pMiddleware only when the path (relative to the mount point) matches pPattern
 function OnlyFor(pPattern, pMiddleware)
@@ -63,16 +72,19 @@ function CreateApp()
     // express.json only parses application/json, so the avatar PUT (express.raw) is unaffected.
     tmpApp.use(libExpress.json({ limit: `1mb` }));
 
+    // cookies are SameSite=Lax, which still lets sibling subdomains POST; refuse cross-origin writes
+    tmpApp.use(`/api/`, libSecurity.sameOriginWrites());
+
     tmpApp.use(`/api/auth/login`, tmpLimiters.login);
     tmpApp.use([`/api/auth/signup`, `/api/auth/forgot-password`, `/api/auth/reset-password`], tmpLimiters.authSensitive);
     tmpApp.use(`/api/auth`, libAuthRoutes.CreateAuthRouter());
     tmpApp.use(`/api/account`, libAccountRoutes.CreateEmailConfirmRouter());
     tmpApp.use(`/api/account`, libRequireSession.requireSession(), libAccountRoutes.CreateAccountRouter());
     tmpApp.use(`/api/sources`, libRequireSession.requireSession(),
-        OnlyFor(/^\/[^/]+\/(test|preview)\/?$/, tmpLimiters.sourceFetch), libSourcesRoutes());
+        OnlyFor(SOURCE_FETCH_PATHS.sources, tmpLimiters.sourceFetch), libSourcesRoutes());
     tmpApp.use(`/api/public/dashboards`, tmpLimiters.publicDashboards, libPublicDashboardsRoutes());
     tmpApp.use(`/api/dashboards`, libRequireSession.requireSession(),
-        OnlyFor(/^\/[^/]+\/data\/?$/, tmpLimiters.sourceFetch), libDashboardsRoutes());
+        OnlyFor(SOURCE_FETCH_PATHS.dashboards, tmpLimiters.sourceFetch), libDashboardsRoutes());
 
     // the root has no page of its own: send people to their dashboards. home.html bounces
     // to login.html when there's no session. Must come before static, which would serve index.html.
@@ -82,8 +94,14 @@ function CreateApp()
             pResponse.redirect(302, `/pages/home.html`);
         });
 
+    // pages get link-preview tags (Open Graph etc.) written into <head>; see lib/page-meta.js
+    tmpApp.use(libPageMeta.pageMeta({ dir: libPath.join(__dirname, `../frontend`) }));
+
     // frontend
     tmpApp.use(libExpress.static(libPath.join(__dirname, `../frontend`)));
+
+    // unknown API routes get the JSON envelope, not Express's HTML 404
+    tmpApp.use(`/api/`, (pRequest, pResponse) => libEnvelope.fail(pResponse, 404, `Not found`));
 
     tmpApp.use(libEnvelope.errorMiddleware);
 
@@ -113,7 +131,7 @@ function Start()
     libMaintenance.StartPruning(libDb);
 
     // Express 5 hands listen errors (e.g. EADDRINUSE) to this callback instead of throwing
-    return tmpApp.listen(_serverPort, (pErr) =>
+    return tmpApp.listen(_serverPort, _serverHost, (pErr) =>
     {
         if (pErr)
         {
@@ -129,4 +147,4 @@ if (require.main === module)
     Start();
 }
 
-module.exports = { CreateApp, Start };
+module.exports = { CreateApp, Start, SOURCE_FETCH_PATHS };

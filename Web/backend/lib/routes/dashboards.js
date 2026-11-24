@@ -3,6 +3,7 @@
 const crypto = require('crypto');
 const express = require('express');
 const { ok, fail } = require('../envelope');
+const { MapLimited, SOURCE_FETCH_CONCURRENCY, MAX_DASHBOARDS_PER_USER } = require('../limits');
 const { isValidId, validateDashboardDefinition, collectSourceIds } = require('../validators');
 
 const NOT_FOUND = 'Not found';
@@ -97,6 +98,11 @@ function CreateDashboardsRouter(pDeps)
   {
     const tmpDef = await ReadDefinition(pReq, pRes);
     if (!tmpDef) return null;
+    const tmpExisting = await tmpRepos.dashboards.list(pReq.userId);
+    if (tmpExisting.length >= MAX_DASHBOARDS_PER_USER)
+    {
+      return fail(pRes, 409, `Dashboard limit reached (${MAX_DASHBOARDS_PER_USER}). Delete one to make room.`);
+    }
     const tmpId = tmpNewId();
     await tmpRepos.dashboards.create(pReq.userId, { id: tmpId, name: tmpDef.name, definition: tmpDef });
     const tmpRow = await tmpRepos.dashboards.get(pReq.userId, tmpId);
@@ -154,7 +160,7 @@ function CreateDashboardsRouter(pDeps)
 
     // One preview per distinct source, run in parallel; failures become { error } entries.
     const tmpResults = new Map();
-    await Promise.all(tmpIds.map(async (pSourceId) =>
+    await MapLimited(tmpIds, SOURCE_FETCH_CONCURRENCY, async (pSourceId) =>
     {
       const tmpSource = tmpById.get(pSourceId);
       if (!tmpSource)
@@ -171,7 +177,7 @@ function CreateDashboardsRouter(pDeps)
         const tmpReason = tmpErr && typeof tmpErr.reason === 'string' ? tmpErr.reason : SOURCE_FAILED;
         tmpResults.set(pSourceId, { error: tmpReason });
       }
-    }));
+    });
 
     const tmpData = {};
     for (const tmpWidget of tmpWidgets)

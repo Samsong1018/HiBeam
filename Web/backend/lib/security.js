@@ -68,6 +68,33 @@ function ByUser(pReq)
                                           the server fetch a user-chosen URL, so cap them.
     publicDashboards 120 / min / IP      anonymous share links (data is also cached 15s)
 */
+const SAFE_METHODS = new Set(['GET', 'HEAD', 'OPTIONS']);
+const CROSS_ORIGIN = 'Cross-origin request refused';
+
+/*
+  CSRF backstop. SameSite=Lax cookies still ride along on POSTs from sibling subdomains
+  (same-site), so state-changing API calls must come from this origin. Browsers send
+  Sec-Fetch-Site and/or Origin; clients that send neither (curl, the MCP server) are let through,
+  since they can't carry a victim's cookie anyway.
+*/
+function SameOriginWrites()
+{
+  return (pReq, pRes, pNext) =>
+  {
+    if (SAFE_METHODS.has(pReq.method)) return pNext();
+    const tmpSite = pReq.get('sec-fetch-site');
+    if (tmpSite && tmpSite !== 'same-origin' && tmpSite !== 'none') return fail(pRes, 403, CROSS_ORIGIN);
+    const tmpOrigin = pReq.get('origin');
+    if (tmpOrigin)
+    {
+      let tmpHost = null;
+      try { tmpHost = new URL(tmpOrigin).host; } catch (tmpErr) { tmpHost = null; }
+      if (!tmpHost || tmpHost !== pReq.get('host')) return fail(pRes, 403, CROSS_ORIGIN);
+    }
+    return pNext();
+  };
+}
+
 function CreateLimiters()
 {
   return {
@@ -90,4 +117,4 @@ function TrustProxySetting(pValue)
   return pValue;
 }
 
-module.exports = { SecurityHeaders, CreateLimiters, TrustProxySetting, TOO_MANY };
+module.exports = { SecurityHeaders, CreateLimiters, TrustProxySetting, TOO_MANY, sameOriginWrites: SameOriginWrites };

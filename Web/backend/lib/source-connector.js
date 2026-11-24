@@ -4,6 +4,7 @@ const dns = require('dns');
 const http = require('http');
 const https = require('https');
 const net = require('net');
+const os = require('os');
 const { decryptKey } = require('./crypto-box');
 const { ScrapeRows, ScrapeError } = require('./connectors/scrape');
 const { ParseLogs } = require('./connectors/logs');
@@ -152,6 +153,10 @@ function IsBlockedIPv4(pBytes)
   if (tmpA === 192 && tmpB === 0 && tmpC === 0) return true;    // IETF protocol
   if (tmpA === 192 && tmpB === 168) return true;                // private
   if (tmpA === 198 && (tmpB === 18 || tmpB === 19)) return true; // benchmarking
+  if (tmpA === 192 && tmpB === 0 && tmpC === 2) return true;    // TEST-NET-1
+  if (tmpA === 198 && tmpB === 51 && tmpC === 100) return true; // TEST-NET-2
+  if (tmpA === 203 && tmpB === 0 && tmpC === 113) return true;  // TEST-NET-3
+  if (tmpA === 192 && tmpB === 88 && tmpC === 99) return true;  // 6to4 relay anycast
   if (tmpA >= 224) return true;                                 // multicast, reserved, broadcast
   return false;
 }
@@ -166,6 +171,10 @@ function IsBlockedIPv6(pBytes)
   if (tmpZero(0, 8) && pBytes[8] === 255 && pBytes[9] === 255 && tmpZero(10, 12)) return tmpEmbedded(12); // ::ffff:0:a.b.c.d
   if (pBytes[0] === 0x00 && pBytes[1] === 0x64 && pBytes[2] === 0xff && pBytes[3] === 0x9b && tmpZero(4, 12)) return tmpEmbedded(12); // NAT64
   if (pBytes[0] === 0x20 && pBytes[1] === 0x02) return tmpEmbedded(2); // 6to4
+  if (pBytes[0] === 0x20 && pBytes[1] === 0x01 && pBytes[2] === 0x00 && pBytes[3] === 0x00) return true; // Teredo 2001::/32
+  if (pBytes[0] === 0x20 && pBytes[1] === 0x01 && pBytes[2] === 0x0d && pBytes[3] === 0xb8) return true; // documentation
+  if (pBytes[0] === 0x00 && pBytes[1] === 0x64 && pBytes[2] === 0xff && pBytes[3] === 0x9b
+    && pBytes[4] === 0x00 && pBytes[5] === 0x01) return true;  // local-use NAT64 64:ff9b:1::/48
   if (pBytes[0] === 0xfe && (pBytes[1] & 0xc0) === 0x80) return true;  // fe80::/10 link-local
   if (pBytes[0] === 0xfe && (pBytes[1] & 0xc0) === 0xc0) return true;  // fec0::/10 site-local
   if ((pBytes[0] & 0xfe) === 0xfc) return true;                 // fc00::/7 unique local
@@ -173,18 +182,49 @@ function IsBlockedIPv6(pBytes)
   return false;
 }
 
+/*
+  The server's own addresses. A public IP on this host routes back to itself, so without this a
+  source could reach anything bound to 0.0.0.0 here (other apps, the app itself) even though
+  127.0.0.1 is blocked. Read per call: interfaces can change, and the list is tiny.
+*/
+function OwnAddressKeys()
+{
+  const tmpKeys = new Set();
+  for (const tmpList of Object.values(os.networkInterfaces()))
+  {
+    for (const tmpIf of tmpList || [])
+    {
+      const tmpKey = AddressKey(tmpIf.address);
+      if (tmpKey) tmpKeys.add(tmpKey);
+    }
+  }
+  return tmpKeys;
+}
+
+// Canonical form of an address for comparison (IPv4-mapped IPv6 folds to IPv4), or null.
+function AddressKey(pAddress)
+{
+  const tmpText = String(pAddress).replace(/^\[|\]$/g, '').replace(/%.*$/, '');
+  const tmpKind = net.isIP(tmpText);
+  if (tmpKind === 4) { const tmpB = ParseIPv4(tmpText); return tmpB ? `4:${tmpB.join('.')}` : null; }
+  if (tmpKind !== 6) return null;
+  const tmpBytes = ParseIPv6(tmpText);
+  if (!tmpBytes) return null;
+  const tmpMapped = tmpBytes.slice(0, 10).every((pB) => pB === 0) && tmpBytes[10] === 255 && tmpBytes[11] === 255;
+  return tmpMapped ? `4:${tmpBytes.slice(12).join('.')}` : `6:${tmpBytes.join(',')}`;
+}
+
 // True when the address must not be contacted. Unparseable input is blocked.
-function IsBlockedAddress(pAddress)
+function IsBlockedAddress(pAddress, pOwnKeys)
 {
   const tmpText = String(pAddress).replace(/^\[|\]$/g, '');
   const tmpKind = net.isIP(tmpText);
+  if (tmpKind === 0) return true;
+  const tmpOwn = pOwnKeys || OwnAddressKeys();
+  if (tmpOwn.has(AddressKey(tmpText))) return true;
   if (tmpKind === 4) return IsBlockedIPv4(ParseIPv4(tmpText) || [0, 0, 0, 0]);
-  if (tmpKind === 6)
-  {
-    const tmpBytes = ParseIPv6(tmpText);
-    return tmpBytes ? IsBlockedIPv6(tmpBytes) : true;
-  }
-  return true;
+  const tmpBytes = ParseIPv6(tmpText);
+  return tmpBytes ? IsBlockedIPv6(tmpBytes) : true;
 }
 
 // ------------------------------------------------------------ URL + resolve
@@ -665,6 +705,7 @@ module.exports = {
   SourceError,
   REASONS,
   isBlockedAddress: IsBlockedAddress,
+  ownAddressKeys: OwnAddressKeys,
   defaultTransport: DefaultTransport,
   TIMEOUT_MS,
   MAX_ROWS,

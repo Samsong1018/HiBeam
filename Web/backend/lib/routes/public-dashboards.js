@@ -2,6 +2,7 @@
 
 const express = require('express');
 const { ok, fail } = require('../envelope');
+const { MapLimited, SOURCE_FETCH_CONCURRENCY } = require('../limits');
 const { isValidId, collectSourceIds } = require('../validators');
 const { AllowedFields, ProjectRows } = require('../public-projection');
 
@@ -69,7 +70,7 @@ function CreatePublicDashboardsRouter(pDeps)
     const tmpById = new Map(tmpSources.map((pSrc) => [pSrc.id, pSrc]));
     const tmpAllowed = AllowedFields(pRow.definition);
     const tmpData = {};
-    await Promise.all(tmpIds.map(async (pSourceId) =>
+    await MapLimited(tmpIds, SOURCE_FETCH_CONCURRENCY, async (pSourceId) =>
     {
       const tmpSource = tmpById.get(pSourceId);
       if (!tmpSource)
@@ -87,7 +88,7 @@ function CreatePublicDashboardsRouter(pDeps)
         const tmpReason = tmpErr && typeof tmpErr.reason === 'string' ? tmpErr.reason : SOURCE_FAILED;
         tmpData[pSourceId] = { name: tmpSource.name, error: tmpReason };
       }
-    }));
+    });
     return tmpData;
   }
 

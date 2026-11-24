@@ -1,5 +1,6 @@
 'use strict';
 
+const zlib = require('zlib');
 const { ToValue, HeaderNames, RowObject } = require('./values');
 
 const MAX_FILE_BYTES = 5 * 1024 * 1024;
@@ -23,6 +24,33 @@ function LooksLikeText(pBuf)
   return !pBuf.subarray(0, 8192).includes(0);
 }
 
+// Inflated byte count of the zip entry whose central-directory record starts at pCentral.
+// Throws badFile if the entry is malformed, uses an unknown method, or inflates past pBudget.
+function InflatedSize(pBuf, pCentral, pBudget)
+{
+  const tmpMethod = pBuf.readUInt16LE(pCentral + 10);
+  const tmpCompressed = pBuf.readUInt32LE(pCentral + 20);
+  const tmpLocal = pBuf.readUInt32LE(pCentral + 42);
+  if (tmpLocal + 30 > pBuf.length || pBuf.readUInt32LE(tmpLocal) !== 0x04034b50) throw new SheetError('badFile');
+  const tmpStart = tmpLocal + 30 + pBuf.readUInt16LE(tmpLocal + 26) + pBuf.readUInt16LE(tmpLocal + 28);
+  if (tmpStart + tmpCompressed > pBuf.length) throw new SheetError('badFile');
+  const tmpData = pBuf.subarray(tmpStart, tmpStart + tmpCompressed);
+  if (tmpMethod === 0)
+  {
+    if (tmpCompressed > pBudget) throw new SheetError('badFile');
+    return tmpCompressed;
+  }
+  if (tmpMethod !== 8) throw new SheetError('badFile');
+  try
+  {
+    return zlib.inflateRawSync(tmpData, { maxOutputLength: Math.max(1, pBudget) }).length;
+  }
+  catch (tmpErr)
+  {
+    throw new SheetError('badFile');
+  }
+}
+
 // Reads the zip central directory and sums declared uncompressed sizes, so a small .xlsx
 // that inflates to gigabytes is refused before it is unpacked. ZIP64 archives are refused.
 function CheckZipBudget(pBuf)
@@ -38,6 +66,7 @@ function CheckZipBudget(pBuf)
   let tmpPos = pBuf.readUInt32LE(tmpEocd + 16);
   if (tmpCount === 0xffff || tmpPos === 0xffffffff || tmpCount > MAX_ZIP_ENTRIES) throw new SheetError('badFile');
   let tmpTotal = 0;
+  let tmpActual = 0;
   for (let tmpI = 0; tmpI < tmpCount; tmpI += 1)
   {
     if (tmpPos + 46 > pBuf.length || pBuf.readUInt32LE(tmpPos) !== 0x02014b50) throw new SheetError('badFile');
@@ -45,6 +74,9 @@ function CheckZipBudget(pBuf)
     if (tmpSize === 0xffffffff) throw new SheetError('badFile');
     tmpTotal += tmpSize;
     if (tmpTotal > MAX_UNZIPPED_BYTES) throw new SheetError('badFile');
+    // Declared sizes can lie and the unzip library doesn't check them, so inflate for real
+    // with a hard cap on output and count what actually comes out.
+    tmpActual += InflatedSize(pBuf, tmpPos, MAX_UNZIPPED_BYTES - tmpActual);
     tmpPos += 46 + pBuf.readUInt16LE(tmpPos + 28) + pBuf.readUInt16LE(tmpPos + 30) + pBuf.readUInt16LE(tmpPos + 32);
   }
 }

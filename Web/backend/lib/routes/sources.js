@@ -3,6 +3,7 @@
 const crypto = require('crypto');
 const express = require('express');
 const { ok, fail } = require('../envelope');
+const { MAX_SOURCES_PER_USER } = require('../limits');
 const { validateSourceInput, isValidId } = require('../validators');
 const { toSourceView } = require('../views');
 
@@ -61,6 +62,11 @@ function CreateSourcesRouter(pDeps)
       return fail(pRes, 400, tmpText);
     }
     const tmpInput = tmpResult.value;
+    const tmpExisting = await tmpSources.list(pReq.userId);
+    if (tmpExisting.length >= MAX_SOURCES_PER_USER)
+    {
+      return fail(pRes, 409, `Source limit reached (${MAX_SOURCES_PER_USER}). Delete one to make room.`);
+    }
     const tmpId = tmpNewId();
     await tmpSources.create(pReq.userId, {
       id: tmpId,
