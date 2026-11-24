@@ -1,0 +1,22 @@
+{
+  "name": "Homelab Ops",
+  "grid": { "columns": 48, "showGrid": true },
+  "widgets": [
+    { "id": "w_title", "type": "label", "x": 0, "y": 0, "w": 32, "h": 3, "config": { "text": "crypt-01 · self-hosted homelab", "size": "md", "align": "left", "muted": false } },
+    { "id": "w_sub", "type": "label", "x": 32, "y": 0, "w": 16, "h": 3, "config": { "text": "live · refreshes every 30s", "size": "sm", "align": "right", "muted": true } },
+
+    { "id": "w_cpu", "type": "kpi", "x": 0, "y": 3, "w": 12, "h": 6, "config": { "title": "CPU", "color": "c1", "suffix": "%", "decimals": 1, "refresh": 30, "bindings": [{ "sourceId": "{{metrics}}", "yField": "cpuPct", "agg": "last" }] } },
+    { "id": "w_mem", "type": "kpi", "x": 12, "y": 3, "w": 12, "h": 6, "config": { "title": "Memory", "color": "c2", "suffix": "%", "decimals": 1, "refresh": 30, "bindings": [{ "sourceId": "{{metrics}}", "yField": "memPct", "agg": "last" }] } },
+    { "id": "w_disk", "type": "kpi", "x": 24, "y": 3, "w": 12, "h": 6, "config": { "title": "Disk", "color": "c3", "suffix": "%", "decimals": 1, "refresh": 300, "bindings": [{ "sourceId": "{{metrics}}", "yField": "diskPct", "agg": "last" }] } },
+    { "id": "w_up", "type": "kpi", "x": 36, "y": 3, "w": 12, "h": 6, "config": { "title": "Uptime", "color": "c4", "suffix": " h", "decimals": 1, "refresh": 300, "bindings": [{ "sourceId": "{{metrics}}", "yField": "uptimeHours", "agg": "last" }] } },
+
+    { "id": "w_trend", "type": "line", "x": 0, "y": 9, "w": 32, "h": 11, "config": { "title": "CPU and memory, last ~50 min", "color": "c1", "smooth": true, "fill": false, "legend": true, "refresh": 30, "bindings": [{ "sourceId": "{{history}}", "xField": "time", "yField": "cpuPct", "agg": "last" }, { "sourceId": "{{history}}", "xField": "time", "yField": "memPct", "agg": "last" }] } },
+    { "id": "w_alive", "type": "pie", "x": 32, "y": 9, "w": 16, "h": 11, "config": { "title": "The living and the dead", "color": "c1", "donut": true, "legend": true, "refresh": 60, "bindings": [{ "sourceId": "{{services}}", "xField": "status", "agg": "count" }] } },
+
+    { "id": "w_load", "type": "line", "x": 0, "y": 20, "w": 24, "h": 10, "config": { "title": "Load average (1 min)", "color": "c5", "smooth": true, "fill": true, "legend": false, "refresh": 30, "bindings": [{ "sourceId": "{{history}}", "xField": "time", "yField": "load1", "agg": "last" }] } },
+    { "id": "w_codes", "type": "bar", "x": 24, "y": 20, "w": 24, "h": 10, "config": { "title": "Responses by status code", "color": "c2", "horizontal": false, "stacked": false, "legend": false, "refresh": 60, "bindings": [{ "sourceId": "{{logs}}", "xField": "status", "agg": "count" }] } },
+
+    { "id": "w_grave", "type": "table", "x": 0, "y": 30, "w": 16, "h": 10, "config": { "title": "Service graveyard", "columns": ["service", "status", "state"], "limit": 20, "refresh": 60, "bindings": [{ "sourceId": "{{services}}" }] } },
+    { "id": "w_reqs", "type": "table", "x": 16, "y": 30, "w": 32, "h": 10, "config": { "title": "Recent requests", "columns": ["time", "method", "path", "status", "bytes"], "limit": 25, "refresh": 60, "bindings": [{ "sourceId": "{{logs}}" }] } }
+  ]
+}

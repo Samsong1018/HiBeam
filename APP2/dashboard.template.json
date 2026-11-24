@@ -1,0 +1,23 @@
+{
+  "name": "Monthly Money Report",
+  "grid": { "columns": 48, "showGrid": true },
+  "widgets": [
+    { "id": "w_title", "type": "label", "x": 0, "y": 0, "w": 32, "h": 3, "config": { "text": "John Doe · November 2026", "size": "md", "align": "left", "muted": false } },
+    { "id": "w_sub", "type": "label", "x": 32, "y": 0, "w": 16, "h": 3, "config": { "text": "from one spreadsheet, no code", "size": "sm", "align": "right", "muted": true } },
+
+    { "id": "w_spent", "type": "kpi", "x": 0, "y": 3, "w": 12, "h": 6, "config": { "title": "Spent this month", "color": "c1", "prefix": "$", "suffix": "", "decimals": 0, "refresh": 0, "bindings": [{ "sourceId": "{{budget}}", "yField": "Actual ($)", "agg": "sum" }] } },
+    { "id": "w_budget", "type": "kpi", "x": 12, "y": 3, "w": 12, "h": 6, "config": { "title": "Budgeted", "color": "c2", "prefix": "$", "suffix": "", "decimals": 0, "refresh": 0, "bindings": [{ "sourceId": "{{budget}}", "yField": "Budget ($)", "agg": "sum" }] } },
+    { "id": "w_networth", "type": "kpi", "x": 24, "y": 3, "w": 12, "h": 6, "config": { "title": "Net worth", "color": "c3", "prefix": "$", "suffix": "", "decimals": 0, "refresh": 0, "bindings": [{ "sourceId": "{{networth}}", "yField": "Net Worth ($)", "agg": "last" }] } },
+    { "id": "w_debt", "type": "kpi", "x": 36, "y": 3, "w": 12, "h": 6, "config": { "title": "Total debt", "color": "c4", "prefix": "$", "suffix": "", "decimals": 0, "refresh": 0, "bindings": [{ "sourceId": "{{debts}}", "yField": "Balance ($)", "agg": "sum" }] } },
+
+    { "id": "w_bva", "type": "bar", "x": 0, "y": 9, "w": 32, "h": 11, "config": { "title": "Budget vs actual", "color": "c2", "horizontal": false, "stacked": false, "legend": true, "refresh": 0, "bindings": [{ "sourceId": "{{budget}}", "xField": "Category", "yField": "Budget ($)", "agg": "sum" }, { "sourceId": "{{budget}}", "xField": "Category", "yField": "Actual ($)", "agg": "sum" }] } },
+    { "id": "w_where", "type": "pie", "x": 32, "y": 9, "w": 16, "h": 11, "config": { "title": "Where November went", "color": "c1", "donut": true, "legend": true, "refresh": 0, "bindings": [{ "sourceId": "{{budget}}", "xField": "Category", "yField": "Actual ($)", "agg": "sum" }] } },
+
+    { "id": "w_nw", "type": "line", "x": 0, "y": 20, "w": 24, "h": 10, "config": { "title": "Net worth, last 6 months", "color": "c3", "smooth": true, "fill": true, "legend": false, "refresh": 0, "bindings": [{ "sourceId": "{{networth}}", "xField": "Month", "yField": "Net Worth ($)", "agg": "last" }] } },
+    { "id": "w_monthly", "type": "bar", "x": 24, "y": 20, "w": 24, "h": 10, "config": { "title": "Monthly spending", "color": "c1", "horizontal": false, "stacked": false, "legend": false, "refresh": 0, "bindings": [{ "sourceId": "{{spending}}", "xField": "Month", "yField": "Spending ($)", "agg": "sum" }] } },
+
+    { "id": "w_accounts", "type": "table", "x": 0, "y": 30, "w": 14, "h": 9, "config": { "title": "Accounts", "columns": ["Account", "Balance ($)"], "limit": 20, "refresh": 0, "bindings": [{ "sourceId": "{{accounts}}" }] } },
+    { "id": "w_debts", "type": "table", "x": 14, "y": 30, "w": 20, "h": 9, "config": { "title": "Debts", "columns": ["Debt", "Balance ($)", "Min Payment ($/mo)", "APR (%)"], "limit": 20, "refresh": 0, "bindings": [{ "sourceId": "{{debts}}" }] } },
+    { "id": "w_note", "type": "text", "x": 34, "y": 30, "w": 14, "h": 9, "config": { "title": "This month", "body": "Clothing (+$110) and dining out (+$87) went furthest over budget. Savings came in $200 under the $600 target, but net worth still rose $950. The credit card is the 22.9% APR one, so it's first in line for extra payments.", "fontSize": "sm" } }
+  ]
+}

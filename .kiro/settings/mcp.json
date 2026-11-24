@@ -1,0 +1,11 @@
+{
+  "mcpServers": {
+    "hibeam": {
+      "command": "node",
+      "args": ["mcp/hibeam-server.mjs"],
+      "env": {},
+      "disabled": false,
+      "autoApprove": []
+    }
+  }
+}

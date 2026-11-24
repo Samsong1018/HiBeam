@@ -1,0 +1,47 @@
+# systemd unit for the HiBeam Homelab Agent.
+# Install: sudo cp deploy/hibeam-agent.service /etc/systemd/system/
+#          edit WorkingDirectory/ExecStart if you cloned somewhere else
+#          sudo systemctl daemon-reload && sudo systemctl enable --now hibeam-agent
+
+[Unit]
+Description=HiBeam Homelab Agent
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+DynamicUser=yes
+# adm can read the nginx log, but /var/log is replaced with an empty tmpfs and only
+# /var/log/nginx is mounted back in, so auth.log, syslog, etc. stay out of reach.
+SupplementaryGroups=adm
+TemporaryFileSystem=/var/log
+BindReadOnlyPaths=/var/log/nginx
+WorkingDirectory=/opt/hibeam/APP1/agent
+# systemd reads this as root before dropping to the dynamic user, so .env can stay chmod 600 root:root.
+EnvironmentFile=/opt/hibeam/APP1/agent/.env
+ExecStart=/usr/bin/node /opt/hibeam/APP1/agent/agent.mjs
+Restart=on-failure
+RestartSec=5
+
+# Read-only box: it only reads /proc, statfs, the access log and systemctl.
+NoNewPrivileges=yes
+ProtectSystem=strict
+ProtectHome=yes
+PrivateTmp=yes
+PrivateDevices=yes
+ProtectKernelTunables=yes
+ProtectKernelModules=yes
+ProtectControlGroups=yes
+RestrictAddressFamilies=AF_INET AF_INET6 AF_UNIX
+CapabilityBoundingSet=
+SystemCallFilter=@system-service
+RestrictNamespaces=yes
+RestrictSUIDSGID=yes
+ProtectClock=yes
+ProtectHostname=yes
+UMask=0077
+LockPersonality=yes
+MemoryMax=64M
+
+[Install]
+WantedBy=multi-user.target

@@ -2,9 +2,29 @@
 
 > **Kiroween Hackathon 2026 · Skeleton Crew**
 
-Connect your data, drop widgets onto a grid, and share the result — or export it as a PNG or PDF. HiBeam is the foundation: accounts, six source types, a drag-and-drop editor, and a read-only viewer. The two applications built on top of it will live in `APP1/` and `APP2/` (in progress).
+Connect your data, drop widgets onto a grid, and share the result — or export it as a PNG or PDF. HiBeam is the foundation: accounts, six source types, a drag-and-drop editor, and a read-only viewer. Two very different applications are built on top of it, in [`APP1/`](APP1/) and [`APP2/`](APP2/), with no changes to the skeleton.
 
 ![The HiBeam viewer showing a sales dashboard with KPI tiles, a line chart, a pie chart, a bar chart and a table](docs/screenshots/viewer.png)
+
+---
+
+## Two applications, one skeleton
+
+The two apps are for opposite kinds of user. Between them they cover the skeleton's range: live data and uploaded files, a public share link and a PDF export.
+
+| | [APP1: Homelab Ops](APP1/) | [APP2: Monthly Money Report](APP2/) |
+|---|---|---|
+| For | Someone running their own server | Someone with a budget spreadsheet |
+| Data | REST and nginx log feeds from a small agent on the server | One uploaded `.xlsx` workbook |
+| Updates | Every 30 seconds, on its own | When a new month is uploaded |
+| Shared as | A public status page | An exported PDF report |
+| Ships with | A dependency-free metrics agent, a sandboxed systemd unit, nginx and Caddy configs, a demo mode with simulated data, and the dashboard template | A sample workbook and the dashboard template |
+
+![APP1 Homelab Ops: CPU, memory, disk and uptime tiles, trend and load charts, a services donut, a status-code bar chart, a service graveyard table and recent requests](docs/screenshots/app1-homelab-ops.png)
+
+![APP2 Monthly Money Report: spent, budgeted, net worth and debt tiles, budget-vs-actual bars, a spending donut, net worth and monthly spending charts, accounts and debts tables](docs/screenshots/app2-money-report.png)
+
+Kiro built both boards through HiBeam's own MCP server (see [MCP](#mcp) below), from the `dashboard.template.json` in each app folder.
 
 ---
 
@@ -77,6 +97,22 @@ The auth spec is where property-based testing paid off. Each property in `design
 - **`submission-checker`** audits the repo against the Skeleton Crew rules before submission.
 
 There's also a [`security-review`](.kiro/skills/security-review/SKILL.md) skill with the project's security checklist, which Kiro loads on its own when a change touches routes, connectors, auth or user input.
+
+### MCP
+
+[`mcp/hibeam-server.mjs`](mcp/hibeam-server.mjs) is an MCP server for HiBeam itself, registered with Kiro in [`.kiro/settings/mcp.json`](.kiro/settings/mcp.json). It logs in as a HiBeam account and gives Kiro tools that work on that account's real data:
+
+| Tools | What Kiro can do |
+|-------|------------------|
+| `list_sources` `create_source` `upload_source_file` `test_source` `preview_source` `delete_source` | Connect data and check what shape it comes back in |
+| `list_dashboards` `get_dashboard` `get_dashboard_definition` `create_dashboard` `update_dashboard` `delete_dashboard` | Build and edit whole boards |
+| `get_dashboard_data` `get_public_dashboard_data` `set_dashboard_visibility` `hibeam_status` | Read what a board is showing right now, and share it |
+
+This is how both applications were made. For each one, Kiro created and tested the sources. It previewed rows to get the real field names, then built the board from the app's template. After looking at a screenshot it called `update_dashboard` to fix what read badly. Each board took one prompt, and its layout lives in the repo as JSON, where it gets reviewed like code.
+
+The same tools work on any dashboard, so you can also ask Kiro things like "what is my CPU board showing right now?"
+
+To set it up, copy `mcp/.env.example` to `mcp/.env` and fill in a HiBeam account (a dedicated one is best), with HiBeam running. Kiro starts the server on its own. `autoApprove` is left empty on purpose, so every tool call, including deletes and uploads, waits for your OK.
 
 ---
 
@@ -178,7 +214,7 @@ Open <http://localhost:8000>.
 npm test
 ```
 
-Tests don't need a database — they use in-memory fakes. There are 97 of them, 34 of which are `fast-check` property tests.
+Tests don't need a database — they use in-memory fakes. There are 115 of them, 34 of which are `fast-check` property tests. 18 cover the APP1 agent, including one that runs its simulated log through HiBeam's real nginx parser.
 
 ---
 
@@ -206,11 +242,13 @@ Web/
       view/                Read-only viewer (including export.js)
     style/
     TODO.md                Frontend and project task list
+mcp/
+  hibeam-server.mjs        MCP server that lets Kiro read and build sources and dashboards
 tests/                     node:test suites
 docs/screenshots/          Images used in this README
-.kiro/                     Specs, steering, hooks, agents, and a skill
-APP1/                      Skeleton Crew application 1 (in progress)
-APP2/                      Skeleton Crew application 2 (in progress)
+.kiro/                     Specs, steering, hooks, agents, a skill, and the MCP config
+APP1/                      Homelab Ops: metrics agent, deploy configs, dashboard template
+APP2/                      Monthly Money Report: sample workbook, dashboard template
 ```
 
 ---
