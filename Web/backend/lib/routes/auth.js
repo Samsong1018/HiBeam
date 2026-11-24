@@ -20,7 +20,8 @@
  *   envelope        { ok, fail }
  *   bcryptCost      number, passed to hashPassword (default: passwords default, 12)
  *   now             () -> ms epoch (default Date.now)
- *   logger          { log(msg) } used for reset links (default console)
+ *   logger          { log(msg), error(msg) } (default console)
+ *   mailer          { sendPasswordReset, sendPasswordChanged }      (default ../mailer CreateMailer())
  *   baseUrl         string for reset links (default process.env.APP_BASE_URL or '')
  */
 
@@ -65,6 +66,7 @@ function CreateAuthRouter(pDeps)
     const tmpEnvelope = tmpDeps.envelope || require('../envelope');
     const tmpNow = tmpDeps.now || Date.now;
     const tmpLogger = tmpDeps.logger || console;
+    const tmpMailer = tmpDeps.mailer || require('../mailer').CreateMailer({ logger: tmpLogger });
     const tmpHashOptions = tmpDeps.bcryptCost === undefined ? undefined : { cost: tmpDeps.bcryptCost };
 
     const tmpRouter = express.Router();
@@ -72,6 +74,20 @@ function CreateAuthRouter(pDeps)
     function GetBaseUrl()
     {
         return tmpDeps.baseUrl !== undefined ? tmpDeps.baseUrl : (process.env.APP_BASE_URL || '');
+    }
+
+    function LogError(pMsg)
+    {
+        return typeof tmpLogger.error === 'function' ? tmpLogger.error(pMsg) : tmpLogger.log(pMsg);
+    }
+
+    // Security notice to the address on file. Not awaited; failures are logged only.
+    function NotifyPasswordChanged(pUserId)
+    {
+        Promise.resolve()
+            .then(() => tmpRepos.users.getEmail(pUserId))
+            .then((pEmail) => (pEmail ? tmpMailer.sendPasswordChanged(pEmail, `${GetBaseUrl()}/login`) : null))
+            .catch((pErr) => LogError(`[auth] password changed notice: ${pErr && pErr.message ? pErr.message : 'unknown error'}`));
     }
 
     function SetCookie(pRes, pValue)
@@ -224,8 +240,10 @@ function CreateAuthRouter(pDeps)
                     pTx
                 );
             });
-            // No mail service: the link goes to the server console.
-            tmpLogger.log(`[auth] password reset link for ${tmpEmail}: ${GetBaseUrl()}/login?reset=${tmpReset.token}`);
+            // Not awaited: the response must take the same time whether or not the address is
+            // registered, and a mail outage must not change the reply either.
+            tmpMailer.sendPasswordReset(tmpUser.email || tmpEmail, `${GetBaseUrl()}/login?reset=${tmpReset.token}`)
+                .catch((pErr) => LogError(`[auth] password reset email: ${pErr && pErr.message ? pErr.message : 'unknown error'}`));
         }
 
         return tmpEnvelope.ok(pRes, 200, { message: FORGOT_MESSAGE });
@@ -250,19 +268,20 @@ function CreateAuthRouter(pDeps)
         const tmpHash = await tmpPasswords.hashPassword(tmpPwResult.value, tmpHashOptions);
         const tmpTokenHash = tmpTokens.hashToken(tmpBody.token);
 
-        const tmpDone = await tmpWithTransaction(async (pTx) =>
+        const tmpUserId = await tmpWithTransaction(async (pTx) =>
         {
             const tmpConsumed = await tmpRepos.tokens.consumeReset(tmpTokenHash, pTx);
-            if (!tmpConsumed.consumed) return false;
+            if (!tmpConsumed.consumed) return null;
             await tmpRepos.users.setPasswordHash(tmpConsumed.userId, tmpHash, pTx);
             await tmpRepos.sessions.revokeAll(tmpConsumed.userId, pTx);
-            return true;
+            return tmpConsumed.userId;
         });
 
-        if (!tmpDone)
+        if (tmpUserId === null || tmpUserId === undefined)
         {
             return tmpEnvelope.fail(pRes, 400, BAD_RESET_TOKEN_ERROR);
         }
+        NotifyPasswordChanged(tmpUserId);
         return tmpEnvelope.ok(pRes, 200, null);
     });
 
