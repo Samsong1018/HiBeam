@@ -222,7 +222,7 @@ Copy `.env.example` to `.env` and fill it in. Never commit `.env`.
 | `DB_PASSWORD` | ✓ | Can be empty string, but must be set |
 | `DB_NAME` | ✓ | |
 | `SOURCE_KEY_SECRET` | ✓ | 32 random bytes, base64 — encrypts stored source credentials. Generate with: `node -e "console.log(require('crypto').randomBytes(32).toString('base64'))"` |
-| `APP_BASE_URL` | | Base URL for password-reset and email-confirm links, e.g. `http://localhost:8000` |
+| `APP_BASE_URL` | | Public base URL, e.g. `http://localhost:8000`. Used for password-reset and email-confirm links and for the absolute URLs in link-preview (Open Graph) tags |
 | `PORT` | | Defaults to `8000` |
 | `TRUST_PROXY` | | Set when behind a reverse proxy so rate limits see real client IPs. A hop count (`1`) or `loopback` |
 | `NODE_ENV` | | Set to `production` when serving over HTTPS: enables `Secure` cookies and HSTS |

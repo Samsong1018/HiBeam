@@ -1,0 +1,4 @@
+# Public dashboards and app pages carry their own noindex meta tag.
+# Nothing here is blocked so link-preview bots (which honor robots.txt) can still unfurl shared boards.
+User-agent: *
+Disallow: /api/
