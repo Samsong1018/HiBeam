@@ -63,7 +63,7 @@ function ByUser(pReq)
 /*
   Limits, per window:
     login            30 / 15 min / IP    on top of the per-account lockout
-    authSensitive    10 / 15 min / IP    signup, forgot-password, reset-password
+    authSensitive    10 / 15 min / IP    signup, forgot-password, reset-password, email change
     sourceFetch     120 / min / user     source test + preview, owner dashboard data. These make
                                           the server fetch a user-chosen URL, so cap them.
     publicDashboards 120 / min / IP      anonymous share links (data is also cached 15s)

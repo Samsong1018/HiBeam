@@ -36,7 +36,8 @@
  *   envelope        { ok, fail }
  *   bcryptCost      number, passed to hashPassword (default: passwords default)
  *   now             () -> ms epoch (default Date.now)
- *   logger          { log(msg) } used for confirmation links (default console)
+ *   logger          { log(msg), error(msg) } (default console)
+ *   mailer          { sendEmailConfirm, sendPasswordChanged, sendEmailChanged } (default ../mailer)
  *   baseUrl         string for confirmation links (default process.env.APP_BASE_URL or '')
  */
 const express = require('express');
@@ -45,6 +46,7 @@ const BAD_CONFIRM_TOKEN_ERROR = 'Confirmation token is invalid or expired';
 const USERNAME_TAKEN_ERROR = 'Username is already taken';
 const EMAIL_TAKEN_ERROR = 'Email is already in use';
 const NOT_FOUND_ERROR = 'Not found';
+const MAIL_FAILED_ERROR = "Couldn't send the confirmation email. Try again in a few minutes.";
 const AVATAR_MIMES = ['image/png', 'image/jpeg', 'image/webp'];
 const AVATAR_ERRORS = {
     missing: 'Image is missing',
@@ -77,11 +79,24 @@ function ResolveDeps(pDeps)
         envelope: tmpDeps.envelope || require('../envelope'),
         bcryptCost: tmpDeps.bcryptCost,
         logger: tmpDeps.logger || console,
+        mailer: tmpDeps.mailer || require('../mailer').CreateMailer({ logger: tmpDeps.logger || console }),
         baseUrl: function BaseUrl()
         {
             return tmpDeps.baseUrl !== undefined ? tmpDeps.baseUrl : (process.env.APP_BASE_URL || '');
         },
     };
+}
+// Security notice (kind: 'sendPasswordChanged' | 'sendEmailChanged'). Not awaited; failures and
+// lookup errors are logged and never change the response.
+function Notify(pD, pKind, pEmailPromise)
+{
+    Promise.resolve(pEmailPromise)
+        .then((pEmail) => (pEmail ? pD.mailer[pKind](pEmail, `${pD.baseUrl()}/login`) : null))
+        .catch((pErr) =>
+        {
+            const tmpMsg = `[account] ${pKind} notice: ${pErr && pErr.message ? pErr.message : 'unknown error'}`;
+            return typeof pD.logger.error === 'function' ? pD.logger.error(tmpMsg) : pD.logger.log(tmpMsg);
+        });
 }
 function CreateAccountRouter(pDeps)
 {
@@ -216,6 +231,7 @@ function CreateAccountRouter(pDeps)
             await tmpRepos.users.setPasswordHash(pReq.userId, tmpNewHash, pTx);
             await tmpRepos.sessions.revokeAllExcept(pReq.userId, pReq.sessionId, pTx);
         });
+        Notify(tmpD, 'sendPasswordChanged', Promise.resolve().then(() => tmpRepos.users.getEmail(pReq.userId)));
         return tmpEnv.ok(pRes, 200, null);
     });
     // POST /api/account/email
@@ -243,8 +259,17 @@ function CreateAccountRouter(pDeps)
             tmpCheck.value.newEmail,
             tmpToken.tokenHash,
             Math.round(tmpD.tokens.EMAIL_TOKEN_TTL_MS / 1000));
-        // No mail service: the link goes to the server console only.
-        tmpD.logger.log(`[email-confirm] ${tmpD.baseUrl()}/api/account/email/confirm?token=${tmpToken.token}`);
+        // The link opens the login page, which calls GET /email/confirm and shows the result.
+        try
+        {
+            await tmpD.mailer.sendEmailConfirm(tmpCheck.value.newEmail, `${tmpD.baseUrl()}/login?token=${tmpToken.token}`);
+        }
+        catch (pErr)
+        {
+            const tmpMsg = `[account] email confirm: ${pErr && pErr.message ? pErr.message : 'unknown error'}`;
+            typeof tmpD.logger.error === 'function' ? tmpD.logger.error(tmpMsg) : tmpD.logger.log(tmpMsg);
+            return tmpEnv.fail(pRes, 502, MAIL_FAILED_ERROR);
+        }
         return tmpEnv.ok(pRes, 200, null);
     });
     // PATCH /api/account/preferences
@@ -306,6 +331,7 @@ function CreateEmailConfirmRouter(pDeps)
         const tmpTokenHash = tmpD.tokens.hashToken(tmpRawToken);
         // The transaction commits in every outcome except a thrown error, so on a 409 the
         // consumed token stays marked used (Requirement 10.7).
+        let tmpOldEmail = null;
         const tmpOutcome = await tmpD.withTransaction(async (pTx) =>
         {
             const tmpConsumed = await tmpRepos.tokens.consumeEmail(tmpTokenHash, pTx);
@@ -317,6 +343,7 @@ function CreateEmailConfirmRouter(pDeps)
             {
                 return 'conflict';
             }
+            tmpOldEmail = await tmpRepos.users.getEmail(tmpConsumed.userId, pTx);
             try
             {
                 await tmpRepos.users.setEmail(tmpConsumed.userId, tmpConsumed.newEmail, pTx);
@@ -341,6 +368,7 @@ function CreateEmailConfirmRouter(pDeps)
         {
             return tmpEnv.fail(pRes, 409, EMAIL_TAKEN_ERROR);
         }
+        Notify(tmpD, 'sendEmailChanged', tmpOldEmail);
         return tmpEnv.ok(pRes, 200, null);
     });
     return tmpRouter;

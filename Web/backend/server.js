@@ -47,7 +47,7 @@ function OnlyFor(pPattern, pMiddleware)
     /api/public/dashboards  no session, read-only, is_public = 1 rows only
     errorMiddleware       last
 
-    Rate limits (lib/security.js): login, signup/forgot/reset, source test/preview + owner
+    Rate limits (lib/security.js): login, signup/forgot/reset/email-change, source test/preview + owner
     dashboard data (per user), and public dashboards (per IP).
 */
 
@@ -77,6 +77,8 @@ function CreateApp()
 
     tmpApp.use(`/api/auth/login`, tmpLimiters.login);
     tmpApp.use([`/api/auth/signup`, `/api/auth/forgot-password`, `/api/auth/reset-password`], tmpLimiters.authSensitive);
+    // sends mail from our domain to an address the user types, so it shares the auth limit
+    tmpApp.use(`/api/account/email`, tmpLimiters.authSensitive);
     tmpApp.use(`/api/auth`, libAuthRoutes.CreateAuthRouter());
     tmpApp.use(`/api/account`, libAccountRoutes.CreateEmailConfirmRouter());
     tmpApp.use(`/api/account`, libRequireSession.requireSession(), libAccountRoutes.CreateAccountRouter());

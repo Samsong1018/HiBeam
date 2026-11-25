@@ -31,10 +31,16 @@ async function create({ username, email, displayName, passwordHash, preferences 
 async function findByIdentifier(identifier, ex) {
   const id = String(identifier).trim().toLowerCase();
   const rows = await exec(ex).query(
-    'SELECT id, password_hash FROM users WHERE username_lc = ? OR email_lc = ? LIMIT 1',
+    'SELECT id, email, password_hash FROM users WHERE username_lc = ? OR email_lc = ? LIMIT 1',
     [id, id]
   );
   return rows[0] || null;
+}
+
+// The address on file, or null. Used to send security notices.
+async function getEmail(userId, ex) {
+  const rows = await exec(ex).query('SELECT email FROM users WHERE id = ? LIMIT 1', [userId]);
+  return rows[0] ? rows[0].email : null;
 }
 
 // Uniqueness check across all users (needed for the email-change 409; the row is never returned).
@@ -149,6 +155,7 @@ module.exports = {
   create,
   findByIdentifier,
   emailExists,
+  getEmail,
   getProfile,
   getPasswordHash,
   updateProfile,

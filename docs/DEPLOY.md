@@ -37,3 +37,11 @@ The live site deploys itself from the **`prod`** branch. You don't need server a
 - Tests on the server run in a locked-down sandbox. If a test passes for you but fails there, it's
   usually something touching the OS (network interfaces, files outside the project, `/tmp`).
 - Deploys build from `git archive`, so anything in `.gitignore` (like `.env`) is never shipped.
+
+## Email
+
+Password-reset and email-change mail, plus the security notices (password changed, and email
+changed, sent to the old address), go out through Resend from `hibeam@somab.dev` (somab.dev is
+already verified there). The server needs `RESEND_API_KEY` and `APP_BASE_URL=https://hibeam.somab.dev`
+in its env. Without the key, the app still runs and writes the links to the server log instead.
+Locally you can leave `RESEND_API_KEY` empty and copy the link from your terminal.
