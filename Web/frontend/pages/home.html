@@ -28,6 +28,13 @@
         </header>
 
         <main>
+            <!-- Shown by scripts/demo.js for demo accounts only -->
+            <p class="demo-banner" data-demo-banner role="note" hidden>
+                <span class="demo-banner-tag">Demo</span>
+                This is a throwaway copy of our showcase boards. Change anything you like: it's deleted after 24 hours.
+                <a href="/login" data-demo-leave>Sign up</a> to keep your own boards.
+                <button type="button" class="demo-banner-leave" data-demo-leave>Leave demo</button>
+            </p>
             <div class="home-header">
                 <h1>My Dashboards</h1>
                 <div class="home-header-actions">
@@ -120,6 +127,7 @@
         </footer>
 
         <script src="/scripts/script.js" defer></script>
+        <script src="/scripts/demo.js" defer></script>
         <script type="module" src="/scripts/home/import.js"></script>
     </body>
 </html>

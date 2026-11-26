@@ -45,3 +45,16 @@ changed, sent to the old address), go out through Resend from `hibeam@somab.dev`
 already verified there). The server needs `RESEND_API_KEY` and `APP_BASE_URL=https://hibeam.somab.dev`
 in its env. Without the key, the app still runs and writes the links to the server log instead.
 Locally you can leave `RESEND_API_KEY` empty and copy the link from your terminal.
+
+## One-click demo
+
+The **Open the demo** button on the login page only appears when the server has
+`DEMO_SEED_USER` set to an existing account's username. Each click copies that account's
+**public** boards, and the sources they read, into a new throwaway account. To change what judges
+see, change which boards on the showcase account are public. Demo accounts are deleted 24 hours
+after they're made, by the same hourly prune that clears old sessions. No migration is needed.
+
+Only use a showcase account whose data is fine for anyone to see: a demo visitor can preview the
+full rows of every copied source, not just the columns a public board shows. Ours holds the APP1
+agent in demo mode and the made-up APP2 workbook, so nothing real is exposed. The visitor never
+sees source URLs or tokens.

@@ -13,6 +13,18 @@ This is the "non-technical user, uploaded file" half of the Skeleton Crew pair. 
 | Updates | Every 30 seconds | When you upload a new month |
 | Shared as | A public status page | An exported PDF |
 
+## Try it
+
+- **In the browser, no install:** open <https://hibeam.somab.dev>, click **Open the demo**, and open **Monthly Money Report**. From the board, **Export → Export as PDF** gives you the month-end report.
+- **See the monthly report text without a server:** `npm install`, then
+
+  ```bash
+  npm run app2:preview
+  ```
+
+  reads the sample workbook and prints the month's title, totals and the "This month" summary the import would write.
+- **Build it on your own HiBeam:** put a HiBeam login in `mcp/.env`, then `npm run app2:setup`. That's the sample workbook to a finished board in one command. Next month it's `npm run app2:import -- path/to/december.xlsx`. Details under [Every month after](#every-month-after-the-import-script).
+
 ## What's in here
 
 | Path | What it is |

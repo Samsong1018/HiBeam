@@ -25,6 +25,16 @@
 
         <main class="auth">
             <div class="auth-forms">
+                <!-- One-click demo, shown by scripts/demo.js only when the server has it on -->
+                <section class="demo-entry" data-demo-entry aria-labelledby="demo-entry-title" hidden>
+                    <p class="demo-entry-eyebrow">Just looking?</p>
+                    <h2 id="demo-entry-title">Try it without an account</h2>
+                    <p class="demo-entry-text">You get your own copy of our live boards to poke at, edit and export. It's deleted after 24 hours.</p>
+                    <button type="button" class="btn btn-primary btn-block" data-demo-start>Open the demo</button>
+                    <p class="form-error" data-demo-error role="alert"></p>
+                    <p class="demo-entry-links" data-demo-links-row>Or just look: <span data-demo-links></span></p>
+                </section>
+
                 <p class="auth-banner" data-banner role="status" hidden></p>
 
                 <!-- LOG IN -->
@@ -144,5 +154,6 @@
         </footer>
 
         <script src="/scripts/auth.js" defer></script>
+        <script src="/scripts/demo.js" defer></script>
     </body>
 </html>

@@ -1,8 +1,8 @@
 # HiBeam
 
-> **Kiroween Hackathon 2026 · Skeleton Crew**
+> **Kiroween Hackathon 2026 · Skeleton Crew** · **Live:** <https://hibeam.somab.dev>
 
-**You don't build the board. The agent does.** Point Kiro at your data and HiBeam's MCP server lets it connect the sources, read the real rows, and draft a board. HiBeam's rule-based generator gives a reason for every widget ("`cpuPct` is a rate, so show the latest value, never a sum"). Kiro then looks at the result and fixes what reads badly. The board it saves is plain JSON you can review like code. Both applications in this repo were built that way, one prompt each.
+**You don't build the board. The agent does.** Point Kiro at your data and HiBeam's MCP server lets it connect the sources, read the real rows, and draft a board. HiBeam's rule-based generator gives a reason for every widget ("`cpuPct` is a rate, so show the latest value, never a sum"). Show Kiro a screenshot of the result and it fixes what reads badly. The board it saves is plain JSON you can review like code. Both applications in this repo were built that way, one prompt each.
 
 Underneath is an ordinary dashboard tool you can also drive by hand: accounts, eight source types, a drag-and-drop editor, a read-only viewer, public links, and PNG/PDF export. Two very different applications are built on top of it, in [`APP1/`](APP1/) and [`APP2/`](APP2/), with no changes to the skeleton.
 
@@ -50,7 +50,8 @@ The two apps are for opposite kinds of user. Between them they cover the skeleto
 | Data | REST and nginx log feeds from a small agent on the server | One uploaded `.xlsx` workbook |
 | Updates | Every 30 seconds, on its own | When a new month is uploaded |
 | Shared as | A public status page | An exported PDF report |
-| Ships with | A dependency-free metrics agent, a sandboxed systemd unit, nginx and Caddy configs, a demo mode with simulated data, and the dashboard template (Kiroween theme, CPU/memory/disk alerts) | A sample workbook, the dashboard template, and a monthly import script that re-uploads next month's workbook and rewrites the "This month" summary from the numbers |
+| Ships with | A dependency-free metrics agent, a sandboxed systemd unit, nginx and Caddy configs, a demo mode with simulated data, a one-command setup script, and the dashboard template (Kiroween theme, CPU/memory/disk alerts) | A sample workbook, the dashboard template, and a monthly import script that re-uploads next month's workbook and rewrites the "This month" summary from the numbers |
+| Try it | **Open the demo** on [hibeam.somab.dev](https://hibeam.somab.dev), or `npm run app1:setup -- --agent <url> --public` | **Open the demo** on [hibeam.somab.dev](https://hibeam.somab.dev), or `npm run app2:preview` with no server at all |
 
 ![APP1 Homelab Ops: CPU, memory, disk and uptime tiles, trend and load charts, a services donut, a status-code bar chart, a service graveyard table and recent requests](docs/screenshots/app1-homelab-ops.png)
 
@@ -107,6 +108,9 @@ Charts, KPIs, tables, and all widget styles are captured as they appear on scree
 ### Templates
 **Import layout** on the dashboards page takes any `.template.json`: one you exported, or the ones in [`APP1/`](APP1/dashboard.template.json) and [`APP2/`](APP2/dashboard.template.json). HiBeam lists each placeholder with the widgets and fields it feeds, and picks your source when the names match. Slots you leave empty come in unbound, ready to connect in the editor. So you can rebuild either app's board without Kiro: connect the sources, import the template, done.
 
+### Try it without an account
+The login page has an **Open the demo** button. One click makes a throwaway account holding copies of the showcase boards and the sources they read, and signs you in. Edit, export or share anything. The demo session ends when you close the browser, or when you click **Leave demo** on the banner. Demo accounts are deleted after 24 hours, can't be logged back in to, and never send email. The showcase account itself is never touched, and its source credentials stay encrypted on the server. Set `DEMO_SEED_USER` to the account whose **public** boards should be copied; without it the button doesn't appear.
+
 ### Accounts
 Sign up and log in, profile and avatar, email change with confirmation, password reset, preferences, sign-out-everywhere, and account deletion.
 
@@ -116,7 +120,7 @@ Sign up and log in, profile and avatar, email change with confirmation, password
 
 ## Built with Kiro
 
-Everything Kiro uses lives in [`.kiro/`](.kiro/). Here's what's in there and what it did for us.
+Everything Kiro uses lives in [`.kiro/`](.kiro/). Here's what's in there and what it did for us. We also used Claude Code, especially after our Kiro credits ran low near the end. [`docs/KIRO.md`](docs/KIRO.md) lists what was built that way.
 
 ### Specs
 | Spec | What it covers | Status |
@@ -170,7 +174,7 @@ There's also a [`security-review`](.kiro/skills/security-review/SKILL.md) skill 
 | `generate_dashboard` | Draft a board from sources with the rule-based generator, and get a reason for every field (rate, level, flow, category, id). It's a preview unless you pass `create` |
 | `get_dashboard_data` `get_public_dashboard_data` `set_dashboard_visibility` `hibeam_status` | Read what a board is showing right now, and share it |
 
-This is how both applications were made. For each one, Kiro created and tested the sources. It previewed rows to get the real field names, then built the board from the app's template. After looking at a screenshot it called `update_dashboard` to fix what read badly. Each board took one prompt, and its layout lives in the repo as JSON, where it gets reviewed like code.
+This is how both applications were made. For each one, Kiro created and tested the sources. It previewed rows to get the real field names, then built the board from the app's template. We gave it a screenshot of the rendered board, and it called `update_dashboard` to fix what read badly. (The MCP server can't render a board itself yet, so that step needs a person.) Each board took one prompt, and its layout lives in the repo as JSON, where it gets reviewed like code.
 
 The same tools work on any dashboard, so you can also ask Kiro things like "what is my CPU board showing right now?"
 
@@ -216,13 +220,16 @@ Copy `.env.example` to `.env` and fill it in. Never commit `.env`.
 
 | Variable | Required | Notes |
 |----------|----------|-------|
-| `DB_HOST` | ✓ | `127.0.0.1` when using the SSH tunnel below |
+| `DB_HOST` | ✓ | `127.0.0.1` for a local database |
 | `DB_PORT` | | Defaults to `3306` |
 | `DB_USER` | ✓ | |
 | `DB_PASSWORD` | ✓ | Can be empty string, but must be set |
 | `DB_NAME` | ✓ | |
 | `SOURCE_KEY_SECRET` | ✓ | 32 random bytes, base64 — encrypts stored source credentials. Generate with: `node -e "console.log(require('crypto').randomBytes(32).toString('base64'))"` |
 | `APP_BASE_URL` | | Public base URL, e.g. `http://localhost:8000`. Used for password-reset and email-confirm links and for the absolute URLs in link-preview (Open Graph) tags |
+| `RESEND_API_KEY` | | [Resend](https://resend.com) key for password-reset, email-confirm and security-notice mail. Leave empty and the links are printed to the server console instead |
+| `MAIL_FROM` | | Sender, on a domain verified in Resend. Defaults to `HiBeam <hibeam@somab.dev>` |
+| `DEMO_SEED_USER` | | Username of the showcase account. Its public boards (and the sources they read) are copied into each one-click demo account. Leave empty to turn the demo off |
 | `PORT` | | Defaults to `8000` |
 | `TRUST_PROXY` | | Set when behind a reverse proxy so rate limits see real client IPs. A hop count (`1`) or `loopback` |
 | `NODE_ENV` | | Set to `production` when serving over HTTPS: enables `Secure` cookies and HSTS |
@@ -231,17 +238,22 @@ The server refuses to start and names any missing required variable.
 
 ### 3. Database
 
-The shared database is reached through an SSH tunnel. Keep this running in its own terminal while you work:
+Any MySQL 8 or MariaDB 10.6+ database works. To run one locally with Docker:
 
 ```bash
-ssh -N -L 3306:127.0.0.1:3306 dbtunnel@<db-host>
+docker run -d --name hibeam-db -p 3306:3306 \
+  -e MYSQL_ROOT_PASSWORD=hibeam -e MYSQL_DATABASE=hibeam mysql:8
 ```
+
+Then set `DB_HOST=127.0.0.1`, `DB_USER=root`, `DB_PASSWORD=hibeam`, `DB_NAME=hibeam` in `.env`.
 
 **New database** — load the full schema once:
 
 ```bash
 mysql -h 127.0.0.1 -u <user> -p <database> < Web/backend/db/schema.sql
 ```
+
+(If your database is on another machine and only reachable over SSH, forward it with `ssh -N -L 3306:127.0.0.1:3306 <user>@<db-host>` and keep that running.)
 
 **Existing database** — run any migrations you haven't applied yet, in order:
 
@@ -272,7 +284,7 @@ npm run serve
 
 Open <http://localhost:8000>.
 
-> There is no mail service. Password-reset and email-confirm links are printed to the server console.
+> Without `RESEND_API_KEY`, password-reset and email-confirm links are printed to the server console instead of being emailed.
 
 ### 5. Test
 
@@ -280,7 +292,7 @@ Open <http://localhost:8000>.
 npm test
 ```
 
-Tests don't need a database — they use in-memory fakes. There are 276 of them, 61 of which are `fast-check` property tests. 18 cover the APP1 agent, including one that runs its simulated log through HiBeam's real nginx parser, and the APP2 import tests run against the real sample workbook.
+Tests don't need a database — they use in-memory fakes. There are 370 of them, and 64 checks are `fast-check` properties. 22 cover the APP1 agent and its setup script, including one that runs its simulated log through HiBeam's real nginx parser, and the APP2 import tests run against the real sample workbook.
 
 ---
 
@@ -313,7 +325,7 @@ mcp/
 power-hibeam/              The MCP server packaged as a Kiro power, with its skill
 tests/                     node:test suites
 .kiro/                     Specs, steering, hooks, agents, a skill, and the MCP config
-APP1/                      Homelab Ops: metrics agent, deploy configs, dashboard template
+APP1/                      Homelab Ops: metrics agent, deploy configs, setup script, dashboard template
 APP2/                      Monthly Money Report: sample workbook, dashboard template, import/ (monthly pipeline)
 docs/KIRO.md               How Kiro was used: the bug → guardrail ledger, IDE vs CLI
 docs/screenshots/          Images used in this README
@@ -333,6 +345,7 @@ All responses follow the same envelope: `{ "success": true, "data": … }` or `{
 | Sources | `GET/POST /api/sources` · `DELETE /:id` · `POST /:id/test` · `GET /:id/preview` · `PUT /:id/file` | session |
 | Dashboards | `GET/POST /api/dashboards` · `GET/PATCH/DELETE /:id` · `PATCH /:id/visibility` · `GET /:id/data` | session |
 | Public dashboards | `GET /api/public/dashboards/:id` · `GET /:id/data` | — |
+| Demo | `GET /api/demo` (showcase boards) · `POST /api/demo` (start a demo account) | — |
 
 ---
 
@@ -346,7 +359,8 @@ All responses follow the same envelope: `{ "success": true, "data": … }` or `{
 - SQL sources run in a read-only transaction with a timeout and a 100-row cap.
 - Log sources accept a URL, never a file path on the server.
 - Public dashboards only send the columns their widgets actually display. A table set to show all columns exposes all of them.
-- Rate limits (per IP unless noted): login 30 / 15 min; signup, forgot-password and reset-password 10 / 15 min combined; source test/preview and dashboard data 120 / min per user; public dashboards 120 / min. Over the limit returns 429.
+- Demo accounts use a reserved `.invalid` email and a password hash that can never match, so nobody can log in to one, change its password or email, or send mail through it. They're capped at 200 at a time and deleted with everything they own 24 hours after they're made. At the cap, a new demo replaces the oldest one that's at least an hour old, so filling the cap can't lock other visitors out.
+- Rate limits (per IP unless noted): login 30 / 15 min; signup, demo start, forgot-password and reset-password 10 / 15 min combined; source test/preview and dashboard data 120 / min per user; public dashboards 120 / min. Over the limit returns 429.
 - Security headers via `helmet`, including a CSP that permits scripts only from the app origin and jsDelivr.
 - Expired sessions, used or expired tokens, and old login-attempt records are pruned at startup and then every hour.
 

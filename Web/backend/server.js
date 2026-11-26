@@ -16,6 +16,7 @@ const libAccountRoutes = require("./lib/routes/account");
 const libSourcesRoutes = require("./lib/routes/sources");
 const libDashboardsRoutes = require("./lib/routes/dashboards");
 const libPublicDashboardsRoutes = require("./lib/routes/public-dashboards");
+const libDemoRoutes = require("./lib/routes/demo");
 const libSecurity = require("./lib/security");
 const libMaintenance = require("./lib/maintenance");
 const libPageMeta = require("./lib/page-meta");
@@ -45,6 +46,7 @@ function OnlyFor(pPattern, pMiddleware)
     /api/sources          session-protected
     /api/dashboards       session-protected
     /api/public/dashboards  no session, read-only, is_public = 1 rows only
+    /api/demo             no session: list the showcase boards, or start a throwaway demo account
     errorMiddleware       last
 
     Rate limits (lib/security.js): login, signup/forgot/reset/email-change, source test/preview + owner
@@ -85,6 +87,10 @@ function CreateApp()
     tmpApp.use(`/api/sources`, libRequireSession.requireSession(),
         OnlyFor(SOURCE_FETCH_PATHS.sources, tmpLimiters.sourceFetch), libSourcesRoutes());
     tmpApp.use(`/api/public/dashboards`, tmpLimiters.publicDashboards, libPublicDashboardsRoutes());
+    // starting a demo creates an account, so POST shares the signup limit; GET is a cheap lookup
+    tmpApp.use(`/api/demo`, (pRequest, pResponse, pNext) =>
+        (pRequest.method === `POST` ? tmpLimiters.authSensitive : tmpLimiters.publicDashboards)(pRequest, pResponse, pNext),
+        libDemoRoutes.CreateDemoRouter());
     tmpApp.use(`/api/dashboards`, libRequireSession.requireSession(),
         OnlyFor(SOURCE_FETCH_PATHS.dashboards, tmpLimiters.sourceFetch), libDashboardsRoutes());
 
