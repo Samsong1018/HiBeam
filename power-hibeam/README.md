@@ -13,7 +13,7 @@ The workspace setup in `.kiro/` (`settings/mcp.json` plus the `#mcp` steering do
 
 ## Install
 
-1. Clone the repo and run `npm install` at its root. The server uses the repo's dependencies and its dashboard generator.
+1. Clone the repo and run `npm install` at its root. The server uses the repo's dependencies and its dashboard generator. For `screenshot_dashboard`, also run `npx playwright install --only-shell chromium` once.
 2. Copy `mcp/.env.example` to `mcp/.env` and fill in a HiBeam account (a dedicated one is best). Start HiBeam with `npm run serve`.
 3. In Kiro, open the **Powers** panel and choose **Add Custom Power** → **Import power from a folder**. Pick this `power-hibeam/` folder, then **Install**.
 4. Ask for something it covers, like "make me a status page from my metrics source", and Kiro activates the power.
@@ -24,5 +24,5 @@ If Kiro copies the power folder somewhere else when it installs it, `server.mjs`
 
 ## Checked so far
 
-- `node power-hibeam/server.mjs` answers the MCP `initialize` handshake and lists all 17 tools.
+- `node power-hibeam/server.mjs` answers the MCP `initialize` handshake and lists all 18 tools.
 - **Not checked yet:** loading it through Kiro's Powers panel. That costs about one credit.

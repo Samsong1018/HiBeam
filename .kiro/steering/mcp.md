@@ -10,7 +10,7 @@ The `hibeam` MCP server (`mcp/hibeam-server.mjs`) logs in as a real HiBeam accou
 2. `preview_source` to see the **real** field names. Never guess them.
 3. Either `generate_dashboard` for a rule-based draft, which comes back with a reason for every widget, or fill in an app's `dashboard.template.json`, swapping each `{{placeholder}}` for a source id.
 4. `create_dashboard` (or `update_dashboard`).
-5. Look at a screenshot of the board, then `update_dashboard` to fix what reads badly: overlapping labels, a pie with too many slices, a KPI that sums a rate.
+5. `screenshot_dashboard` to see the board as a viewer does (`viewport: "mobile"` for the phone layout), then `update_dashboard` to fix what reads badly: overlapping labels, a pie with too many slices, a KPI that sums a rate. Screenshot again after the fix.
 6. `get_dashboard_data` to check the numbers are what the source says.
 
 ## Rules

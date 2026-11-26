@@ -27,6 +27,7 @@ import path from 'node:path';
 import fs from 'node:fs/promises';
 import { generateDashboard, explainSection } from '../Web/frontend/scripts/editor/generator.js';
 import { newDashboard } from '../Web/frontend/scripts/editor/model.js';
+import { ScreenshotBoard } from './screenshot.mjs';
 
 // quiet: dotenv logs to stdout otherwise, which would corrupt the MCP stdio stream
 dotenv.config({ path: path.join(path.dirname(fileURLToPath(import.meta.url)), '.env'), quiet: true });
@@ -624,6 +625,44 @@ _server.tool(
             if (!create) return JsonResult({ definition: tmpDraft, reasons: tmpWhy });
             const tmpSaved = await ApiPost('/api/dashboards', tmpDraft);
             return TextResult(`Created dashboard\n\n${SummariseDashboard(tmpSaved)}\n\nWhy it looks like this:\n${JSON.stringify(tmpWhy, null, 2)}`);
+        }
+        catch (pErr) { return ErrorResult(pErr); }
+    }
+);
+
+// ---- Screenshot ----
+
+_server.tool(
+    'screenshot_dashboard',
+    'Render a dashboard the way a person sees it and return a PNG. Opens the board\'s /view page in headless Chromium '
+    + 'with this session, lets the HiBeam client fetch live data and draw every widget, then captures the board. '
+    + 'Use it after create_dashboard, generate_dashboard or update_dashboard to check the result: overlapping labels, '
+    + 'a pie with too many slices, a KPI that sums a rate, widgets showing errors. Then fix with update_dashboard and '
+    + 'screenshot again. Widgets in an error or empty state are also listed as text.',
+    {
+        id: z.string().describe('The dashboard id'),
+        viewport: z.enum(['desktop', 'mobile']).optional().describe('desktop = 1440px wide (default), mobile = 375px'),
+        color_scheme: z.enum(['light', 'dark']).optional().describe('Viewer colour scheme (default light). A board with theme "kiroween" ignores this.'),
+        scale: z.union([z.literal(1), z.literal(2)]).optional().describe('Pixel density, default 1. 2 is sharper but a much larger image.'),
+    },
+    async ({ id, viewport, color_scheme: tmpColorScheme, scale }) =>
+    {
+        try
+        {
+            // confirms the board exists and refreshes the session before the browser uses it
+            const tmpDash = await ApiGet(`/api/dashboards/${encodeURIComponent(id)}`);
+            const { png, notes } = await ScreenshotBoard({ baseUrl: _baseUrl, cookie: _sessionCookie, id, viewport, colorScheme: tmpColorScheme, scale });
+            const tmpWidgets = tmpDash.definition?.widgets?.length ?? 0;
+            const tmpText = [
+                `${tmpDash.definition?.name || id} · ${tmpWidgets} widget${tmpWidgets === 1 ? '' : 's'} · ${viewport || 'desktop'}`,
+                notes.length ? `Problems:\n- ${notes.join('\n- ')}` : 'Every widget rendered without an error or empty state.',
+            ].join('\n\n');
+            return {
+                content: [
+                    { type: 'image', data: png.toString('base64'), mimeType: 'image/png' },
+                    { type: 'text', text: tmpText },
+                ],
+            };
         }
         catch (pErr) { return ErrorResult(pErr); }
     }

@@ -7,7 +7,7 @@
 
 import { h, clear } from './dom.js';
 import { WIDGET_TYPES, REFRESH_OPTIONS, isDataWidget } from './widget-types.js';
-import { AGGREGATIONS, aggregate, groupSeries, mergeSeries, bucketSeries, mergeTimeSeries, fieldsOf, formatNumber, sortBars, foldPieSlices } from './data.js';
+import { AGGREGATIONS, aggregate, groupSeries, mergeSeries, bucketSeries, mergeTimeSeries, fieldsOf, formatNumber, formatCellValue, sortBars, foldPieSlices } from './data.js';
 import { createChart } from './charts.js';
 import { kpiStatus, kpiDelta, deltaTone, sparklinePoints } from './kpi.js';
 import { toneOf, isToneColumn } from './semantic.js';
@@ -119,7 +119,7 @@ function renderKpi(body, widget, rows, source) {
     ...(flag ? [flag] : []),
     h('p', { class: 'kpi-value' }, formatNumber(value, config), change),
     ...(spark ? [spark] : []),
-    h('p', { class: 'kpi-caption' }, caption),
+    h('p', { class: 'kpi-caption', title: caption }, caption),
   );
   bakeSparkColor(spark);
 }
@@ -127,7 +127,9 @@ function renderKpi(body, widget, rows, source) {
 function cell(row, column) {
   const value = row[column] ?? '';
   const tone = isToneColumn(column) ? toneOf(value, column) : null;
-  return h('td', tone ? { class: 'is-toned', dataset: { tone } } : {}, value);
+  const { text, raw } = formatCellValue(value);
+  const attrs = tone ? { class: 'is-toned', dataset: { tone } } : {};
+  return h('td', raw ? { ...attrs, title: raw } : attrs, text);
 }
 
 function renderTable(body, widget, rows) {

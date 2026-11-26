@@ -376,3 +376,22 @@ export function scaleSize({ w, h }, columns) {
   const f = columns / BASE_COLUMNS;
   return { w: Math.max(1, Math.round(w * f)), h: Math.max(1, Math.round(h * f)) };
 }
+
+// Full ISO date-times ("2026-11-26T03:41:34.000Z") read badly in a table cell.
+// Only that exact shape is reformatted; dates, numbers and free text pass through.
+const ISO_DATETIME = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}(:\d{2}(\.\d+)?)?(Z|[+-]\d{2}:?\d{2})?$/;
+
+/**
+ * Display text for a table cell. ISO date-times become a short local time,
+ * with the date only when it isn't today. Returns { text, raw }; raw is set
+ * when the text was changed, so the cell can keep the original as a tooltip.
+ */
+export function formatCellValue(value, now = new Date()) {
+  if (typeof value !== 'string' || !ISO_DATETIME.test(value.trim())) return { text: value ?? '', raw: null };
+  const date = new Date(value.trim());
+  if (Number.isNaN(date.getTime())) return { text: value, raw: null };
+  const sameDay = date.toDateString() === now.toDateString();
+  const time = date.toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+  const day = sameDay ? '' : `${date.toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}, `;
+  return { text: day + time, raw: value };
+}

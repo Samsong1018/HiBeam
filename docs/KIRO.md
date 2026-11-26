@@ -32,16 +32,16 @@ What the repo shows:
 - **CLI first.** `c087ea0` (Nov 13) added `.kiro/steering` "for kiro-cli", before any backend code existed.
 - **Spec workflow.** `4ed7791` (Nov 14) brought in the auth spec, and Kiro built the auth backend task by task from it. `tasks.meta.json` holds its PBT run results for each task.
 - **Hooks, agents and the skill** landed together in `48dd28c` (Nov 23), each one tied to an incident in the ledger above.
-- **MCP.** `6fc762c` (Nov 23) registered `mcp/hibeam-server.mjs` in `.kiro/settings/mcp.json`. Both app boards were built through it, one prompt each. Kiro can't see the rendered board, so the last step of each build was us handing it a screenshot to fix from.
+- **MCP.** `6fc762c` (Nov 23) registered `mcp/hibeam-server.mjs` in `.kiro/settings/mcp.json`. Both app boards were built through it, one prompt each. Kiro couldn't see the rendered board then, so the last step of each build was us handing it a screenshot to fix from. `screenshot_dashboard` (Nov 25) closes that loop: headless Chromium renders `/view/<id>` with the real client code and returns the PNG.
 
 ## Powers
 
 - **Built:** [`power-hibeam/`](../power-hibeam/) packages `mcp/hibeam-server.mjs` as a Kiro power in the Agent Plugins layout. It has a `plugin.json` with activation keywords, an `mcp.json` for the stdio server, and a `hibeam-boards` skill made from the `#mcp` steering doc. Inside the repo, `.kiro/settings/mcp.json` and `#mcp` already do this job. The power is how the same tools reach a workspace that isn't this repo, and it loads only when a board is asked for.
-- **Checked:** the power's entry point answers the MCP handshake and lists all 17 tools.
+- **Checked:** the power's entry point answers the MCP handshake and lists all 18 tools.
 
 ## Other AI tools we used
 
-Alongside Kiro we also used Claude Code (Anthropic's coding agent), run inside the Kiro IDE. When our Kiro credits ran low near the end, Claude Code did the remaining work. It isn't Kiro's agent, but because it was editing files inside the Kiro IDE, Kiro's file-save hooks still ran on its work: `syntax-check-on-save` checked every script it touched, and `api-contract-sync` and `spec-consistency` fired when it changed a route or a spec. So the guardrails we built for Kiro ended up keeping a second agent in line too. Every change also goes through the same `npm test` suite (370 tests) as the rest of the code. These were built that way:
+Alongside Kiro we also used Claude Code (Anthropic's coding agent), run inside the Kiro IDE. When our Kiro credits ran low near the end, Claude Code did the remaining work. It isn't Kiro's agent, but because it was editing files inside the Kiro IDE, Kiro's file-save hooks still ran on its work: `syntax-check-on-save` checked every script it touched, and `api-contract-sync` and `spec-consistency` fired when it changed a route or a spec. So the guardrails we built for Kiro ended up keeping a second agent in line too. Every change also goes through the same `npm test` suite (377 tests) as the rest of the code. These were built that way:
 - The steering rebuild (#10) and the `app2-monthly-import` spec and code (#11)
 - KPI thresholds and change since the previous row, semantic status colours, tables that show only whole rows, and the Kiroween theme
 - The `generate_dashboard` MCP tool, which explains each widget the generator chose

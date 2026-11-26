@@ -2,7 +2,7 @@
 
 > **Kiroween Hackathon 2026 · Skeleton Crew** · **Live:** <https://hibeam.somab.dev>
 
-**You don't build the board. The agent does.** Point Kiro at your data and HiBeam's MCP server lets it connect the sources, read the real rows, and draft a board. HiBeam's rule-based generator gives a reason for every widget ("`cpuPct` is a rate, so show the latest value, never a sum"). Show Kiro a screenshot of the result and it fixes what reads badly. The board it saves is plain JSON you can review like code. Both applications in this repo were built that way, one prompt each.
+**You don't build the board. The agent does.** Point Kiro at your data and HiBeam's MCP server lets it connect the sources, read the real rows, and draft a board. HiBeam's rule-based generator gives a reason for every widget ("`cpuPct` is a rate, so show the latest value, never a sum"). Then it screenshots the rendered board itself and fixes what reads badly. The board it saves is plain JSON you can review like code. Both applications in this repo were built that way, one prompt each.
 
 Underneath is an ordinary dashboard tool you can also drive by hand: accounts, eight source types, a drag-and-drop editor, a read-only viewer, public links, and PNG/PDF export. Two very different applications are built on top of it, in [`APP1/`](APP1/) and [`APP2/`](APP2/), with no changes to the skeleton.
 
@@ -30,7 +30,7 @@ They're both better tools than HiBeam at what they were built for. HiBeam is for
 | Excel / CSV | Upload a file, or link a published Google Sheet | Through a plugin | CSV upload into a connected database |
 | Scrape a web page | Built in (CSS selector) | No | No |
 | First board | **Generate** reads the rows and lays one out, with a reason for each widget | You build each panel | X-rays suggest charts for a table |
-| An agent can build it | MCP server and a Kiro power, 17 tools | Possible through its HTTP API | Possible through its HTTP API |
+| An agent can build it | MCP server and a Kiro power, 18 tools | Possible through its HTTP API | Possible through its HTTP API |
 | Share | Public link, PNG, PDF, layout as JSON | Snapshots, public dashboards, PDF reporting in paid tiers | Public links, embedding, subscriptions |
 | Where it's stronger than HiBeam | | Alert routing, long retention, millions of points, a huge plugin ecosystem | Ad-hoc queries, joins, permissions for a whole company |
 
@@ -41,6 +41,23 @@ If you already run Prometheus, use Grafana. If your company's data lives in a wa
 ---
 
 ## Two applications, one skeleton
+
+### The skeleton
+
+`Web/` is the skeleton. It's the part you'd fork to start your own app, and it has four places you plug in:
+
+| Extension point | Where | What an app adds there |
+|---|---|---|
+| Sources | `Web/backend/lib/source-connector.js` and `connectors/` | Nothing, usually. An app points one of the 8 source types at its own data. A new type is one connector file |
+| Widgets | `Web/frontend/scripts/editor/widget-types.js` | Nothing, usually. A new widget is a registry entry plus a renderer |
+| Boards | A `dashboard.template.json` | The layout, with `{{placeholder}}` slots instead of source ids |
+| Automation | The REST API, or the MCP server in `mcp/` | Scripts or an agent that create sources, upload files and rewrite boards |
+
+The rule (it's in our steering, `product.md`): an app never changes `Web/`. Nothing in `Web/` knows APP1 or APP2 exist. When an app needed something new, like CPU going red past 85%, it went into the skeleton as a general option (KPI thresholds) and the app turned it on from its template.
+
+So each app is the stuff that lives in its own folder. APP1 is a metrics agent, a systemd unit, nginx and Caddy configs, a setup script and a template. APP2 is a sample workbook, a template, and a monthly import pipeline with its own spec and property tests.
+
+### The apps
 
 The two apps are for opposite kinds of user. Between them they cover the skeleton's range: live data and uploaded files, a public share link and a PDF export.
 
@@ -120,7 +137,9 @@ Sign up and log in, profile and avatar, email change with confirmation, password
 
 ## Built with Kiro
 
-Everything Kiro uses lives in [`.kiro/`](.kiro/). Here's what's in there and what it did for us. We also used Claude Code, especially after our Kiro credits ran low near the end. [`docs/KIRO.md`](docs/KIRO.md) lists what was built that way.
+Everything Kiro uses lives in [`.kiro/`](.kiro/). Here's what's in there and what it did for us.
+
+Kiro built the core: the auth backend task by task from its spec, the dashboard generator from its spec, and both app boards through our MCP server. Near the end our Kiro credits ran low, so we finished the last features with Claude Code running inside the Kiro IDE. Our Kiro hooks kept running on everything it saved, so the guardrails we built for Kiro checked its work too. [`docs/KIRO.md`](docs/KIRO.md) lists exactly what was built which way.
 
 ### Specs
 | Spec | What it covers | Status |
@@ -174,7 +193,7 @@ There's also a [`security-review`](.kiro/skills/security-review/SKILL.md) skill 
 | `generate_dashboard` | Draft a board from sources with the rule-based generator, and get a reason for every field (rate, level, flow, category, id). It's a preview unless you pass `create` |
 | `get_dashboard_data` `get_public_dashboard_data` `set_dashboard_visibility` `hibeam_status` | Read what a board is showing right now, and share it |
 
-This is how both applications were made. For each one, Kiro created and tested the sources. It previewed rows to get the real field names, then built the board from the app's template. We gave it a screenshot of the rendered board, and it called `update_dashboard` to fix what read badly. (The MCP server can't render a board itself yet, so that step needs a person.) Each board took one prompt, and its layout lives in the repo as JSON, where it gets reviewed like code.
+This is how both applications were made. For each one, Kiro created and tested the sources. It previewed rows to get the real field names, then built the board from the app's template. We gave it a screenshot of the rendered board, and it called `update_dashboard` to fix what read badly. That step needed a person then. Now `screenshot_dashboard` does it: it opens the board's `/view` page in headless Chromium, lets the normal client code fetch the data and draw every widget, and hands Kiro the PNG plus a list of any widgets stuck on an error or empty state. Each board took one prompt, and its layout lives in the repo as JSON, where it gets reviewed like code.
 
 The same tools work on any dashboard, so you can also ask Kiro things like "what is my CPU board showing right now?"
 
@@ -212,7 +231,7 @@ To set it up, copy `mcp/.env.example` to `mcp/.env` and fill in a HiBeam account
 npm install
 ```
 
-Requires **Node 22 or newer**.
+Requires **Node 22 or newer**. The MCP server's `screenshot_dashboard` tool also needs a headless browser, once: `npx playwright install --only-shell chromium`. Everything else runs without it.
 
 ### 2. Configure
 

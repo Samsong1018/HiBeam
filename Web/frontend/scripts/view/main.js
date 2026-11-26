@@ -49,6 +49,8 @@ function showFatal(title, detail) {
     h('p', {}, detail),
     h('a', { class: 'btn btn-primary', href: '/' }, 'Back to dashboards')));
   els.viewer.removeAttribute('aria-busy');
+  window.DashTheme?.board(null);
+  markRendered();
 }
 
 // ------------------------------------------------------------
@@ -65,7 +67,7 @@ function createBoard(dash, registry) {
       inst.widget.config.bindings.forEach((b) => registry.invalidate(b.sourceId));
       render(inst);
     };
-    renderWidget(inst.content, inst.widget, registry, () => ticket === inst.renders, { emptyText: EMPTY_TEXT, readOnly: true, retry })
+    return renderWidget(inst.content, inst.widget, registry, () => ticket === inst.renders, { emptyText: EMPTY_TEXT, readOnly: true, retry })
       .then((cleanup) => {
         if (ticket === inst.renders) inst.cleanup = cleanup;
         else cleanup();
@@ -82,6 +84,7 @@ function createBoard(dash, registry) {
   }
 
   els.board.style.setProperty('--cols', dash.grid.columns);
+  const firstRenders = [];
   readingOrder(dash.widgets).forEach((widget, i) => {
     const label = `${WIDGET_TYPES[widget.type].label}${widget.config.title ? `: ${widget.config.title}` : ''}`;
     const content = h('article', { class: 'widget', dataset: { type: widget.type }, 'aria-label': label });
@@ -93,8 +96,10 @@ function createBoard(dash, registry) {
     els.board.append(item);
     const inst = { content, widget, cleanup: () => {}, renders: 0 };
     instances.push(inst);
-    render(inst);
+    firstRenders.push(render(inst));
   });
+  // every widget has drawn its data, error or empty state: headless screenshots wait for this
+  Promise.allSettled(firstRenders).then(markRendered);
 
   // square cells track the board's width
   const fit = () => els.board.style.setProperty('--cell', `${cellSize(els.board.clientWidth, dash.grid.columns)}px`);
@@ -122,6 +127,12 @@ function createBoard(dash, registry) {
   return {
     rerenderAll: () => instances.forEach(render),
   };
+}
+
+// Set once the board shows its final first paint (widgets, empty state or a
+// fatal message). The MCP screenshot_dashboard tool waits for it.
+function markRendered() {
+  document.documentElement.dataset.boardRendered = 'true';
 }
 
 function showEmpty(canEdit, editHref) {
@@ -308,6 +319,7 @@ async function boot() {
   clear(els.board);
   if (!dash.widgets.length) {
     showEmpty(isOwner, editHref);
+    markRendered();
   } else {
     const board = createBoard(dash, registry);
     // charts read colours from CSS tokens, so redraw on theme change
