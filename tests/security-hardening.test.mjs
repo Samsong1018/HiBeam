@@ -7,7 +7,7 @@ const require = createRequire(import.meta.url);
 const express = require('express');
 const { AllowedFields, ProjectRows } = require('../Web/backend/lib/public-projection.js');
 const { SecurityHeaders, CreateLimiters, TrustProxySetting, TOO_MANY } = require('../Web/backend/lib/security.js');
-const { PruneExpired, PRUNE_QUERIES } = require('../Web/backend/lib/maintenance.js');
+const { PruneExpired, PRUNE_QUERIES, DEMO_PRUNE_QUERIES } = require('../Web/backend/lib/maintenance.js');
 const CreatePublicDashboardsRouter = require('../Web/backend/lib/routes/public-dashboards.js');
 
 async function withApp(app, fn) {
@@ -147,7 +147,8 @@ test('PruneExpired runs every prune query, sums deletions, and survives a failin
     },
   };
   const deleted = await PruneExpired(db, { error: (m) => errors.push(m) });
-  assert.deepEqual(seen, PRUNE_QUERIES);
-  assert.equal(deleted, 6);
-  assert.deepEqual(errors, ['[maintenance] prune failed: ER_NO_SUCH_TABLE']);
+  assert.deepEqual(seen, [...PRUNE_QUERIES, ...DEMO_PRUNE_QUERIES]);
+  // 10 queries, 2 of them touch email_tokens and fail; the other 8 delete 2 rows each
+  assert.equal(deleted, 16);
+  assert.deepEqual(errors, ['[maintenance] prune failed: ER_NO_SUCH_TABLE', '[maintenance] prune failed: ER_NO_SUCH_TABLE']);
 });

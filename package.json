@@ -6,7 +6,12 @@
   "scripts": {
     "serve": "node ./Web/backend/server.js",
     "test": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON --test tests/*.test.mjs",
-    "check": "node tools/check-syntax.mjs"
+    "check": "node tools/check-syntax.mjs",
+    "app1:agent": "node APP1/agent/agent.mjs",
+    "app1:setup": "node APP1/setup/setup.mjs",
+    "app2:preview": "node APP2/import/monthly-import.mjs APP2/John_Doe_finance.xlsx --dry-run",
+    "app2:setup": "node APP2/import/monthly-import.mjs APP2/John_Doe_finance.xlsx --setup",
+    "app2:import": "node APP2/import/monthly-import.mjs"
   },
   "repository": {
     "type": "git",

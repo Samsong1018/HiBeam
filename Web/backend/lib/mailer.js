@@ -99,6 +99,11 @@ function CreateMailer(pOptions)
     async function Send(pKind, pTo, pUrl)
     {
         const tmpTemplate = TEMPLATES[pKind];
+        // .invalid is reserved (RFC 2606) and is what demo accounts use: never spend a send on it
+        if (/\.invalid$/i.test(String(pTo).trim()))
+        {
+            return { sent: false };
+        }
         if (!tmpEnabled)
         {
             tmpLogger.log(`[mail:disabled] ${pKind} for ${pTo}: ${pUrl}`);

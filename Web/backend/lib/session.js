@@ -23,6 +23,12 @@ function buildSessionCookie(token) {
   return `${COOKIE_NAME}=${token}; HttpOnly; SameSite=Lax; Max-Age=${SESSION_MAX_AGE_SECONDS}; Path=/${secureSuffix()}`;
 }
 
+// No Max-Age, so the browser drops it when it closes. Demo sessions use this: a judge who closes
+// the tab isn't still in the demo account the next time they open the site.
+function buildBrowserSessionCookie(token) {
+  return `${COOKIE_NAME}=${token}; HttpOnly; SameSite=Lax; Path=/${secureSuffix()}`;
+}
+
 function buildClearCookie() {
   return `${COOKIE_NAME}=; HttpOnly; SameSite=Lax; Max-Age=0; Path=/${secureSuffix()}`;
 }
@@ -65,6 +71,7 @@ module.exports = {
   sha256Hex,
   newSessionToken,
   buildSessionCookie,
+  buildBrowserSessionCookie,
   buildClearCookie,
   parseCookies,
   isSessionValid,

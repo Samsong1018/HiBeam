@@ -6,6 +6,17 @@ A live health board for a self-hosted server, built on HiBeam. It shows CPU, mem
 
 This is the "technical user, live data" half of the Skeleton Crew pair. [APP2](../APP2/) is the other half.
 
+## Try it
+
+- **In the browser, no install:** open <https://hibeam.somab.dev> and click **Open the demo**. You get your own copy of the live Homelab Ops board, fed by our agent in demo mode, to edit, export or make public.
+- **On your own server, about 10 minutes:** run the agent (`npm run app1:agent`), put it behind your HTTPS site, then build the whole board with one command:
+
+  ```bash
+  npm run app1:setup -- --agent https://your-domain.example/hibeam-agent --public
+  ```
+
+  It creates the four sources, tests each one, builds the board from `dashboard.template.json`, makes it a public status page and prints the link. The full walk-through is under [Setup](#setup).
+
 ## What's in here
 
 | Path | What it is |
@@ -14,6 +25,8 @@ This is the "technical user, live data" half of the Skeleton Crew pair. [APP2](.
 | `agent/collect.mjs` | The pure parsing and math behind it, covered by `tests/app1-agent.test.mjs` |
 | `agent/simulate.mjs` | Demo mode: a made-up homelab whose numbers move, covered by `tests/app1-demo.test.mjs` |
 | `agent/.env.example` | Agent config |
+| `setup/setup.mjs` | One command from a running agent to a live board: sources, tests, board, optional public link |
+| `setup/plan.mjs` | The pure part of setup (source settings, template filling), covered by `tests/app1-setup.test.mjs` |
 | `deploy/hibeam-agent.service` | systemd unit, sandboxed and read-only |
 | `deploy/nginx-agent.conf` | nginx `location` block that puts the agent behind your HTTPS site |
 | `deploy/caddy-agent.conf` | The same route for Caddy (what our demo server runs) |
@@ -70,6 +83,17 @@ curl -s -H "Authorization: Bearer $TOKEN" https://your-domain.example/hibeam-age
 ```
 
 ## Building the board
+
+### With the setup script
+
+With the agent reachable at a public URL, and a HiBeam login in `mcp/.env` (or `HIBEAM_BASE_URL`, `HIBEAM_USERNAME`, `HIBEAM_PASSWORD`):
+
+```bash
+npm run app1:setup -- --agent https://your-domain.example/hibeam-agent           # private board
+npm run app1:setup -- --agent https://your-domain.example/hibeam-agent --public  # public status page
+```
+
+The script reads the agent token from `APP1/agent/.env` (or `AGENT_TOKEN`), never from the command line, so it stays out of your shell history. If any source fails its test, the script deletes the four sources it made and tells you which one failed, so you can fix it and run it again.
 
 ### With the HiBeam MCP server (how we did it)
 

@@ -4,7 +4,7 @@ The age old IT problem. HR asks for a dashboard pulling from 30 different source
 ## What it does
 HiBeam lets you build a dashboard by dragging widgets onto a grid and hooking them up to your data. It can read from REST APIs, JSON, MySQL, Prometheus, scraped web pages, server logs, Google Sheets CSV links, and Excel or CSV uploads. Everything gets fetched server-side, so your credentials never reach the browser. Besides the usual line, bar and pie charts there's gauges, sparklines on KPIs, and an uptime strip for status pages.
 
-You don't have to build it yourself either. Generate reads your data and lays out a first draft for you, and the built in MCP server lets you make a whole dashboard from a single prompt to Kiro or other models. The agent connects the sources, builds the board, then looks at it and fixes what reads badly.
+You don't have to build it yourself either. Generate reads your data and lays out a first draft for you, and the built in MCP server lets you make a whole dashboard from a single prompt to Kiro or other models. The agent connects the sources and builds the board, then you show it a screenshot and it fixes whatever reads badly.
 
 You can share boards with a public link or export them as a PNG, PDF, or a JSON layout someone else can import. If a source stops reporting the widget fades out into a little ghost, so a dead server actually looks dead.
 
@@ -18,7 +18,7 @@ Most of our hooks came from something breaking. One blocks force-pushes and dest
 ## Challenges we ran into
 The worst one was the editor loading dashboards wrong, so every saved board opened empty and then autosave wrote over the real one. A single stray quote also took down the whole home page, and no test caught it because nothing loaded that file. We also found out our secret scanning workflow had bad indentation, so it wasn't scanning anything.
 
-Near the end we ran low on Kiro credits, so a lot of the last features got done by hand.
+Near the end we ran low on Kiro credits, so a lot of the last features got built with Claude Code inside the Kiro IDE instead. Our Kiro hooks still ran on everything Claude saved, so the same guardrails kept checking its work.
 
 ## Accomplishments that we're proud of
 This was all of our first hackathon so I think we're all proud to have just worked together and completed something for this challenge. We're also pretty happy that Kiro can build a full board from one prompt.
@@ -27,4 +27,4 @@ This was all of our first hackathon so I think we're all proud to have just work
 None of us had done property-based testing before. One of those tests found an input that crashed our error handler, which our normal tests missed. We also learned it's worth setting up steering early, Kiro stopped reaching for frameworks we weren't using once we did.
 
 ## What's next for HiBeam
-Currently the agent builds a board without ever seeing it. We plan on adding screenshot tools to the MCP server so it can look at what it made and fix it. We also want to publish the HiBeam power so anyone can install it from Kiro.
+Right now the agent only sees the board when you hand it a screenshot. We plan on adding a screenshot tool to the MCP server so it can check its own work. We also want to publish the HiBeam power so anyone can install it from Kiro.
